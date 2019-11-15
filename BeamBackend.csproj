@@ -5,11 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\GameModeMgr\GameModeMgr.csproj" />  
+      <ProjectReference Include="../GameModeMgr/GameModeMgr.csproj" />  
   </ItemGroup>
 
   <ItemGroup Condition=" '$(UNITY_2019_1_OR_NEWER)' == '' ">
-    <ProjectReference Include="..\NotUnityEngine\UnityEngine.csproj" />
+    <ProjectReference Include="../NotUnityEngine/UnityEngine.csproj" />
   </ItemGroup>   
 
 </Project>
