@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(UNITY_2019_1_OR_NEWER)' == '' ">
-    <ProjectReference Include="..\UnityEngine\UnityEngine.csproj" />
+    <ProjectReference Include="..\NotUnityEngine\UnityEngine.csproj" />
   </ItemGroup>   
 
 </Project>
