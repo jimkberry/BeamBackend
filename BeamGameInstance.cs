@@ -17,13 +17,13 @@ namespace BeamBackend
         {
             Players = new Dictionary<string, Player>();
             Bikes = new Dictionary<string, IBike>();
-            Ground = new Ground(fep);    
-            _bikeIdsToRemoveAfterLoop = new List<string>();          
+            Ground = new Ground(fep);
+            _bikeIdsToRemoveAfterLoop = new List<string>();
         }
 
         public Player GetPlayer(string playerId)
         {
-            try { return Players[playerId];} catch (KeyNotFoundException){ return null;} 
+            try { return Players[playerId];} catch (KeyNotFoundException){ return null;}
         }
 
         public BaseBike GetBaseBike(string bikeId)
@@ -33,7 +33,7 @@ namespace BeamBackend
 
         public void PostBikeRemoval(string bikeId) => _bikeIdsToRemoveAfterLoop.Add(bikeId);
 
-        public void Init() 
+        public void Init()
         {
             Players.Clear();
             Bikes.Clear();
@@ -50,37 +50,45 @@ namespace BeamBackend
         }
 
         public IBike ClosestBike(IBike thisBike)
-        {  
+        {
             return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
                     .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).First();
-        }   
+        }
 
         public List<Vector2> CloseBikePositions(IBike thisBike, int maxCnt)
         {
-            // Todo: this is actually "current enemy pos"         
+            // Todo: this is actually "current enemy pos"
             return Bikes.Values.Where(b => b != thisBike)
                 .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).Take(maxCnt) // IBikes
                 .Select(ob => ob.position).ToList();
-        }                 
+        }
     }
 
     public class BeamGameInstance : IGameInstance, IBeamBackend
     {
+        public class BeamGameConfig
+        {
+            public int startMode;
+        }
+
         public ModeManager modeMgr {get; private set;}
         public  BeamGameData gameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
 
-        public BeamGameInstance(IBeamFrontend fep = null)
+        public BeamGameConfig config;
+
+        public BeamGameInstance(IBeamFrontend _fep, BeamGameConfig _config)
         {
+            config = _config;
             modeMgr = new ModeManager(new BeamModeFactory(), this);
-            frontend = fep; // Should work without one
-            gameData = new BeamGameData(frontend);            
+            frontend = _fep; // Should work without one
+            gameData = new BeamGameData(frontend);
         }
 
         // IGameInstance
         public void Start()
         {
-            modeMgr.Start(BeamModeFactory.kSplash);
+            modeMgr.Start(config.startMode);
         }
 
         public bool Loop(float frameSecs)
@@ -92,20 +100,20 @@ namespace BeamBackend
 
         //
         // IBeamBackend (requests from the frontend)
-        // 
+        //
 
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
-           modeMgr.SwitchToMode(newModeId, modeParam);       
+           modeMgr.SwitchToMode(newModeId, modeParam);
         }
 
         public void OnTurnReq(string bikeId, TurnDir turn)
         {
             // TODO: In real life, this message from the FE should get sent to the net layer
             // and looped back, rather than directly talking to the bike
-            //UnityEngine.Debug.Log(string.Format("Backend.OnTurnReq({0}, {1})", bikeId, turn));               
-            gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);            
-        }       
+            //UnityEngine.Debug.Log(string.Format("Backend.OnTurnReq({0}, {1})", bikeId, turn));
+            gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);
+        }
 
         //
         // Messages from the network/consensus layer (external or internal loopback)
@@ -113,18 +121,18 @@ namespace BeamBackend
 
         public void OnNewPlayerReq(Player p)
         {
-            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewPlayerReq()")); 
+            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewPlayerReq()"));
         }
         public void OnNewBikeReq(IBike ib)
         {
-            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewBikeReq()"));             
+            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewBikeReq()"));
         }
 
 
         public void OnPlaceClaim(string bikeId, Vector2 pos)
         {
             // TODO: should be coming from net, instead of the backend
-            BaseBike b = (BaseBike)gameData.Bikes[bikeId];            
+            BaseBike b = (BaseBike)gameData.Bikes[bikeId];
             Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
             // Ground sends message to FE when place s claimed
         }
@@ -139,19 +147,19 @@ namespace BeamBackend
 
             if (evt == ScoreEvent.kHitEnemyPlace || evt == ScoreEvent.kHitFriendPlace)
             {
-                // half of the deduction goes to the owner of the place, the rest is divded 
-                // among the owner's team 
+                // half of the deduction goes to the owner of the place, the rest is divded
+                // among the owner's team
                 // UNLESS: the bike doing the hitting IS the owner - then the rest of the team just splits it
                 if (bike != place.bike) {
                     scoreDelta /= 2;
                     place.bike.score -= scoreDelta; // adds
                 }
 
-                IEnumerable<IBike> rewardedOtherBikes = 
+                IEnumerable<IBike> rewardedOtherBikes =
                     gameData.Bikes.Values.Where( b => b != bike && b.player.Team == place.bike.player.Team);  // Bikes other the "bike" on affected team
                 if (rewardedOtherBikes.Count() > 0)
                 {
-                    foreach (BaseBike b  in rewardedOtherBikes) 
+                    foreach (BaseBike b  in rewardedOtherBikes)
                         b.score -= scoreDelta / rewardedOtherBikes.Count();
                 }
             }
@@ -171,7 +179,7 @@ namespace BeamBackend
         public bool AddNewPlayer(Player p)
         {
             if  ( gameData.Players.ContainsKey(p.ID))
-                return false;  
+                return false;
 
             gameData.Players[p.ID] = p;
             frontend?.OnNewPlayer(p);
@@ -179,23 +187,23 @@ namespace BeamBackend
         }
         public void ClearPlayers()
         {
-            frontend?.OnClearPlayers();     
+            frontend?.OnClearPlayers();
             gameData.Players.Clear();
         }
 
         // Bike-related
         public void NewBike(IBike b)
         {
-            //UnityEngine.Debug.Log(string.Format("NEW BIKE. ID: {0}, Pos: {1}", b.bikeId, b.position));            
+            //UnityEngine.Debug.Log(string.Format("NEW BIKE. ID: {0}, Pos: {1}", b.bikeId, b.position));
             gameData.Bikes[b.bikeId] = b;
             frontend?.OnNewBike(b);
-        }        
+        }
 
         public void RemoveBike(BaseBike bb, bool shouldBlowUp=true)
         {
             gameData.Ground.RemovePlacesForBike(bb);
-            frontend?.OnBikeRemoved(bb.bikeId, shouldBlowUp);  
-            bb.player.bikeId = ""; 
+            frontend?.OnBikeRemoved(bb.bikeId, shouldBlowUp);
+            bb.player.bikeId = "";
             gameData.PostBikeRemoval(bb.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
         }
         public void ClearBikes()
@@ -207,11 +215,11 @@ namespace BeamBackend
        // Ground-related
         public void ClearPlaces()
         {
-            frontend?.OnClearPlaces();            
+            frontend?.OnClearPlaces();
             gameData.Ground.ClearPlaces();
         }
 
-        // Info    
+        // Info
 
     }
 
