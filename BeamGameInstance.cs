@@ -206,9 +206,8 @@ namespace BeamBackend
 
        // Ground-related
         public void ClearPlaces()
-        {
-            frontend?.OnClearPlaces();            
-            gameData.Ground.ClearPlaces();
+        {           
+            gameData.Ground.ClearPlaces(); // ground notifies FE.
         }
 
         // Info    
