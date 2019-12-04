@@ -20,6 +20,8 @@ namespace BeamBackend
 
         // Called by backend
 
+        BeamUserSettings GetUserSettings();
+
         // Game Modes
         IFrontendModeHelper ModeHelper();
 
