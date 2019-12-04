@@ -78,9 +78,9 @@ namespace BeamBackend
         }
 
         // IGameInstance
-        public void Start()
+        public void Start(int initialMode)
         {
-            modeMgr.Start(BeamModeFactory.kSplash);
+            modeMgr.Start(initialMode);
         }
 
         public bool Loop(float frameSecs)
