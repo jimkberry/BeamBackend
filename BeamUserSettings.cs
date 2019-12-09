@@ -2,6 +2,7 @@ namespace BeamBackend
 {
     public class BeamUserSettings
     {
+        public string gameId; // if null, create a game and join, otherwise just join 
         public string screenName;
         public string p2pConnectionString;
         public string ethNodeUrl;
@@ -10,6 +11,7 @@ namespace BeamBackend
         public BeamUserSettings() {}
         public BeamUserSettings(BeamUserSettings source)
         {
+            gameId = source.gameId;
             screenName = source.screenName;
             p2pConnectionString = source.p2pConnectionString;
             ethNodeUrl = source.ethNodeUrl;
@@ -19,6 +21,8 @@ namespace BeamBackend
         public static BeamUserSettings CreateDefault()
         {
             return new BeamUserSettings() {
+
+                gameId = null,
                 screenName = "Fred Sanford",
                 p2pConnectionString = "p2predis::sparkyx,password=sparky-redis79",
                 ethNodeUrl = "https://rinkeby.infura.io",

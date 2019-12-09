@@ -42,11 +42,6 @@ namespace BeamBackend
             return null;
         } 
 
-        public override void HandleCmd(int cmd, object param)
-        {
-
-        }                
-
         protected string CreateADemoBike()
         {
             Player p = DemoPlayerData.CreatePlayer(); 

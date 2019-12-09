@@ -7,12 +7,6 @@ namespace BeamBackend
 {
     public class ModePlay : BaseGameMode
     {
-
-        public enum Commands
-        {
-            kRespawn = 0,
-            kCount = 1
-        }    
         public readonly int kMaxPlayers = 12;        
 
         public BeamGameInstance game = null;
@@ -26,7 +20,7 @@ namespace BeamBackend
 		public override void Start(object param = null)	
         {
             base.Start();
-            _cmdDispatch[(int)Commands.kRespawn] = new Action<object>(o => RespawnPlayerBike());  
+            _cmdDispatch["Respawn"] = new Action<object>(o => RespawnPlayerBike());  
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
             game.ClearPlayers();
@@ -75,11 +69,6 @@ namespace BeamBackend
             game.ClearPlaces();              
             return null;
         } 
-
-        public override void HandleCmd(int cmd, object param)
-        {
-
-        }                
 
         protected Player PlayerWithoutBike()
         {

@@ -1,8 +1,10 @@
+using System.Diagnostics;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using GameModeMgr;
 using UnityEngine;
+using GameNet;
 
 namespace BeamBackend
 {
@@ -64,16 +66,18 @@ namespace BeamBackend
         }                 
     }
 
-    public class BeamGameInstance : IGameInstance, IBeamBackend
+    public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamGameNetClient
     {
         public ModeManager modeMgr {get; private set;}
         public  BeamGameData gameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
+        public  IBeamGameNet gameNet {get; private set;}        
 
-        public BeamGameInstance(IBeamFrontend fep = null)
+        public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
             modeMgr = new ModeManager(new BeamModeFactory(), this);
-            frontend = fep; // Should work without one
+            frontend = fep;
+            gameNet = bgn;
             gameData = new BeamGameData(frontend);            
         }
 
@@ -89,6 +93,43 @@ namespace BeamBackend
             gameData.Loop(frameSecs);
             return modeMgr.Loop(frameSecs);
         }
+
+        //
+        // IBeamGameNetClient
+        //
+
+        public void SetGameNetInstance(IGameNet iGameNet)
+        {
+            gameNet = (IBeamGameNet)iGameNet;
+        }  
+
+
+        public void OnGameCreated(string gameP2pChannel)
+        {
+            GameNetTrace.Info($"BGI.OnGameCreated({gameP2pChannel}");          
+            modeMgr.DispatchCmd( new BeamMessages.GameCreatedMsg(gameP2pChannel));
+        }
+        public void OnGameJoined(string gameId, string localP2pId)
+        {
+            GameNetTrace.Info($"BGI.OnGameJoined({localP2pId})");  
+            modeMgr.DispatchCmd( new BeamMessages.GameJoinedMsg(gameId, localP2pId));                      
+        }
+        public void OnPlayerJoined(string p2pId, string helloData)
+        {
+            GameNetTrace.Info($"BGI.OnPlayerJoined({p2pId})");            
+        }
+        public void OnPlayerLeft(string p2pId)
+        {
+            GameNetTrace.Info($"BGI.OnPlayerLeft({p2pId})");            
+        }
+        public void OnP2pMsg(string from, string to, string payload)
+        {
+            GameNetTrace.Info($"BGI.OnP2pMsg from {from}");            
+        }
+        public string LocalPlayerData()
+        {
+            return $"LocalPlayerData for {gameNet.LocalP2pId()}";
+        }       
 
         //
         // IBeamBackend (requests from the frontend)
