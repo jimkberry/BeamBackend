@@ -24,7 +24,7 @@ namespace BeamBackend
 
                 gameId = null,
                 screenName = "Fred Sanford",
-                p2pConnectionString = "p2predis::sparkyx,password=sparky-redis79",
+                p2pConnectionString = "p2predis::192.168.1.195,password=sparky-redis79",
                 ethNodeUrl = "https://rinkeby.infura.io",
                 ethAcct = "0x2b42eBD222B5a1134e85D78613078740eE3Cc93D"
             };
