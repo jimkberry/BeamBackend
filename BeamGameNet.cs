@@ -21,7 +21,7 @@ namespace BeamBackend
 
         public override void  CreateGame<GameCreationData>(GameCreationData data)
         {
-            GameNetTrace.Info($"BeamGameNet.CreateGame()");
+            logger.Info($"BeamGameNet.CreateGame()");
             _SyncTrivialNewGame(); // Creates/sets an ID and enqueues OnGameCreated()
         }        
       

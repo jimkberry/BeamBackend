@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using GameModeMgr;
 using UnityEngine;
 using GameNet;
+using UniLog;
 
 namespace BeamBackend
 {
@@ -72,9 +73,11 @@ namespace BeamBackend
         public  BeamGameData gameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
         public  IBeamGameNet gameNet {get; private set;}        
+        public UniLogger logger;
 
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
+            logger = UniLogger.GetLogger("GameInstance");
             modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
             gameNet = bgn;
@@ -106,25 +109,25 @@ namespace BeamBackend
 
         public void OnGameCreated(string gameP2pChannel)
         {
-            GameNetTrace.Info($"BGI.OnGameCreated({gameP2pChannel}");          
+            logger.Info($"BGI.OnGameCreated({gameP2pChannel}");          
             modeMgr.DispatchCmd( new BeamMessages.GameCreatedMsg(gameP2pChannel));
         }
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            GameNetTrace.Info($"BGI.OnGameJoined({localP2pId})");  
+            logger.Info($"BGI.OnGameJoined({localP2pId})");  
             modeMgr.DispatchCmd( new BeamMessages.GameJoinedMsg(gameId, localP2pId));                      
         }
         public void OnPlayerJoined(string p2pId, string helloData)
         {
-            GameNetTrace.Info($"BGI.OnPlayerJoined({p2pId})");            
+            logger.Info($"BGI.OnPlayerJoined({p2pId})");            
         }
         public void OnPlayerLeft(string p2pId)
         {
-            GameNetTrace.Info($"BGI.OnPlayerLeft({p2pId})");            
+            logger.Info($"BGI.OnPlayerLeft({p2pId})");            
         }
         public void OnP2pMsg(string from, string to, string payload)
         {
-            GameNetTrace.Info($"BGI.OnP2pMsg from {from}");            
+            logger.Info($"BGI.OnP2pMsg from {from}");            
         }
         public string LocalPlayerData()
         {
