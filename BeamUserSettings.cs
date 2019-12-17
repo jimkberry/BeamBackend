@@ -39,8 +39,10 @@ namespace BeamBackend
         public static void Save(BeamUserSettings settings)
         {
             System.IO.Directory.CreateDirectory(path); 
-            string filePath = path + Path.DirectorySeparatorChar + fileName;            
-            File.WriteAllText(filePath, JsonConvert.SerializeObject(settings, Formatting.Indented));            
+            string filePath = path + Path.DirectorySeparatorChar + fileName;  
+            BeamUserSettings saveSettings = new BeamUserSettings(settings);
+            saveSettings.tempSettings = new Dictionary<string, string>(); // Don't persist temp settings
+            File.WriteAllText(filePath, JsonConvert.SerializeObject(saveSettings, Formatting.Indented));            
         }
 
         public static string GetPath(string leafFolder)
@@ -59,32 +61,38 @@ namespace BeamBackend
     public class BeamUserSettings
     {
         public string version = UserSettingsMgr.currentVersion;
-        public string gameId; // if null, create a game and join, otherwise just join 
+        public int startMode;
         public string screenName;
         public string p2pConnectionString;
         public string ethNodeUrl;
         public string ethAcct;
         public Dictionary<string, string> debugLevels;
+        public Dictionary<string, string> tempSettings; // dict of cli-set, non-peristent values        
 
-        public BeamUserSettings() {}
+        public BeamUserSettings() 
+        {
+            debugLevels = new Dictionary<string, string>();            
+            tempSettings = new Dictionary<string, string>();
+        }
 
         public BeamUserSettings(BeamUserSettings source)
         {
             if (version != source.version)
                 throw( new Exception($"Invalid settings version: {source.version}"));
-            gameId = source.gameId;
+            startMode = source.startMode;                
             screenName = source.screenName;
             p2pConnectionString = source.p2pConnectionString;
             ethNodeUrl = source.ethNodeUrl;
             ethAcct = source.ethAcct; 
-            debugLevels = source.debugLevels;        
+            debugLevels = source.debugLevels ?? new Dictionary<string, string>();
+            tempSettings = source.tempSettings ?? new Dictionary<string, string>();                 
         }
 
         public static BeamUserSettings CreateDefault()
         {
             return new BeamUserSettings() {
                 version = UserSettingsMgr.currentVersion,
-                gameId = null,
+                startMode = BeamModeFactory.kConnect,
                 screenName = "Fred Sanford",
                 p2pConnectionString = "p2predis::192.168.1.195,password=sparky-redis79",
                 ethNodeUrl = "https://rinkeby.infura.io",
@@ -94,7 +102,8 @@ namespace BeamBackend
                     {"GameNet", UniLogger.LevelNames[UniLogger.Level.Warn]},
                     {"GameInstance", UniLogger.LevelNames[UniLogger.Level.Warn]},
                     {"BeamMode", UniLogger.LevelNames[UniLogger.Level.Warn]},                                          
-                }
+                },
+                tempSettings = new Dictionary<string, string>()                
             };
         }
     }

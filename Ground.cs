@@ -82,7 +82,7 @@ namespace BeamBackend
             _feProxy?.OnClearPlaces();                             
         }
 
-        public void RemovePlacesForBike(BaseBike bike)
+        public void RemovePlacesForBike(IBike bike)
         {
             activePlaces.RemoveAll( p => {
                     if (p.bike == bike)

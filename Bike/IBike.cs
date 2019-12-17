@@ -7,8 +7,10 @@ namespace BeamBackend
 {
     public interface IBike 
     {
-        string bikeId {get;}   
-        Player player {get;}   
+        string bikeId {get;}  
+        string peerId {get;}
+        string name {get;}
+        Team team { get;}   
         int ctrlType {get;}        
         Vector2 position {get;}   
         Heading heading { get;} 

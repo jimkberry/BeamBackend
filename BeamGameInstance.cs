@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using GameModeMgr;
 using UnityEngine;
 using GameNet;
@@ -9,6 +10,11 @@ using UniLog;
 
 namespace BeamBackend
 {
+    public class NetPlayerData 
+    {
+        public Player player;
+    }
+
     public class BeamGameData
     {
         public Dictionary<string, Player> Players { get; private set; } = null;
@@ -74,6 +80,9 @@ namespace BeamBackend
         public  IBeamFrontend frontend {get; private set;}
         public  IBeamGameNet gameNet {get; private set;}        
         public UniLogger logger;
+        public Player LocalPlayer { get; private set; } = null;   
+        public string LocalPeerId  { get; private set; }
+        public string CurrentGameId  { get; private set; }
 
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
@@ -84,6 +93,8 @@ namespace BeamBackend
             gameData = new BeamGameData(frontend);            
         }
 
+        public void SetLocalPlayer(Player p) => LocalPlayer = p;
+        
         // IGameInstance
         public void Start(int initialMode)
         {
@@ -92,7 +103,7 @@ namespace BeamBackend
 
         public bool Loop(float frameSecs)
         {
-            //UnityEngine.Debug.Log("Inst.Loop()");
+            //logger.Debug("Loop()");
             gameData.Loop(frameSecs);
             return modeMgr.Loop(frameSecs);
         }
@@ -110,16 +121,21 @@ namespace BeamBackend
         public void OnGameCreated(string gameP2pChannel)
         {
             logger.Info($"BGI.OnGameCreated({gameP2pChannel}");          
-            modeMgr.DispatchCmd( new BeamMessages.GameCreatedMsg(gameP2pChannel));
+            modeMgr.DispatchCmd( new GameCreatedMsg(gameP2pChannel));
         }
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            logger.Info($"BGI.OnGameJoined({localP2pId})");  
-            modeMgr.DispatchCmd( new BeamMessages.GameJoinedMsg(gameId, localP2pId));                      
+            LocalPeerId = localP2pId;
+            CurrentGameId = gameId;
+            logger.Info($"OnGameJoined({gameId}, {localP2pId})");  
+            modeMgr.DispatchCmd(new GameJoinedMsg(gameId, localP2pId));                      
         }
         public void OnPlayerJoined(string p2pId, string helloData)
         {
-            logger.Info($"BGI.OnPlayerJoined({p2pId})");            
+            NetPlayerData remoteData = JsonConvert.DeserializeObject<NetPlayerData>(helloData);         
+            logger.Info($"BGI.OnPlayerJoined({remoteData})");        
+            AddNewPlayer(remoteData.player);
+            modeMgr.DispatchCmd(new PlayerJoinedMsg(remoteData.player));            
         }
         public void OnPlayerLeft(string p2pId)
         {
@@ -131,7 +147,9 @@ namespace BeamBackend
         }
         public string LocalPlayerData()
         {
-            return $"LocalPlayerData for {gameNet.LocalP2pId()}";
+            if (LocalPlayer == null)
+                logger.Error("LocalPlayerData() - no local player");
+            return  JsonConvert.SerializeObject( new NetPlayerData(){ player = LocalPlayer });
         }       
 
         //
@@ -183,6 +201,8 @@ namespace BeamBackend
 
             if (evt == ScoreEvent.kHitEnemyPlace || evt == ScoreEvent.kHitFriendPlace)
             {
+                logger.Debug($"OnScoreEvent(). Bike: {bike.bikeId} Event: {evt}");
+
                 // half of the deduction goes to the owner of the place, the rest is divded 
                 // among the owner's team 
                 // UNLESS: the bike doing the hitting IS the owner - then the rest of the team just splits it
@@ -192,7 +212,7 @@ namespace BeamBackend
                 }
 
                 IEnumerable<IBike> rewardedOtherBikes = 
-                    gameData.Bikes.Values.Where( b => b != bike && b.player.Team == place.bike.player.Team);  // Bikes other the "bike" on affected team
+                    gameData.Bikes.Values.Where( b => b != bike && b.team == place.bike.team);  // Bikes other the "bike" on affected team
                 if (rewardedOtherBikes.Count() > 0)
                 {
                     foreach (BaseBike b  in rewardedOtherBikes) 
@@ -214,10 +234,10 @@ namespace BeamBackend
         // Player-related
         public bool AddNewPlayer(Player p)
         {
-            if  ( gameData.Players.ContainsKey(p.ID))
+            if  ( gameData.Players.ContainsKey(p.PlayerId))
                 return false;  
 
-            gameData.Players[p.ID] = p;
+            gameData.Players[p.PlayerId] = p;
             frontend?.OnNewPlayer(p);
             return true;
         }
@@ -230,17 +250,16 @@ namespace BeamBackend
         // Bike-related
         public void NewBike(IBike b)
         {
-            //UnityEngine.Debug.Log(string.Format("NEW BIKE. ID: {0}, Pos: {1}", b.bikeId, b.position));            
+            logger.Debug(string.Format("NewBike(). ID: {0}, Pos: {1}", b.bikeId, b.position));            
             gameData.Bikes[b.bikeId] = b;
             frontend?.OnNewBike(b);
         }        
 
-        public void RemoveBike(BaseBike bb, bool shouldBlowUp=true)
+        public void RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
-            gameData.Ground.RemovePlacesForBike(bb);
-            frontend?.OnBikeRemoved(bb.bikeId, shouldBlowUp);  
-            bb.player.bikeId = ""; 
-            gameData.PostBikeRemoval(bb.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
+            gameData.Ground.RemovePlacesForBike(ib);
+            frontend?.OnBikeRemoved(ib.bikeId, shouldBlowUp);  
+            gameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
         }
         public void ClearBikes()
         {

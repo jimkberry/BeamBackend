@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class ModePlay : BaseGameMode
+    public class ModePlay : BeamGameMode
     {
         public readonly int kMaxPlayers = 12;        
 
@@ -20,7 +20,7 @@ namespace BeamBackend
 		public override void Start(object param = null)	
         {
             base.Start();
-            _cmdDispatch["Respawn"] = new Action<object>(o => RespawnPlayerBike());  
+           // TODO: respawning  _cmdDispatch["Respawn"] = new Action<object>(o => RespawnPlayerBike());  
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
             game.ClearPlayers();
@@ -32,13 +32,9 @@ namespace BeamBackend
 
             for( int i=1;i<kMaxPlayers; i++) 
             {
-                Player p = null;
-                while (p == null) {
-                    p = DemoPlayerData.CreatePlayer();
-                    if (!game.AddNewPlayer(p))
-                        p = null;
-                }
-                SpawnAIBike(p); 
+                // TODO: create a list of names/teams and respawn them when the blow up?
+                // ...or do it when respawn gets called
+                SpawnAIBike(); 
             }
 
             game.frontend?.ModeHelper()
@@ -50,14 +46,8 @@ namespace BeamBackend
             _secsToNextRespawnCheck -= frameSecs;
             if (_secsToNextRespawnCheck <= 0)
             {
-			    //Debug.Log(string.Format("Checking for idle player"));                
-                Player p = PlayerWithoutBike();
-                if (p != null)
-                {
-			        Debug.Log(string.Format("Respawning AI: {0}", p.ScreenName));
-                    SpawnAIBike(p);
-                }
-
+                // TODO: respawn with prev names/teams?
+                SpawnAIBike();
                 _secsToNextRespawnCheck = kRespawnCheckInterval;
             }
         }
@@ -70,41 +60,38 @@ namespace BeamBackend
             return null;
         } 
 
-        protected Player PlayerWithoutBike()
-        {
-            // Maybe ought to put a weak ref to a bike in the player class
-            return game.gameData.Players.Values.Where( (p) => !p.IsLocal && game.gameData.GetBaseBike(p.bikeId) == null).FirstOrDefault();
-        }
-
-        protected BaseBike CreateBaseBike(Player p)
+        protected BaseBike CreateBaseBike(int ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
-            int ctrlType = p.IsLocal ? BikeFactory.LocalPlayerCtrl : BikeFactory.AiCtrl;
-            BaseBike bb = new BaseBike(game, bikeId, p, ctrlType, pos, heading);
+            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading);
             game.NewBike(bb); 
             return bb;
         }
 
-        protected BaseBike SpawnPlayerBike(Player p = null)
+        protected BaseBike SpawnPlayerBike()
         {
-        // Create one the first time
-            while (p == null) {
-                p = DemoPlayerData.CreatePlayer(true); 
-                if (game.AddNewPlayer(p) == false)
-                    p = null;
-            }
-            return CreateBaseBike(p);                   
+            // Create one the first time
+            string scrName = game.frontend.GetUserSettings().screenName;
+            string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPlayer.ScreenName, game.LocalPlayer.Team);                 
         }        
 
-        protected BaseBike SpawnAIBike(Player p)
+        protected BaseBike SpawnAIBike(string name = null, Team team = null)
         {
-            return CreateBaseBike(p);  
+            if (name == null)
+                name = DemoPlayerData.RandomName();
+
+            if (team == null)
+                team = DemoPlayerData.RandomTeam();
+
+            return CreateBaseBike(BikeFactory.AiCtrl, game.LocalPeerId, name, team);
         }
 
         protected void RespawnPlayerBike()
         {       
+            logger.Error("RespawnPlayerBike() not implmented");
             // Player localPlayer = _mainObj.backend.Players.Values.Where( p => p.IsLocal).First();
             // GameObject playerBike = SpawnPlayerBike(localPlayer);
             // _mainObj.uiCamera.CurrentStage().transform.Find("RestartCtrl")?.SendMessage("moveOffScreen", null);         

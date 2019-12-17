@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UniLog;
 
 
 namespace BeamBackend
@@ -12,33 +13,41 @@ namespace BeamBackend
         public static readonly float speed =  15.0f;   
 
         public string bikeId {get; private set;} 
+        public string peerId {get; private set;}
+        public string name {get; private set;}
+        public Team team {get; private set;}
         public int score {get; set;}        
-        public Player player {get; private set;}
         public int ctrlType {get; private set;}
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public Heading heading { get; private set;} = Heading.kNorth;
         public BeamGameInstance gameInst = null;
 
+        public UniLogger logger;
+
         //
         // Temporary stuff for refactoring
         //
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
+
+        // TODO: check to see if these are used in BeamUnity. Delete if not
         public void TempSetPendingTurn(TurnDir d) => pendingTurn = d;
 
         public void TempSetHeading(Heading h) => heading = h;
 
-        public BaseBike(BeamGameInstance gi, string ID, Player p, int ctrl, Vector2 initialPos, Heading head)
+        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, int ctrl, Vector2 initialPos, Heading head)
         { 
             gameInst = gi;
-            bikeId = ID;
+            bikeId = _id;
+            peerId = _peerId;
+            name = _name;
+            team = _team;
             position = initialPos;
             heading = head;
-            player = p;    
             ctrlType = ctrl;  
             score = kStartScore;  
-            player.bikeId = ID;
+            logger = UniLogger.GetLogger("BaseBike");
         }
 
         // Commands from outside
@@ -48,7 +57,7 @@ namespace BeamBackend
   
         public void Loop(float secs)
         {
-            //UnityEngine.Debug.Log("** BaseBike.DoUpdate()");            
+            //logger.Debug("Loop()");            
             _updatePosition(secs);
         }
 
@@ -80,6 +89,8 @@ namespace BeamBackend
             Ground g = gameInst.gameData.Ground;
             Ground.Place p = g.GetPlace(pos);
             bool justClaimed = false;
+
+            logger.Debug($"DoAtGridPoint()");
             if (p == null)
             {
                 p = g.ClaimPlace(this, pos); 
@@ -93,7 +104,7 @@ namespace BeamBackend
                 }
             } else {
                 // Hit a marker. Do score thing,
-                gameInst.OnScoreEvent(this, p.bike.player.Team == player.Team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+                gameInst.OnScoreEvent(this, p.bike.team == team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             }            
             
             gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 

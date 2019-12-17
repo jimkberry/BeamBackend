@@ -6,21 +6,21 @@ namespace BeamBackend
 {
     public class Player
     {
-        public string ID { get; private set;}    
+        public string PeerId { get; private set;} 
+        public string PlayerId { get; private set;}    
         public string ScreenName { get; private set;}
         public Team Team {get; private set;}
-        public bool IsLocal { get; private set; }
+        public bool IsLocal {get; private set;} // Helper
 
+        public string bikeId {get; set;} // publicly settable
 
-        public string bikeId { get; set; } // this can be set publicly and is used to see if the player has an active bike. Kinda lame
-
-        public Player(string id, string name, Team t, bool isLocal = false)
+        public Player(string peerId, string playerId, string name, Team t = null, bool isLocalPlayer = false)
         { 
-            ID = id;
+            PlayerId = playerId;
+            PeerId = peerId;
             ScreenName = name;
-            Team = t;
-            IsLocal = isLocal;
-            bikeId = "";
+            Team = (t != null) ? t : Team.teamData[(int)UnityEngine.Random.Range(0,Team.teamData.Count)];;
+            IsLocal = isLocalPlayer;
         }
 
     }
@@ -41,17 +41,17 @@ namespace BeamBackend
             "Y.", "Z."
         };
 
-        public static Player CreatePlayer(bool isLocal = false) {
-            string name = string.Format("{0} {1}",
+        public static string RandomName()
+        {
+            return string.Format("{0} {1}",
                 firstNames[(int)UnityEngine.Random.Range(0,firstNames.Count)],
                 lastNames[(int)UnityEngine.Random.Range(0,lastNames.Count)] );
-
-            string id = string.Format("{0:X8}", name.GetHashCode()); // Just making up an ID-looking string
-
-            Team team = Team.teamData[(int)UnityEngine.Random.Range(0,Team.teamData.Count)];
-
-            return new Player(id, name, team, isLocal);
-
         }
+
+        public static Team RandomTeam()
+        {
+            return Team.teamData[(int)UnityEngine.Random.Range(0,Team.teamData.Count)];
+        }
+        
     }
 }
