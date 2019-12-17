@@ -6,7 +6,8 @@ namespace BeamBackend
         public enum MsgType {
             kGameCreated = 100,
             kGameJoined = 101,
-            kPlayerJoined = 102,  
+            kPeerJoined = 102,  
+            kPeerLeft = 103,           
         }            
         public MsgType msgType;
         public BeamMessage(MsgType t) => msgType = t;
@@ -30,9 +31,15 @@ namespace BeamBackend
         }
     }
 
-    public class PlayerJoinedMsg : BeamMessage
+    public class PeerJoinedMsg : BeamMessage
     {
-        public Player player;
-        public PlayerJoinedMsg(Player _p) : base(MsgType.kPlayerJoined) => player = _p;
+        public BeamPeer peer;
+        public PeerJoinedMsg(BeamPeer _p) : base(MsgType.kPeerJoined) => peer = _p;
     }    
+
+    public class PeerLeftMsg : BeamMessage
+    {
+        public BeamPeer peer;
+        public PeerLeftMsg(BeamPeer _p) : base(MsgType.kPeerLeft) => peer = _p;
+    }      
 }

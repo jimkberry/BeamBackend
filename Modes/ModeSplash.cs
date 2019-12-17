@@ -22,7 +22,7 @@ namespace BeamBackend
             logger.Info("Starting Splash");
             base.Start();
             game = (BeamGameInstance)gameInst;
-            game.ClearPlayers();
+            game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();     
 
@@ -48,7 +48,7 @@ namespace BeamBackend
 
 		public override object End() {            
             game.frontend?.ModeHelper().OnEndMode(game.modeMgr.CurrentModeId(), null);
-            game.ClearPlayers();
+            game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();              
             return null;

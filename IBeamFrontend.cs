@@ -26,8 +26,9 @@ namespace BeamBackend
         IFrontendModeHelper ModeHelper();
 
         // Players
-        void OnNewPlayer(Player p);
-        void OnClearPlayers();        
+        void OnNewPeer(BeamPeer p);
+        void OnPeerLeft(BeamPeer p);
+        void OnClearPeers();        
         // Bikes
         void OnNewBike(IBike ib);
         void OnBikeRemoved(string bikeId, bool doExplode);

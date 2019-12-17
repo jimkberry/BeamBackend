@@ -21,22 +21,25 @@ namespace BeamBackend
 
             _cmdDispatch[BeamMessage.MsgType.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
             _cmdDispatch[BeamMessage.MsgType.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
-            _cmdDispatch[BeamMessage.MsgType.kPlayerJoined] = new Func<object, bool>(o => OnPlayerJoined(o));
+            _cmdDispatch[BeamMessage.MsgType.kPeerJoined] = new Func<object, bool>(o => OnPeerJoined(o));
 
             game = (BeamGameInstance)gameInst;
             settings = game.frontend.GetUserSettings();
 
-            game.ClearPlayers();
+            game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();     
 
             game.frontend.ModeHelper()
                 .OnStartMode(BeamModeFactory.kConnect, null );         
 
-            Player localPlayer = _CreateLocalPlayer(settings);
-            game.SetLocalPlayer(localPlayer);
-
+            // need to "connect"first in order to have a p2pId
             game.gameNet.Connect(settings.p2pConnectionString);
+            string p2pId = game.gameNet.LocalP2pId();
+            BeamPeer localPeer = _CreateLocalPeer(p2pId, settings);
+            game.SetLocalPeer(localPeer);
+
+   
 
             if (!settings.tempSettings.ContainsKey("gameId"))
             {
@@ -74,20 +77,18 @@ namespace BeamBackend
             return true;
         }
 
-        public bool OnPlayerJoined(object o)
+        public bool OnPeerJoined(object o)
         {
-            Player p = ((PlayerJoinedMsg)o).player;
-            Console.WriteLine($"Remote Player Joined: {p.ScreenName}");
+            BeamPeer p = ((PeerJoinedMsg)o).peer;
+            Console.WriteLine($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");
             logger.Debug($"Peer joined: {p}");           
             return true;
         }
 
-        protected Player _CreateLocalPlayer(BeamUserSettings settings)
-        {
-            string scrName = settings.screenName;
-            string playerId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            logger.Debug($"{this.ModeName()}: Creating player. Name: {scrName}, id: {playerId}");            
-            return new Player(game.LocalPeerId, playerId, scrName, null, true);
+        protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
+        {               
+            // Game.LocalP2pId is not set yet
+            return new BeamPeer(p2pId, settings.screenName, null, true);
         }
         
 

@@ -23,7 +23,7 @@ namespace BeamBackend
            // TODO: respawning  _cmdDispatch["Respawn"] = new Action<object>(o => RespawnPlayerBike());  
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.ClearPlayers();
+            game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();     
 
@@ -54,7 +54,7 @@ namespace BeamBackend
 
 		public override object End() {            
             game.frontend?.ModeHelper().OnEndMode(game.modeMgr.CurrentModeId(), null);
-            game.ClearPlayers();
+            game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();              
             return null;
@@ -75,7 +75,7 @@ namespace BeamBackend
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPlayer.ScreenName, game.LocalPlayer.Team);                 
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);                 
         }        
 
         protected BaseBike SpawnAIBike(string name = null, Team team = null)

@@ -10,29 +10,29 @@ using UniLog;
 
 namespace BeamBackend
 {
-    public class NetPlayerData 
+    public class NetPeerData 
     {
-        public Player player;
+        public BeamPeer peer;
     }
 
     public class BeamGameData
     {
-        public Dictionary<string, Player> Players { get; private set; } = null;
+        public Dictionary<string, BeamPeer> Peers { get; private set; } = null;
         public Dictionary<string, IBike> Bikes { get; private set; } = null;
 	    public Ground Ground { get; private set; } = null;
 
         protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
         public BeamGameData(IBeamFrontend fep)
         {
-            Players = new Dictionary<string, Player>();
+            Peers = new Dictionary<string, BeamPeer>();
             Bikes = new Dictionary<string, IBike>();
             Ground = new Ground(fep);    
             _bikeIdsToRemoveAfterLoop = new List<string>();          
         }
 
-        public Player GetPlayer(string playerId)
+        public BeamPeer GetPeer(string peerId)
         {
-            try { return Players[playerId];} catch (KeyNotFoundException){ return null;} 
+            try { return Peers[peerId];} catch (KeyNotFoundException){ return null;} 
         }
 
         public BaseBike GetBaseBike(string bikeId)
@@ -44,7 +44,7 @@ namespace BeamBackend
 
         public void Init() 
         {
-            Players.Clear();
+            Peers.Clear();
             Bikes.Clear();
         }
 
@@ -80,8 +80,8 @@ namespace BeamBackend
         public  IBeamFrontend frontend {get; private set;}
         public  IBeamGameNet gameNet {get; private set;}        
         public UniLogger logger;
-        public Player LocalPlayer { get; private set; } = null;   
-        public string LocalPeerId  { get; private set; }
+        public BeamPeer LocalPeer { get; private set; } = null;   
+        public string LocalPeerId => LocalPeer?.PeerId;
         public string CurrentGameId  { get; private set; }
 
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
@@ -93,7 +93,11 @@ namespace BeamBackend
             gameData = new BeamGameData(frontend);            
         }
 
-        public void SetLocalPlayer(Player p) => LocalPlayer = p;
+        public void SetLocalPeer(BeamPeer p)
+        {
+            AddPeer(p);
+            LocalPeer = p;
+        }
         
         // IGameInstance
         public void Start(int initialMode)
@@ -125,31 +129,33 @@ namespace BeamBackend
         }
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            LocalPeerId = localP2pId;
             CurrentGameId = gameId;
             logger.Info($"OnGameJoined({gameId}, {localP2pId})");  
             modeMgr.DispatchCmd(new GameJoinedMsg(gameId, localP2pId));                      
         }
-        public void OnPlayerJoined(string p2pId, string helloData)
+        public void OnPeerJoined(string p2pId, string helloData)
         {
-            NetPlayerData remoteData = JsonConvert.DeserializeObject<NetPlayerData>(helloData);         
-            logger.Info($"BGI.OnPlayerJoined({remoteData})");        
-            AddNewPlayer(remoteData.player);
-            modeMgr.DispatchCmd(new PlayerJoinedMsg(remoteData.player));            
+            logger.Info($"OnPeerJoined(): helloData: {helloData})"); 
+            NetPeerData remoteData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
+            logger.Info($"OnPeerJoined(name: {remoteData.peer.Name})");        
+            AddPeer(remoteData.peer);
+            modeMgr.DispatchCmd(new PeerJoinedMsg(remoteData.peer));            
         }
-        public void OnPlayerLeft(string p2pId)
+        public void OnPeerLeft(string p2pId)
         {
-            logger.Info($"BGI.OnPlayerLeft({p2pId})");            
+            logger.Info($"BGI.OnPeerLeft({p2pId})");   
+            modeMgr.DispatchCmd(new PeerLeftMsg(gameData.GetPeer(p2pId)));                     
+            RemovePeer(p2pId);                        
         }
         public void OnP2pMsg(string from, string to, string payload)
         {
             logger.Info($"BGI.OnP2pMsg from {from}");            
         }
-        public string LocalPlayerData()
+        public string LocalPeerData()
         {
-            if (LocalPlayer == null)
-                logger.Error("LocalPlayerData() - no local player");
-            return  JsonConvert.SerializeObject( new NetPlayerData(){ player = LocalPlayer });
+            if (LocalPeer == null)
+                logger.Error("LocalPeerData() - no local peer");
+            return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
         }       
 
         //
@@ -173,12 +179,10 @@ namespace BeamBackend
         // Messages from the network/consensus layer (external or internal loopback)
         //
 
-        public void OnNewPlayerReq(Player p)
-        {
-            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewPlayerReq()")); 
-        }
         public void OnNewBikeReq(IBike ib)
         {
+            // TODO: Where does this come from? I think is was supposed to be the FE, which means this
+            // should just go away.
             UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewBikeReq()"));             
         }
 
@@ -231,20 +235,31 @@ namespace BeamBackend
         // Hmm. Where do these go?
         //
 
-        // Player-related
-        public bool AddNewPlayer(Player p)
+        // Peer-related
+        public bool AddPeer(BeamPeer p)
         {
-            if  ( gameData.Players.ContainsKey(p.PlayerId))
+            logger.Debug($"AddPeer(). Name: {p.Name} ID: {p.PeerId}");            
+            if  ( gameData.Peers.ContainsKey(p.PeerId))
                 return false;  
 
-            gameData.Players[p.PlayerId] = p;
-            frontend?.OnNewPlayer(p);
+            gameData.Peers[p.PeerId] = p;
+            frontend?.OnNewPeer(p);
             return true;
         }
-        public void ClearPlayers()
+
+        public bool RemovePeer(string p2pId)
         {
-            frontend?.OnClearPlayers();     
-            gameData.Players.Clear();
+            if  ( gameData.Peers.ContainsKey(p2pId))
+                return false;  
+            frontend?.OnPeerLeft(gameData.Peers[p2pId]);                
+            gameData.Peers.Remove(p2pId);
+            return true;
+        }
+
+        public void ClearPeers()
+        {
+            frontend?.OnClearPeers();     
+            gameData.Peers.Clear();
         }
 
         // Bike-related
