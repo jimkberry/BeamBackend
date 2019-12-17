@@ -59,8 +59,8 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
-            IBike ib = BikeFactory.CreateBike(game, bikeId, game.LocalPeerId,  DemoPlayerData.RandomName(),
-                DemoPlayerData.RandomTeam(), BikeFactory.AiCtrl, pos, heading);
+            IBike ib = BikeFactory.CreateBike(game, bikeId, game.LocalPeerId,  BikeDemoData.RandomName(),
+                BikeDemoData.RandomTeam(), BikeFactory.AiCtrl, pos, heading);
             game.NewBike(ib); 
             logger.Info($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;          

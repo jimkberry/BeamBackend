@@ -81,10 +81,10 @@ namespace BeamBackend
         protected BaseBike SpawnAIBike(string name = null, Team team = null)
         {
             if (name == null)
-                name = DemoPlayerData.RandomName();
+                name = BikeDemoData.RandomName();
 
             if (team == null)
-                team = DemoPlayerData.RandomTeam();
+                team = BikeDemoData.RandomTeam();
 
             return CreateBaseBike(BikeFactory.AiCtrl, game.LocalPeerId, name, team);
         }
