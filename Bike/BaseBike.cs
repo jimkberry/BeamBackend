@@ -10,7 +10,7 @@ namespace BeamBackend
     {
         public const int kStartScore = 2000;        
         public static readonly float length = 2.0f;
-        public static readonly float speed =  15.0f;   
+        public static readonly float defaultSpeed =  15.0f;   
 
         public string bikeId {get; private set;} 
         public string peerId {get; private set;}
@@ -21,6 +21,7 @@ namespace BeamBackend
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public Heading heading { get; private set;} = Heading.kNorth;
+        public float speed { get; private set;} = 0;
         public BeamGameInstance gameInst = null;
 
         public UniLogger logger;
@@ -44,6 +45,7 @@ namespace BeamBackend
             name = _name;
             team = _team;
             position = initialPos;
+            speed = 0;
             heading = head;
             ctrlType = ctrl;  
             score = kStartScore;  

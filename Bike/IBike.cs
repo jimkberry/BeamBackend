@@ -14,6 +14,7 @@ namespace BeamBackend
         int ctrlType {get;}        
         Vector2 position {get;}   
         Heading heading { get;} 
+        float speed { get; }
         int score {get;}          
         void Loop(float secs);  
 
