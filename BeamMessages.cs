@@ -1,22 +1,18 @@
-using GameModeMgr;
-using UnityEngine;
 
 namespace BeamBackend
 {
     public class BeamMessage
     {
-        public enum MsgType {
-            kGameCreated = 100,
-            kGameJoined = 101,
-            kPeerJoined = 102,  
-            kPeerLeft = 103,       
-            kBikeInfo = 104,
-            kBikeInfoReq = 105,
-            kBikeUpdate = 106,
-
-        }            
-        public MsgType msgType;
-        public BeamMessage(MsgType t) => msgType = t;
+        public const string kGameCreated = "100";
+        public const string kGameJoined = "101";
+        public const string kPeerJoined = "102";
+        public const string kPeerLeft = "103";      
+        public const string kNewBikeInfo = "104";
+        public const string kBikeInfoReq = "105";
+        public const string kBikeUpdate = "106";
+         
+        public string msgType;
+        public BeamMessage(string t) => msgType = t;
     }
 
     //
@@ -26,14 +22,14 @@ namespace BeamBackend
     public class GameCreatedMsg : BeamMessage
     {
         public string gameId;
-        public GameCreatedMsg(string _gameId) : base(MsgType.kGameCreated) => gameId = _gameId;
+        public GameCreatedMsg(string _gameId) : base(kGameCreated) => gameId = _gameId;
     }
     
     public class GameJoinedMsg : BeamMessage
     {
         public string gameId;
         public string localId;
-        public GameJoinedMsg(string _gameId, string _localId) :  base(MsgType.kGameJoined)
+        public GameJoinedMsg(string _gameId, string _localId) :  base(kGameJoined)
         {
             gameId = _gameId; 
             localId = _localId;
@@ -43,19 +39,20 @@ namespace BeamBackend
     public class PeerJoinedMsg : BeamMessage
     {
         public BeamPeer peer;
-        public PeerJoinedMsg(BeamPeer _p) : base(MsgType.kPeerJoined) => peer = _p;
+        public PeerJoinedMsg(BeamPeer _p) : base(kPeerJoined) => peer = _p;
     }    
 
     public class PeerLeftMsg : BeamMessage
     {
         public BeamPeer peer;
-        public PeerLeftMsg(BeamPeer _p) : base(MsgType.kPeerLeft) => peer = _p;
+        public PeerLeftMsg(BeamPeer _p) : base(kPeerLeft) => peer = _p;
     }      
 
     //
-    // Bike-related messages
+    // GameNet messages
     //
-    public class BikeInfoMsg : BeamMessage
+    //
+    public class NewBikeInfoMsg : BeamMessage
     {
         public string bikeId; 
         public string peerId;
@@ -63,11 +60,12 @@ namespace BeamBackend
         public Team team;
         public int score;     
         public int ctrlType;
-        public Vector2 position;
+        public float xPos;
+        public float yPos;
         public Heading heading;     
         public float speed;
 
-        public BikeInfoMsg(IBike ib) : base(MsgType.kBikeInfo) 
+        public NewBikeInfoMsg(IBike ib) : base(kNewBikeInfo) 
         {
             bikeId = ib.bikeId;
             peerId = ib.peerId;
@@ -75,31 +73,38 @@ namespace BeamBackend
             team = ib.team;
             score = ib.score;
             ctrlType = ib.ctrlType;
-            position = ib.position;
+            xPos = ib.position.x;
+            yPos = ib.position.y;
             heading = ib.heading;
             speed = ib.speed;
         }
+
+        public NewBikeInfoMsg() : base(kNewBikeInfo) 
+        {
+        }        
     }
 
-    public class BikeInfoReq : BeamMessage
+    public class BikeInfoReqMsg : BeamMessage
     {
         public string bikeId;
-        public BikeInfoReq(string _id) : base(MsgType.kBikeInfoReq) => bikeId = _id;        
+        public BikeInfoReqMsg(string _id) : base(kBikeInfoReq) => bikeId = _id;        
     }
 
     public class BikeUpdateMsg : BeamMessage
     {
         public string bikeId; 
         public int score;     
-        public Vector2 position;
+        public float xPos;
+        public float yPos;
         public Heading heading;   
         public float speed;  
 
-        public BikeUpdateMsg(IBike ib) : base(MsgType.kBikeUpdate) 
+        public BikeUpdateMsg(IBike ib) : base(kBikeUpdate) 
         {
             bikeId = ib.bikeId;
             score = ib.score;
-            position = ib.position;
+            xPos = ib.position.x;
+            yPos = ib.position.y;
             heading = ib.heading;
             speed = ib.speed;
         }

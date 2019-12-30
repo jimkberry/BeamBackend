@@ -21,10 +21,10 @@ namespace BeamBackend
 			logger = UniLogger.GetLogger("BeamMode");
         }
 
-		protected Dictionary<BeamMessage.MsgType, dynamic> _cmdDispatch; 
+		protected Dictionary<string, dynamic> _cmdDispatch; 
 
 		public virtual void Start( object param = null)	{
-            _cmdDispatch = new Dictionary<BeamMessage.MsgType, dynamic>();            
+            _cmdDispatch = new Dictionary<string, dynamic>();            
         }
 
 		public virtual void Loop(float frameSecs) {}

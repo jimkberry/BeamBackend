@@ -19,9 +19,9 @@ namespace BeamBackend
             UnityEngine.Debug.Log("Starting Connect");
             base.Start();
 
-            _cmdDispatch[BeamMessage.MsgType.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
-            _cmdDispatch[BeamMessage.MsgType.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
-            _cmdDispatch[BeamMessage.MsgType.kPeerJoined] = new Func<object, bool>(o => OnPeerJoined(o));
+            _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
+            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
+            _cmdDispatch[BeamMessage.kPeerJoined] = new Func<object, bool>(o => OnPeerJoined(o));
 
             game = (BeamGameInstance)gameInst;
             settings = game.frontend.GetUserSettings();

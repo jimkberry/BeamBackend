@@ -147,10 +147,7 @@ namespace BeamBackend
             modeMgr.DispatchCmd(new PeerLeftMsg(gameData.GetPeer(p2pId)));                     
             RemovePeer(p2pId);                        
         }
-        public void OnP2pMsg(string from, string to, string payload)
-        {
-            logger.Info($"BGI.OnP2pMsg from {from}");            
-        }
+
         public string LocalPeerData()
         {
             if (LocalPeer == null)
@@ -158,10 +155,33 @@ namespace BeamBackend
             return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
         }       
 
+        public void OnNewBikeInfo(NewBikeInfoMsg msg, string srcId)
+        {
+            logger.Error("OnBikeInfo() - does nothing");
+        }
+        public void OnBikeInfoReq(BikeInfoReqMsg msg, string srcId)
+        {
+            logger.Error("OnBikeInfoReq() - does nothing");
+        }
+        public void OnBikeUpdate(BikeUpdateMsg msg, string srcId)
+        {
+            logger.Error("OnBikeUpdate() - does nothing");
+        }
+
         //
         // IBeamBackend (requests from the frontend)
         // 
 
+        public void AddLocalBikeReq(IBike ib)
+        {
+            if (gameData.Bikes.ContainsKey(ib.bikeId))
+            {
+                logger.Warn($"AddLocalBikeReq() bike {ib.bikeId} already exists.");
+            } else {
+                gameNet.SendNewBikeInfo(ib); // need to wait for gamenet to send a NewBikeInfo
+            }
+
+        }
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
            modeMgr.SwitchToMode(newModeId, modeParam);       
@@ -178,14 +198,6 @@ namespace BeamBackend
         //
         // Messages from the network/consensus layer (external or internal loopback)
         //
-
-        public void OnNewBikeReq(IBike ib)
-        {
-            // TODO: Where does this come from? I think is was supposed to be the FE, which means this
-            // should just go away.
-            UnityEngine.Debug.Log(string.Format("** need to implement BeamGameInst.OnNewBikeReq()"));             
-        }
-
 
         public void OnPlaceClaim(string bikeId, Vector2 pos)
         {
@@ -263,12 +275,12 @@ namespace BeamBackend
         }
 
         // Bike-related
-        public void NewBike(IBike b)
-        {
-            logger.Debug(string.Format("NewBike(). ID: {0}, Pos: {1}", b.bikeId, b.position));            
-            gameData.Bikes[b.bikeId] = b;
-            frontend?.OnNewBike(b);
-        }        
+        // public void NewBike(IBike b)
+        // {
+        //     logger.Debug(string.Format("NewBike(). ID: {0}, Pos: {1}", b.bikeId, b.position));            
+        //     gameData.Bikes[b.bikeId] = b;
+        //     frontend?.OnNewBike(b);
+        // }        
 
         public void RemoveBike(IBike ib, bool shouldBlowUp=true)
         {

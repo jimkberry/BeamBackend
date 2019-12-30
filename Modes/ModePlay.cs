@@ -28,7 +28,7 @@ namespace BeamBackend
             game.ClearPlaces();     
 
             // Create player bike
-            playerBike = SpawnPlayerBike();
+            SpawnPlayerBike();
 
             for( int i=1;i<kMaxPlayers; i++) 
             {
@@ -60,17 +60,17 @@ namespace BeamBackend
             return null;
         } 
 
-        protected BaseBike CreateBaseBike(int ctrlType, string peerId, string name, Team t)
+        protected string CreateBaseBike(int ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
             BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading);
-            game.NewBike(bb); 
-            return bb;
+            game.AddLocalBikeReq(bb); 
+            return bb.bikeId;
         }
 
-        protected BaseBike SpawnPlayerBike()
+        protected string SpawnPlayerBike()
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
@@ -78,7 +78,7 @@ namespace BeamBackend
             return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);                 
         }        
 
-        protected BaseBike SpawnAIBike(string name = null, Team team = null)
+        protected string SpawnAIBike(string name = null, Team team = null)
         {
             if (name == null)
                 name = BikeDemoData.RandomName();

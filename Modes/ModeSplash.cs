@@ -26,10 +26,20 @@ namespace BeamBackend
             game.ClearBikes();    
             game.ClearPlaces();     
 
+            // Setup/connect fake network
+            BeamUserSettings settings = game.frontend.GetUserSettings();
+            game.gameNet.Connect("p2ploopback");
+            string p2pId = game.gameNet.LocalP2pId();
+            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null, true);
+            game.SetLocalPeer(localPeer);
+            game.gameNet.JoinGame("localgame");            
+
             string cameraTargetBikeId = CreateADemoBike();
             for( int i=1;i<kSplashBikeCount; i++) 
                 CreateADemoBike(); 
 
+            // Note that the target bike is probably NOT created yet at this point.
+            // This robably needs to happen differently
             game.frontend.ModeHelper()
                 .OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );             
         }
@@ -61,9 +71,9 @@ namespace BeamBackend
             string bikeId = Guid.NewGuid().ToString();
             IBike ib = BikeFactory.CreateBike(game, bikeId, game.LocalPeerId,  BikeDemoData.RandomName(),
                 BikeDemoData.RandomTeam(), BikeFactory.AiCtrl, pos, heading);
-            game.NewBike(ib); 
+            game.AddLocalBikeReq(ib); 
             logger.Info($"{this.ModeName()}: CreateADemoBike({bikeId})");
-            return ib.bikeId;          
+            return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
         }
 
     }
