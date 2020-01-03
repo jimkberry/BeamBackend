@@ -10,7 +10,8 @@ namespace BeamBackend
     {
         public const string currentVersion = "100";
         public const string subFolder = ".beam";  
-        public const string fileName = "beamsettings.json";      
+        public const string defaultBaseName= "beamsettings";      
+        public static string fileBaseName;           
         public static string path;
 
         static UserSettingsMgr()
@@ -18,10 +19,11 @@ namespace BeamBackend
             path = GetPath(subFolder);
         }
 
-        public static BeamUserSettings Load()
+        public static BeamUserSettings Load(string baseName = defaultBaseName)
         {
+            fileBaseName = baseName;
             BeamUserSettings settings;
-            string filePath = path + Path.DirectorySeparatorChar + fileName;
+            string filePath = path + Path.DirectorySeparatorChar + fileBaseName + ".json";
             try {
                 settings = JsonConvert.DeserializeObject<BeamUserSettings>(File.ReadAllText(filePath));
             } catch(Exception) { 
@@ -39,7 +41,7 @@ namespace BeamBackend
         public static void Save(BeamUserSettings settings)
         {
             System.IO.Directory.CreateDirectory(path); 
-            string filePath = path + Path.DirectorySeparatorChar + fileName;  
+            string filePath = path + Path.DirectorySeparatorChar + fileBaseName + ".json";  
             BeamUserSettings saveSettings = new BeamUserSettings(settings);
             saveSettings.tempSettings = new Dictionary<string, string>(); // Don't persist temp settings
             File.WriteAllText(filePath, JsonConvert.SerializeObject(saveSettings, Formatting.Indented));            
