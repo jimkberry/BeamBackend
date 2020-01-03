@@ -5,14 +5,20 @@ namespace BeamBackend
 {
     public class ModeConnect : BeamGameMode
     {
+        protected const float kWaitForPlayersSecs = 3.0f;
         protected const int kCreatingGame = 0;        
         protected const int kJoiningGame = 1;
-        protected const int kWaitingForPlayers = 2;
+        protected const int kWaitingForPlayers = 2; // wait a couple seconds
+        protected const int kCreatingBike = 3;        
+        protected const int kReadyToPlay = 4;   
 
         public BeamGameInstance game = null; 
         public BeamUserSettings settings = null;     
-
         protected int _curState = kCreatingGame;
+
+        protected float _curStateSecs = 0;  
+        protected delegate void LoopFunc(float f);
+        protected LoopFunc _loopFunc; 
 
 		public override void Start(object param = null)	
         {
@@ -41,30 +47,48 @@ namespace BeamBackend
 
    
 
-            if (!settings.tempSettings.ContainsKey("gameId"))
-            {
-                game.gameNet.CreateGame(new BeamGameNet.GameCreationData());
-                UnityEngine.Debug.Log("Creating game");
-                _curState = kCreatingGame;                         
-            }
+            if (!settings.tempSettings.ContainsKey("gameId"))             
+                _SetState(kCreatingGame, new BeamGameNet.GameCreationData());      
             else
-            {
-                game.gameNet.JoinGame(settings.tempSettings["gameId"]);
-                _curState = kJoiningGame;                    
-            }
+                _SetState(kJoiningGame, settings.tempSettings["gameId"]);                                                    
         }
 
         public override void Loop(float frameSecs)
         {
-
+            _loopFunc(frameSecs);
         }
+
+        protected void _SetState(int newState, object startParam)
+        {
+            _curStateSecs = 0;
+            _loopFunc = _doNothingLoop; // default
+            switch (newState)
+            {
+            case kCreatingGame:
+                UnityEngine.Debug.Log("Creating game");                     
+                game.gameNet.CreateGame(startParam);  
+                break;            
+            case kJoiningGame:      
+                UnityEngine.Debug.Log($"Joining Game {(string)startParam}");            
+                game.gameNet.JoinGame((string)startParam);
+                break;                      
+            case kWaitingForPlayers:
+            case kCreatingBike:
+            case kReadyToPlay:
+                break;
+            default:
+                logger.Error($"ModeConnect._SetState() - Unknown state: {newState}");
+                break;
+            }
+        }
+
+        protected void _doNothingLoop(float frameSecs) {}
 
         public bool OnGameCreated(object o)
         {
             string newGameId = ((GameCreatedMsg)o).gameId;
-            Console.WriteLine($"Created game: {newGameId}");           
-            game.gameNet.JoinGame(newGameId);
-            _curState = kJoiningGame;              
+            Console.WriteLine($"Created game: {newGameId}");
+            _SetState(kJoiningGame, newGameId);                   
             return true;
         }
 
@@ -73,7 +97,7 @@ namespace BeamBackend
             string gameId = ((GameJoinedMsg)o).gameId;
             string localId = ((GameJoinedMsg)o).localId;            
             UnityEngine.Debug.Log($"Joined game: {gameId} as ID: {localId}");
-            _curState = kWaitingForPlayers;              
+            _SetState(kWaitingForPlayers, null);             
             return true;
         }
 
