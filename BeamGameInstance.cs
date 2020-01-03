@@ -99,7 +99,9 @@ namespace BeamBackend
             LocalPeer = p;
         }
         
+        //
         // IGameInstance
+        //
         public void Start(int initialMode)
         {
             modeMgr.Start(initialMode);
@@ -281,6 +283,14 @@ namespace BeamBackend
         //     gameData.Bikes[b.bikeId] = b;
         //     frontend?.OnNewBike(b);
         // }        
+
+        public BaseBike CreateBaseBike(int ctrlType, string peerId, string name, Team t)
+        {
+            Heading heading = BikeFactory.PickRandomHeading();
+            Vector2 pos = BikeFactory.PositionForNewBike( this.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
+            string bikeId = Guid.NewGuid().ToString();
+            return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading);
+        }
 
         public void RemoveBike(IBike ib, bool shouldBlowUp=true)
         {

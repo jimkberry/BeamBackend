@@ -8,7 +8,7 @@ namespace BeamBackend
         protected const float kWaitForPlayersSecs = 3.0f;
         protected const int kCreatingGame = 0;        
         protected const int kJoiningGame = 1;
-        protected const int kWaitingForPlayers = 2; // wait a couple seconds
+        protected const int kWaitingForPlayers1 = 2; // wait a couple seconds
         protected const int kCreatingBike = 3;        
         protected const int kReadyToPlay = 4;   
 
@@ -45,8 +45,6 @@ namespace BeamBackend
             BeamPeer localPeer = _CreateLocalPeer(p2pId, settings);
             game.SetLocalPeer(localPeer);
 
-   
-
             if (!settings.tempSettings.ContainsKey("gameId"))             
                 _SetState(kCreatingGame, new BeamGameNet.GameCreationData());      
             else
@@ -58,10 +56,10 @@ namespace BeamBackend
             _loopFunc(frameSecs);
         }
 
-        protected void _SetState(int newState, object startParam)
+        protected void _SetState(int newState, object startParam = null)
         {
             _curStateSecs = 0;
-            _loopFunc = _doNothingLoop; // default
+            _loopFunc = _DoNothingLoop; // default
             switch (newState)
             {
             case kCreatingGame:
@@ -72,8 +70,14 @@ namespace BeamBackend
                 UnityEngine.Debug.Log($"Joining Game {(string)startParam}");            
                 game.gameNet.JoinGame((string)startParam);
                 break;                      
-            case kWaitingForPlayers:
+            case kWaitingForPlayers1:
+                UnityEngine.Debug.Log($"Waiting for players");
+                _loopFunc = _WaitForPlayers1Loop;
+                break;
             case kCreatingBike:
+                UnityEngine.Debug.Log($"Creating local bike");  
+                _CreateLocalBike();    
+                break;
             case kReadyToPlay:
                 break;
             default:
@@ -82,7 +86,12 @@ namespace BeamBackend
             }
         }
 
-        protected void _doNothingLoop(float frameSecs) {}
+        protected void _DoNothingLoop(float frameSecs) {}
+        protected void _WaitForPlayers1Loop(float frameSecs) 
+        {
+            if (_curStateSecs > kWaitForPlayersSecs)
+                _SetState(kCreatingBike);
+        }
 
         public bool OnGameCreated(object o)
         {
@@ -97,7 +106,7 @@ namespace BeamBackend
             string gameId = ((GameJoinedMsg)o).gameId;
             string localId = ((GameJoinedMsg)o).localId;            
             UnityEngine.Debug.Log($"Joined game: {gameId} as ID: {localId}");
-            _SetState(kWaitingForPlayers, null);             
+            _SetState(kWaitingForPlayers1, null);             
             return true;
         }
 
@@ -115,6 +124,16 @@ namespace BeamBackend
             return new BeamPeer(p2pId, settings.screenName, null, true);
         }
         
+
+        protected void _CreateLocalBike()
+        {
+            // Create one the first time
+            string scrName = game.frontend.GetUserSettings().screenName;
+            string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
+            BaseBike bb =  game.CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
+
+           // TODO: !!! &&&&&&  Need to post a request to gamenet to create the bike..            
+        }          
 
 
     }
