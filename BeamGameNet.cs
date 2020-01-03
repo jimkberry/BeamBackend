@@ -5,15 +5,15 @@ namespace BeamBackend
 {
     public interface IBeamGameNet : IGameNet
     {
-        void SendNewBikeInfo(IBike ib, string destId = null);
-        void RequestBikeInfo(string bikeId, string destId);
+        void SendBikeCreateData(IBike ib, string destId = null);
+        void RequestBikeData(string bikeId, string destId);
         void SendBikeUpdate(IBike ib, string destId = null);
     }
 
     public interface IBeamGameNetClient : IGameNetClient
     {
-        void OnNewBikeInfo(NewBikeInfoMsg msg, string srcId);
-        void OnBikeInfoReq(BikeInfoReqMsg msg, string srcId);
+        void OnBikeCreateData(BikeCreateDataMsg msg, string srcId);
+        void OnBikeDataReq(BikeDataReqMsg msg, string srcId);
         void OnBikeUpdate(BikeUpdateMsg msg, string srcId);
     }    
 
@@ -31,14 +31,16 @@ namespace BeamBackend
         }        
 
         // IBeamGameNet
-        public void SendNewBikeInfo(IBike ib, string destId = null)
+        public void SendBikeCreateData(IBike ib, string destId = null)
         {
-            NewBikeInfoMsg msg = new NewBikeInfoMsg(ib);
+            // Info to create a bike.
+            // Broadcast this to send it to everyone
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(ib);
             _SendClientMessage( destId ?? CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
         }
-        public void RequestBikeInfo(string bikeId, string destId)
+        public void RequestBikeData(string bikeId, string destId)
         {
-            BikeInfoReqMsg msg = new BikeInfoReqMsg(bikeId);
+            BikeDataReqMsg msg = new BikeDataReqMsg(bikeId);
             _SendClientMessage( destId, msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
@@ -53,11 +55,11 @@ namespace BeamBackend
             // TODO: write a dispatch table
             switch (clientMessage.clientMsgType)
             {
-                case BeamMessage.kNewBikeInfo:
-                    (client as IBeamGameNetClient).OnNewBikeInfo(JsonConvert.DeserializeObject<NewBikeInfoMsg>(clientMessage.payload), to);
+                case BeamMessage.kBikeCreateData:
+                    (client as IBeamGameNetClient).OnBikeCreateData(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), to);
                     break;
-                case BeamMessage.kBikeInfoReq:
-                    (client as IBeamGameNetClient).OnBikeInfoReq(JsonConvert.DeserializeObject<BikeInfoReqMsg>(clientMessage.payload), to);
+                case BeamMessage.kBikeDataReq:
+                    (client as IBeamGameNetClient).OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), to);
                     break;
                 case BeamMessage.kBikeUpdate:
                     (client as IBeamGameNetClient).OnBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), to);

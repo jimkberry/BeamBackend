@@ -37,7 +37,7 @@ namespace BeamBackend
 
         public void TempSetHeading(Heading h) => heading = h;
 
-        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, int ctrl, Vector2 initialPos, Heading head)
+        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, int ctrl, Vector2 initialPos, Heading head, float _speed)
         { 
             gameInst = gi;
             bikeId = _id;
@@ -45,7 +45,7 @@ namespace BeamBackend
             name = _name;
             team = _team;
             position = initialPos;
-            speed = 0;
+            speed = speed;
             heading = head;
             ctrlType = ctrl;  
             score = kStartScore;  

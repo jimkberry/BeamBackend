@@ -65,8 +65,8 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
-            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading);
-            game.AddLocalBikeReq(bb); 
+            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
+            game.gameNet.SendBikeCreateData(bb); 
             return bb.bikeId;
         }
 

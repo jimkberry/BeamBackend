@@ -11,11 +11,11 @@ public static class BikeFactory
 	public const int AiCtrl = 1;
 	public const int LocalPlayerCtrl = 2;
 
-    public static IBike CreateBike(BeamGameInstance gi, string bikeId, string peerId, string name, Team team, int ctrl, Vector2 initialPos, Heading head)
-	{ 
-        IBike ib = new BaseBike(gi, bikeId, peerId, name, team, ctrl, initialPos, head);
-        return ib;
-    }	
+    // public static IBike CreateBike(BeamGameInstance gi, string bikeId, string peerId, string name, Team team, int ctrl, Vector2 initialPos, Heading head)
+	// { 
+    //     IBike ib = new BaseBike(gi, bikeId, peerId, name, team, ctrl, initialPos, head);
+    //     return ib;
+    // }	
 
     //
     // Utility

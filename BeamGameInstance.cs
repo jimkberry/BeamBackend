@@ -157,11 +157,20 @@ namespace BeamBackend
             return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
         }       
 
-        public void OnNewBikeInfo(NewBikeInfoMsg msg, string srcId)
+        public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
-            logger.Error("OnBikeInfo() - does nothing");
+            logger.Info($"OnBikeCreateData() from {srcId}");    
+            
+            if (gameData.GetBaseBike(msg.bikeId) == null)
+            {
+                gameData.Bikes[msg.bikeId] = msg.ToBike(this);
+                if (msg.peerId == this.LocalPeerId && msg.ctrlType == BikeFactory.LocalPlayerCtrl)
+                    Need to set local bike!!!
+                    Also - if ctrl was localplayer then it needs to beome remote... <<-- rethink this
+                modeMgr.DispatchCmd(msg);                   
+            }
         }
-        public void OnBikeInfoReq(BikeInfoReqMsg msg, string srcId)
+        public void OnBikeDataReq(BikeDataReqMsg msg, string srcId)
         {
             logger.Error("OnBikeInfoReq() - does nothing");
         }
@@ -174,16 +183,6 @@ namespace BeamBackend
         // IBeamBackend (requests from the frontend)
         // 
 
-        public void AddLocalBikeReq(IBike ib)
-        {
-            if (gameData.Bikes.ContainsKey(ib.bikeId))
-            {
-                logger.Warn($"AddLocalBikeReq() bike {ib.bikeId} already exists.");
-            } else {
-                gameNet.SendNewBikeInfo(ib); // need to wait for gamenet to send a NewBikeInfo
-            }
-
-        }
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
            modeMgr.SwitchToMode(newModeId, modeParam);       
@@ -289,7 +288,7 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( this.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
-            return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading);
+            return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading, 0);
         }
 
         public void RemoveBike(IBike ib, bool shouldBlowUp=true)

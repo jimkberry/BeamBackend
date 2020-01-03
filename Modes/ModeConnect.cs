@@ -28,6 +28,7 @@ namespace BeamBackend
             _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
             _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
             _cmdDispatch[BeamMessage.kPeerJoined] = new Func<object, bool>(o => OnPeerJoined(o));
+            _cmdDispatch[BeamMessage.kBikeCreateData] = new Func<object, bool>(o => OnBikeCreateData(o));
 
             game = (BeamGameInstance)gameInst;
             settings = game.frontend.GetUserSettings();
@@ -54,6 +55,7 @@ namespace BeamBackend
         public override void Loop(float frameSecs)
         {
             _loopFunc(frameSecs);
+            _curStateSecs += frameSecs;
         }
 
         protected void _SetState(int newState, object startParam = null)
@@ -105,7 +107,7 @@ namespace BeamBackend
         {
             string gameId = ((GameJoinedMsg)o).gameId;
             string localId = ((GameJoinedMsg)o).localId;            
-            UnityEngine.Debug.Log($"Joined game: {gameId} as ID: {localId}");
+            logger.Info($"Joined game: {gameId} as ID: {localId}");
             _SetState(kWaitingForPlayers1, null);             
             return true;
         }
@@ -113,10 +115,19 @@ namespace BeamBackend
         public bool OnPeerJoined(object o)
         {
             BeamPeer p = ((PeerJoinedMsg)o).peer;
-            Console.WriteLine($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");
-            logger.Debug($"Peer joined: {p}");           
+            logger.Info($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");          
             return true;
         }
+
+        public bool OnBikeCreateData(object o)
+        {
+            BikeCreateDataMsg msg = ((BikeCreateDataMsg)o);
+            return true;
+        }
+
+        //
+        // utils
+        //
 
         protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
         {               
@@ -131,8 +142,7 @@ namespace BeamBackend
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
             BaseBike bb =  game.CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
-
-           // TODO: !!! &&&&&&  Need to post a request to gamenet to create the bike..            
+            game.gameNet.SendBikeCreateData(bb); // will result in OnBikeInfo()            
         }          
 
 

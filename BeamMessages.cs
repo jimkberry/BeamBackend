@@ -1,3 +1,4 @@
+using UnityEngine;
 
 namespace BeamBackend
 {
@@ -7,8 +8,8 @@ namespace BeamBackend
         public const string kGameJoined = "101";
         public const string kPeerJoined = "102";
         public const string kPeerLeft = "103";      
-        public const string kNewBikeInfo = "104";
-        public const string kBikeInfoReq = "105";
+        public const string kBikeCreateData = "104";
+        public const string kBikeDataReq = "105";
         public const string kBikeUpdate = "106";
          
         public string msgType;
@@ -52,7 +53,7 @@ namespace BeamBackend
     // GameNet messages
     //
     //
-    public class NewBikeInfoMsg : BeamMessage
+    public class BikeCreateDataMsg : BeamMessage
     {
         public string bikeId; 
         public string peerId;
@@ -65,7 +66,7 @@ namespace BeamBackend
         public Heading heading;     
         public float speed;
 
-        public NewBikeInfoMsg(IBike ib) : base(kNewBikeInfo) 
+        public BikeCreateDataMsg(IBike ib) : base(kBikeCreateData) 
         {
             bikeId = ib.bikeId;
             peerId = ib.peerId;
@@ -79,15 +80,20 @@ namespace BeamBackend
             speed = ib.speed;
         }
 
-        public NewBikeInfoMsg() : base(kNewBikeInfo) 
+        public BikeCreateDataMsg() : base(kBikeCreateData) 
         {
         }        
+
+        public IBike ToBike(BeamGameInstance gi)
+        {
+            return new BaseBike(gi, bikeId,peerId, name, team, ctrlType, new Vector2(xPos, yPos), heading);
+        }
     }
 
-    public class BikeInfoReqMsg : BeamMessage
+    public class BikeDataReqMsg : BeamMessage
     {
         public string bikeId;
-        public BikeInfoReqMsg(string _id) : base(kBikeInfoReq) => bikeId = _id;        
+        public BikeDataReqMsg(string _id) : base(kBikeDataReq) => bikeId = _id;        
     }
 
     public class BikeUpdateMsg : BeamMessage
