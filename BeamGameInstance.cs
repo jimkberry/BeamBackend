@@ -54,7 +54,7 @@ namespace BeamBackend
             foreach( IBike ib in Bikes.Values)
                 ib.Loop(frameSecs);  // Bike "ib" might get destroyed here and need to be removed
 
-             _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
+            _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
 
         }
 
@@ -63,6 +63,11 @@ namespace BeamBackend
             return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
                     .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).First();
         }   
+
+        public List<IBike> LocalBikes(string peerId)
+        {
+            return Bikes.Values.Where(ib => ib.peerId == peerId).ToList();
+        }
 
         public List<Vector2> CloseBikePositions(IBike thisBike, int maxCnt)
         {
@@ -111,6 +116,7 @@ namespace BeamBackend
         {
             //logger.Debug("Loop()");
             gameData.Loop(frameSecs);
+            gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
             return modeMgr.Loop(frameSecs);
         }
 
@@ -159,24 +165,43 @@ namespace BeamBackend
 
         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
-            logger.Info($"OnBikeCreateData() from {srcId}");    
+            logger.Info($"OnBikeCreateData() for {msg.bikeId}");    
             
             if (gameData.GetBaseBike(msg.bikeId) == null)
             {
-                gameData.Bikes[msg.bikeId] = msg.ToBike(this);
-                if (msg.peerId == this.LocalPeerId && msg.ctrlType == BikeFactory.LocalPlayerCtrl)
-                    Need to set local bike!!!
-                    Also - if ctrl was localplayer then it needs to beome remote... <<-- rethink this
+                gameData.Bikes[msg.bikeId] = msg.ToBike(this); 
+                // Note that ToBike takes care of setting BikeFactory.RemoteCtrl for remote bikes
+                
+                // TODO: Do we need to set that this is the local player bike anywhere?
+                // doesn;t seem like it?
+                // if (msg.peerId == this.LocalPeerId && msg.ctrlType == BikeFactory.LocalPlayerCtrl)
+                //      MaybeDoSomething....
+                
                 modeMgr.DispatchCmd(msg);                   
             }
         }
         public void OnBikeDataReq(BikeDataReqMsg msg, string srcId)
         {
-            logger.Error("OnBikeInfoReq() - does nothing");
+            logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
+            IBike ib = gameData.GetBaseBike(msg.bikeId);
+            if (ib != null)
+                gameNet.SendBikeCreateData(ib, srcId);
         }
         public void OnBikeUpdate(BikeUpdateMsg msg, string srcId)
         {
-            logger.Error("OnBikeUpdate() - does nothing");
+            IBike ib = gameData.GetBaseBike(msg.bikeId);
+            if (ib == null)
+            {
+                logger.Debug($"OnBikeUpdate() - requesting data fror unknown bike: {msg.bikeId}");
+                gameNet.RequestBikeData(msg.bikeId, srcId);
+            }
+            else
+            {
+                logger.Debug($"OnBikeUpdate() - updating remote bike: {msg.bikeId}");
+                // DO UPDATE!!!!!                
+            }
+
+
         }
 
         //

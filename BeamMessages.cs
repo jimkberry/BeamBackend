@@ -86,7 +86,8 @@ namespace BeamBackend
 
         public IBike ToBike(BeamGameInstance gi)
         {
-            return new BaseBike(gi, bikeId,peerId, name, team, ctrlType, new Vector2(xPos, yPos), heading);
+            // Remote bikes always get control type: BikeFactory.RemoteCrtl
+            return new BaseBike(gi, bikeId, peerId , name, team, peerId != gi.LocalPeerId ? BikeFactory.RemoteCtrl : ctrlType, new Vector2(xPos, yPos), heading, speed);
         }
     }
 
@@ -104,6 +105,8 @@ namespace BeamBackend
         public float yPos;
         public Heading heading;   
         public float speed;  
+
+        public BikeUpdateMsg() : base(kBikeUpdate)  {}
 
         public BikeUpdateMsg(IBike ib) : base(kBikeUpdate) 
         {

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using GameNet;
 
@@ -7,7 +9,7 @@ namespace BeamBackend
     {
         void SendBikeCreateData(IBike ib, string destId = null);
         void RequestBikeData(string bikeId, string destId);
-        void SendBikeUpdate(IBike ib, string destId = null);
+        void SendBikeUpdates(List<IBike> localBikes);
     }
 
     public interface IBeamGameNetClient : IGameNetClient
@@ -19,10 +21,15 @@ namespace BeamBackend
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
     {
-        
+        public readonly long kBikeUpdateMs = 500;
+        protected Dictionary<string, long> _lastBikeUpdatesMs;
+
         public class GameCreationData {}
 
-        public BeamGameNet() : base() {}
+        public BeamGameNet() : base() 
+        {
+            _lastBikeUpdatesMs = new Dictionary<string, long>();
+        }
 
         public override void  CreateGame<GameCreationData>(GameCreationData data)
         {
@@ -44,10 +51,21 @@ namespace BeamBackend
             _SendClientMessage( destId, msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
-        public void SendBikeUpdate(IBike ib, string destId = null)
+        public void SendBikeUpdates(List<IBike> localBikes)
         {
-            BikeUpdateMsg msg = new BikeUpdateMsg(ib);
-            _SendClientMessage( destId ?? CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));            
+            long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            foreach(IBike ib in localBikes)
+            {
+                long prevMs;
+                if ( !_lastBikeUpdatesMs.TryGetValue(ib.bikeId, out prevMs) || (nowMs - prevMs > kBikeUpdateMs))
+                {
+                    _lastBikeUpdatesMs[ib.bikeId] = nowMs;  
+                    logger.Debug($"BeamGameNet.SendBikeUpdates() Bike: {ib.bikeId}");                    
+                    BikeUpdateMsg msg = new BikeUpdateMsg(ib);
+                    _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));      
+                }
+            }
+      
         }
 
         protected override void _HandleClientMessage(string from, string to, GameNetClientMessage clientMessage)
@@ -62,7 +80,10 @@ namespace BeamBackend
                     (client as IBeamGameNetClient).OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), to);
                     break;
                 case BeamMessage.kBikeUpdate:
-                    (client as IBeamGameNetClient).OnBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), to);
+                    // NOTE: Do NOT act on loopbacked bike update messages. These are NOT state chage events, just "helpers"
+                    // We could filter this in the client, but then all the deseriaizaltion and object creation would happen
+                    if (from != LocalP2pId())
+                        (client as IBeamGameNetClient).OnBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), to);
                     break;                                        
             }
         }

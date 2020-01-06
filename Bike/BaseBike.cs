@@ -59,7 +59,7 @@ namespace BeamBackend
   
         public void Loop(float secs)
         {
-            //logger.Debug("Loop()");            
+            //logger.Debug($"Loop({bikeId})");            
             _updatePosition(secs);
         }
 
