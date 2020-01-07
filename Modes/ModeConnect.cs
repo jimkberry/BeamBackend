@@ -27,8 +27,8 @@ namespace BeamBackend
 
             _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
             _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
-            _cmdDispatch[BeamMessage.kPeerJoined] = new Func<object, bool>(o => OnPeerJoined(o));
-            _cmdDispatch[BeamMessage.kBikeCreateData] = new Func<object, bool>(o => OnBikeCreateData(o));
+            _cmdDispatch[BeamMessage.kPeerLeft] = new Func<object, bool>(o => OnPeerLeft(o));
+            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));
 
             game = (BeamGameInstance)gameInst;
             settings = game.frontend.GetUserSettings();
@@ -106,7 +106,8 @@ namespace BeamBackend
         public bool OnGameJoined(object o)
         {
             string gameId = ((GameJoinedMsg)o).gameId;
-            string localId = ((GameJoinedMsg)o).localId;            
+            string localId = ((GameJoinedMsg)o).localId; 
+            game.SetGameId(gameId);           
             logger.Info($"Joined game: {gameId} as ID: {localId}");
             _SetState(kWaitingForPlayers1, null);             
             return true;
@@ -115,15 +116,26 @@ namespace BeamBackend
         public bool OnPeerJoined(object o)
         {
             BeamPeer p = ((PeerJoinedMsg)o).peer;
-            logger.Info($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");          
+            logger.Info($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");  
+            game.AddPeer(p);                     
             return true;
         }
 
-        public bool OnBikeCreateData(object o)
+        public bool OnPeerLeft(object o)
         {
-            BikeCreateDataMsg msg = ((BikeCreateDataMsg)o);
+            string p2pId =  ((PeerLeftMsg)o).p2pId;
+            logger.Info($"Remote Peer Left: {p2pId}");  
+            game.RemovePeer(p2pId);                     
             return true;
-        }
+        }      
+
+        public bool OnNewBike(object o)
+        {
+            IBike ib =  ((NewBikeMsg)o).ib;
+            logger.Info($"OnNewBike: {ib.bikeId}");                      
+            return true;
+        }  
+
 
         //
         // utils

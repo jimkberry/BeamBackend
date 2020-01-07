@@ -104,6 +104,11 @@ namespace BeamBackend
             LocalPeer = p;
         }
         
+        public void SetGameId(string gid)
+        {
+            CurrentGameId = gid;
+        }
+
         //
         // IGameInstance
         //
@@ -129,6 +134,12 @@ namespace BeamBackend
             gameNet = (IBeamGameNet)iGameNet;
         }  
 
+        public string LocalPeerData()
+        {
+            if (LocalPeer == null)
+                logger.Error("LocalPeerData() - no local peer");
+            return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
+        }         
 
         public void OnGameCreated(string gameP2pChannel)
         {
@@ -137,7 +148,6 @@ namespace BeamBackend
         }
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            CurrentGameId = gameId;
             logger.Info($"OnGameJoined({gameId}, {localP2pId})");  
             modeMgr.DispatchCmd(new GameJoinedMsg(gameId, localP2pId));                      
         }
@@ -145,41 +155,30 @@ namespace BeamBackend
         {
             logger.Info($"OnPeerJoined(): helloData: {helloData})"); 
             NetPeerData remoteData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
-            logger.Info($"OnPeerJoined(name: {remoteData.peer.Name})");        
-            AddPeer(remoteData.peer);
-            modeMgr.DispatchCmd(new PeerJoinedMsg(remoteData.peer));            
+            logger.Info($"OnPeerJoined(name: {remoteData.peer.Name})");   
+            modeMgr.DispatchCmd(new PeerJoinedMsg(remoteData.peer));                             
         }
         public void OnPeerLeft(string p2pId)
         {
-            logger.Info($"BGI.OnPeerLeft({p2pId})");   
-            modeMgr.DispatchCmd(new PeerLeftMsg(gameData.GetPeer(p2pId)));                     
-            RemovePeer(p2pId);                        
+            logger.Info($"BGI.OnPeerLeft({p2pId})"); 
+            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));                                                       
         }
-
-        public string LocalPeerData()
-        {
-            if (LocalPeer == null)
-                logger.Error("LocalPeerData() - no local peer");
-            return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
-        }       
+      
+        // BeamMessage subclasses
+        // public void OnBeamMessage(BeamMessage msg, string fromId, string toId)
+        // {
+        //     logger.Info($"OnBeamMessage() got {msg.ToString()}");  
+        //     modeMgr.DispatchCmd(msg); // they all go to current mode      
+        // }
 
         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
-            logger.Info($"OnBikeCreateData() for {msg.bikeId}");    
-            
-            if (gameData.GetBaseBike(msg.bikeId) == null)
-            {
-                gameData.Bikes[msg.bikeId] = msg.ToBike(this); 
-                // Note that ToBike takes care of setting BikeFactory.RemoteCtrl for remote bikes
-                
-                // TODO: Do we need to set that this is the local player bike anywhere?
-                // doesn;t seem like it?
-                // if (msg.peerId == this.LocalPeerId && msg.ctrlType == BikeFactory.LocalPlayerCtrl)
-                //      MaybeDoSomething....
-                
-                modeMgr.DispatchCmd(msg);                   
-            }
+            logger.Info($"OnBikeCreateData() for {msg.bikeId}");
+            IBike ib = msg.ToBike(this);             
+            _AddBike(ib);
         }
+
+
         public void OnBikeDataReq(BikeDataReqMsg msg, string srcId)
         {
             logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
@@ -187,21 +186,20 @@ namespace BeamBackend
             if (ib != null)
                 gameNet.SendBikeCreateData(ib, srcId);
         }
-        public void OnBikeUpdate(BikeUpdateMsg msg, string srcId)
+
+        public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId)
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
             if (ib == null)
             {
-                logger.Debug($"OnBikeUpdate() - requesting data fror unknown bike: {msg.bikeId}");
+                logger.Debug($"OnRemoteBikeUpdate() - requesting data fror unknown bike: {msg.bikeId}");
                 gameNet.RequestBikeData(msg.bikeId, srcId);
             }
             else
             {
-                logger.Debug($"OnBikeUpdate() - updating remote bike: {msg.bikeId}");
+                logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
                 // DO UPDATE!!!!!                
             }
-
-
         }
 
         //
@@ -217,7 +215,7 @@ namespace BeamBackend
         {
             // TODO: In real life, this message from the FE should get sent to the net layer
             // and looped back, rather than directly talking to the bike
-            //UnityEngine.Debug.Log(string.Format("Backend.OnTurnReq({0}, {1})", bikeId, turn));               
+            logger.Debug(string.Format("OnTurnReq({0}, {1})", bikeId, turn));               
             gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);            
         }       
 
@@ -281,6 +279,7 @@ namespace BeamBackend
                 return false;  
 
             gameData.Peers[p.PeerId] = p;
+            modeMgr.DispatchCmd(new PeerJoinedMsg(p));             
             frontend?.OnNewPeer(p);
             return true;
         }
@@ -288,7 +287,7 @@ namespace BeamBackend
         public bool RemovePeer(string p2pId)
         {
             if  ( gameData.Peers.ContainsKey(p2pId))
-                return false;  
+                return false;              
             frontend?.OnPeerLeft(gameData.Peers[p2pId]);                
             gameData.Peers.Remove(p2pId);
             return true;
@@ -314,6 +313,18 @@ namespace BeamBackend
             Vector2 pos = BikeFactory.PositionForNewBike( this.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
             return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading, 0);
+        }
+
+        public void _AddBike(IBike ib)
+        {
+            logger.Info($"AddBike()");    
+            
+            if (gameData.GetBaseBike(ib.bikeId) != null)
+                return;
+
+            gameData.Bikes[ib.bikeId] = ib; 
+            modeMgr.DispatchCmd(new NewBikeMsg(ib));            
+            frontend?.OnNewBike(ib);                 
         }
 
         public void RemoveBike(IBike ib, bool shouldBlowUp=true)

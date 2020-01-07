@@ -9,9 +9,12 @@ namespace BeamBackend
         public const string kPeerJoined = "102";
         public const string kPeerLeft = "103";      
         public const string kBikeCreateData = "104";
-        public const string kBikeDataReq = "105";
+        public const string kBikeDataReq = "105";    
         public const string kBikeUpdate = "106";
          
+        // Internal (not serializable)
+        public const string kNewBike = "206";  
+
         public string msgType;
         public BeamMessage(string t) => msgType = t;
     }
@@ -45,8 +48,8 @@ namespace BeamBackend
 
     public class PeerLeftMsg : BeamMessage
     {
-        public BeamPeer peer;
-        public PeerLeftMsg(BeamPeer _p) : base(kPeerLeft) => peer = _p;
+        public string p2pId;
+        public PeerLeftMsg(string _pid) : base(kPeerLeft) => p2pId = _pid;
     }      
 
     //
@@ -118,5 +121,15 @@ namespace BeamBackend
             speed = ib.speed;
         }
     }
+
+    //
+    // Internal-only messages.
+    // (So can have references.)
+    //
+    public class NewBikeMsg : BeamMessage
+    {
+        public IBike ib;
+        public NewBikeMsg(IBike _ib) : base(kNewBike) => ib = _ib;
+    }   
 
 }

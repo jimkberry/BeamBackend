@@ -13,10 +13,10 @@ namespace BeamBackend
     }
 
     public interface IBeamGameNetClient : IGameNetClient
-    {
+    {       
         void OnBikeCreateData(BikeCreateDataMsg msg, string srcId);
         void OnBikeDataReq(BikeDataReqMsg msg, string srcId);
-        void OnBikeUpdate(BikeUpdateMsg msg, string srcId);
+        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId);
     }    
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
@@ -70,7 +70,8 @@ namespace BeamBackend
 
         protected override void _HandleClientMessage(string from, string to, GameNetClientMessage clientMessage)
         {
-            // TODO: write a dispatch table
+            // TODO: I kinda hate how this works - jkb
+
             switch (clientMessage.clientMsgType)
             {
                 case BeamMessage.kBikeCreateData:
@@ -83,7 +84,7 @@ namespace BeamBackend
                     // NOTE: Do NOT act on loopbacked bike update messages. These are NOT state chage events, just "helpers"
                     // We could filter this in the client, but then all the deseriaizaltion and object creation would happen
                     if (from != LocalP2pId())
-                        (client as IBeamGameNetClient).OnBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), to);
+                        (client as IBeamGameNetClient).OnRemoteBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), to);
                     break;                                        
             }
         }

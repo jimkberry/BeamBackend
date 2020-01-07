@@ -22,7 +22,7 @@ namespace BeamBackend
             logger.Info("Starting Splash");
             base.Start();
 
-            _cmdDispatch[BeamMessage.kBikeCreateData] = new Func<object, bool>(o => OnBikeCreateData(o));
+            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));
             _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));               
 
             game = (BeamGameInstance)gameInst;
@@ -87,13 +87,12 @@ namespace BeamBackend
             logger.Debug($"Joined game: {gameId} as ID: {localId}");          
             return true;
         }        
-
-        public bool OnBikeCreateData(object o)
+        public bool OnNewBike(object o)
         {
-            BikeCreateDataMsg msg = ((BikeCreateDataMsg)o);
-            logger.Debug($"OnBikeCreateData(): speed: {msg.speed}");
+            IBike ib =  ((NewBikeMsg)o).ib;
+            logger.Info($"OnNewBike: {ib.bikeId}");                      
             return true;
-        }
+        }  
 
     }
 }
