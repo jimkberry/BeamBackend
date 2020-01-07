@@ -45,7 +45,7 @@ namespace BeamBackend
             name = _name;
             team = _team;
             position = initialPos;
-            speed = speed;
+            speed = _speed;
             heading = head;
             ctrlType = ctrl;  
             score = kStartScore;  
@@ -59,7 +59,7 @@ namespace BeamBackend
   
         public void Loop(float secs)
         {
-            //logger.Debug($"Loop({bikeId})");            
+            //logger.Debug($"Loop(). Bike: {bikeId} Speed: {speed})");            
             _updatePosition(secs);
         }
 

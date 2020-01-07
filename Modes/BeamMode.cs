@@ -39,7 +39,7 @@ namespace BeamBackend
 			try {			
             	return _cmdDispatch[((BeamMessage)cmd).msgType](cmd);
 			} catch (KeyNotFoundException) {
-				logger.Warn($"{this.ModeName()}: Unhandled Command: {((BeamMessage)cmd).msgType}");
+				logger.Warn($"{this.ModeName()}: Unhandled Command: {((BeamMessage)cmd).msgType} {cmd.GetType()}");
 				return false;
 			}
         }    

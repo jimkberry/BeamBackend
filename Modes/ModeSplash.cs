@@ -21,6 +21,10 @@ namespace BeamBackend
         {
             logger.Info("Starting Splash");
             base.Start();
+
+            _cmdDispatch[BeamMessage.kBikeCreateData] = new Func<object, bool>(o => OnBikeCreateData(o));
+            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));               
+
             game = (BeamGameInstance)gameInst;
             game.ClearPeers();
             game.ClearBikes();    
@@ -72,8 +76,23 @@ namespace BeamBackend
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(), 
                 BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
             game.gameNet.SendBikeCreateData(ib); 
-            logger.Info($"{this.ModeName()}: CreateADemoBike({bikeId})");
+            logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
+        }
+
+        public bool OnGameJoined(object o)
+        {
+            string gameId = ((GameJoinedMsg)o).gameId;
+            string localId = ((GameJoinedMsg)o).localId;            
+            logger.Debug($"Joined game: {gameId} as ID: {localId}");          
+            return true;
+        }        
+
+        public bool OnBikeCreateData(object o)
+        {
+            BikeCreateDataMsg msg = ((BikeCreateDataMsg)o);
+            logger.Debug($"OnBikeCreateData(): speed: {msg.speed}");
+            return true;
         }
 
     }
