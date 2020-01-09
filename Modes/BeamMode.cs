@@ -10,6 +10,7 @@ namespace BeamBackend
 		public ModeManager manager; 
 		public IGameInstance gameInst;
 		public UniLogger logger;
+		public int ModeId() => manager.CurrentModeId();		
 
 		public void Setup(ModeManager mgr, IGameInstance gInst = null)
 		{
@@ -33,6 +34,7 @@ namespace BeamBackend
 		public virtual void Resume(string prevModeName, object prevModeResult) {}	
 		public virtual object End() => null;
         public virtual string ModeName() => this.GetType().Name;        
+
 
         public bool HandleCmd(object cmd)
         {

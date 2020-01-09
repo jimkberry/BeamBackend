@@ -35,21 +35,20 @@ namespace BeamBackend
 
             game.ClearPeers();
             game.ClearBikes();    
-            game.ClearPlaces();     
-
-            game.frontend.ModeHelper()
-                .OnStartMode(BeamModeFactory.kConnect, null );         
+            game.ClearPlaces();              
 
             // need to "connect"first in order to have a p2pId
             game.gameNet.Connect(settings.p2pConnectionString);
             string p2pId = game.gameNet.LocalP2pId();
             BeamPeer localPeer = _CreateLocalPeer(p2pId, settings);
-            game.SetLocalPeer(localPeer);
+            game.AddLocalPeer(localPeer);
 
             if (!settings.tempSettings.ContainsKey("gameId"))             
                 _SetState(kCreatingGame, new BeamGameNet.GameCreationData());      
             else
-                _SetState(kJoiningGame, settings.tempSettings["gameId"]);                                                    
+                _SetState(kJoiningGame, settings.tempSettings["gameId"]);     
+
+            game.frontend?.OnStartMode(ModeId(), null );                                                               
         }
 
         public override void Loop(float frameSecs)
@@ -57,6 +56,11 @@ namespace BeamBackend
             _loopFunc(frameSecs);
             _curStateSecs += frameSecs;
         }
+
+		public override object End() {            
+            game.frontend?.OnEndMode(ModeId());            
+            return null;
+        }         
 
         protected void _SetState(int newState, object startParam = null)
         {
@@ -99,6 +103,7 @@ namespace BeamBackend
         {
             string newGameId = ((GameCreatedMsg)o).gameId;
             Console.WriteLine($"Created game: {newGameId}");
+            // Tell frontend, if needed
             _SetState(kJoiningGame, newGameId);                   
             return true;
         }
@@ -116,8 +121,9 @@ namespace BeamBackend
         public bool OnPeerJoined(object o)
         {
             BeamPeer p = ((PeerJoinedMsg)o).peer;
-            logger.Info($"Remote Peer Joined: {p.Name}, ID: {p.PeerId}");  
-            game.AddPeer(p);                     
+            string lr = p.IsLocal ? "Local" : "Remote";
+            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");  
+            game.frontend?.OnNewPeer(p, ModeId());                           
             return true;
         }
 
@@ -125,17 +131,17 @@ namespace BeamBackend
         {
             string p2pId =  ((PeerLeftMsg)o).p2pId;
             logger.Info($"Remote Peer Left: {p2pId}");  
-            game.RemovePeer(p2pId);                     
+            game.frontend?.OnPeerLeft(p2pId);                     
             return true;
         }      
 
         public bool OnNewBike(object o)
         {
             IBike ib =  ((NewBikeMsg)o).ib;
-            logger.Info($"OnNewBike: {ib.bikeId}");                      
+            logger.Info($"OnNewBike: {ib.bikeId}");   
+            game.frontend?.OnNewBike(ib);                                  
             return true;
         }  
-
 
         //
         // utils

@@ -37,8 +37,7 @@ namespace BeamBackend
                 SpawnAIBike(); 
             }
 
-            game.frontend?.ModeHelper()
-                .OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );             
+            game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );             
         }
 
 		public override void Loop(float frameSecs) 
@@ -53,7 +52,7 @@ namespace BeamBackend
         }
 
 		public override object End() {            
-            game.frontend?.ModeHelper().OnEndMode(game.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();              

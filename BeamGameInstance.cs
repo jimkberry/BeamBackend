@@ -98,10 +98,10 @@ namespace BeamBackend
             gameData = new BeamGameData(frontend);            
         }
 
-        public void SetLocalPeer(BeamPeer p)
+        public void AddLocalPeer(BeamPeer p)
         {
-            AddPeer(p);
-            LocalPeer = p;
+            LocalPeer = p;            
+            _AddPeer(p);
         }
         
         public void SetGameId(string gid)
@@ -152,16 +152,15 @@ namespace BeamBackend
             modeMgr.DispatchCmd(new GameJoinedMsg(gameId, localP2pId));                      
         }
         public void OnPeerJoined(string p2pId, string helloData)
-        {
-            logger.Info($"OnPeerJoined(): helloData: {helloData})"); 
+        {  
             NetPeerData remoteData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
             logger.Info($"OnPeerJoined(name: {remoteData.peer.Name})");   
-            modeMgr.DispatchCmd(new PeerJoinedMsg(remoteData.peer));                             
+            _AddPeer(remoteData.peer);                             
         }
         public void OnPeerLeft(string p2pId)
         {
             logger.Info($"BGI.OnPeerLeft({p2pId})"); 
-            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));                                                       
+            _RemovePeer(p2pId);                                                       
         }
       
         // BeamMessage subclasses
@@ -263,7 +262,7 @@ namespace BeamBackend
             if (evt == ScoreEvent.kOffMap || bike.score <= 0)
             {
                 bike.score = 0;
-                RemoveBike(bike);
+                _RemoveBike(bike);
             }
         }
 
@@ -272,7 +271,7 @@ namespace BeamBackend
         //
 
         // Peer-related
-        public bool AddPeer(BeamPeer p)
+        protected bool _AddPeer(BeamPeer p)
         {
             logger.Debug($"AddPeer(). Name: {p.Name} ID: {p.PeerId}");            
             if  ( gameData.Peers.ContainsKey(p.PeerId))
@@ -280,15 +279,15 @@ namespace BeamBackend
 
             gameData.Peers[p.PeerId] = p;
             modeMgr.DispatchCmd(new PeerJoinedMsg(p));             
-            frontend?.OnNewPeer(p);
             return true;
         }
 
-        public bool RemovePeer(string p2pId)
+        protected bool _RemovePeer(string p2pId)
         {
             if  ( gameData.Peers.ContainsKey(p2pId))
                 return false;              
-            frontend?.OnPeerLeft(gameData.Peers[p2pId]);                
+
+            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));                                          
             gameData.Peers.Remove(p2pId);
             return true;
         }
@@ -323,11 +322,10 @@ namespace BeamBackend
                 return;
 
             gameData.Bikes[ib.bikeId] = ib; 
-            modeMgr.DispatchCmd(new NewBikeMsg(ib));            
-            frontend?.OnNewBike(ib);                 
+            modeMgr.DispatchCmd(new NewBikeMsg(ib));                          
         }
 
-        public void RemoveBike(IBike ib, bool shouldBlowUp=true)
+        protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
             gameData.Ground.RemovePlacesForBike(ib);
             frontend?.OnBikeRemoved(ib.bikeId, shouldBlowUp);  

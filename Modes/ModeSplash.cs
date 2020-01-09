@@ -35,7 +35,7 @@ namespace BeamBackend
             game.gameNet.Connect("p2ploopback");
             string p2pId = game.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null, true);
-            game.SetLocalPeer(localPeer);
+            game.AddLocalPeer(localPeer);
             game.gameNet.JoinGame("localgame");            
 
             string cameraTargetBikeId = CreateADemoBike();
@@ -44,8 +44,7 @@ namespace BeamBackend
 
             // Note that the target bike is probably NOT created yet at this point.
             // This robably needs to happen differently
-            game.frontend.ModeHelper()
-                .OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );             
+            game.frontend?.OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );             
         }
 
 		public override void Loop(float frameSecs) 
@@ -61,7 +60,7 @@ namespace BeamBackend
         }
 
 		public override object End() {            
-            game.frontend?.ModeHelper().OnEndMode(game.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();              
