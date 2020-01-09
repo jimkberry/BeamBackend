@@ -22,8 +22,10 @@ namespace BeamBackend
             logger.Info("Starting Splash");
             base.Start();
 
-            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));
-            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));               
+            _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
+            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
+            _cmdDispatch[BeamMessage.kPeerLeft] = new Func<object, bool>(o => OnPeerLeft(o));
+            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));                      
 
             game = (BeamGameInstance)gameInst;
             game.ClearPeers();
@@ -79,17 +81,45 @@ namespace BeamBackend
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
         }
 
+        public bool OnGameCreated(object o)
+        {
+            string newGameId = ((GameCreatedMsg)o).gameId;
+            Console.WriteLine($"Created game: {newGameId}");
+            // Tell frontend, if needed                 
+            return true;
+        }
+
         public bool OnGameJoined(object o)
         {
             string gameId = ((GameJoinedMsg)o).gameId;
-            string localId = ((GameJoinedMsg)o).localId;            
-            logger.Debug($"Joined game: {gameId} as ID: {localId}");          
+            string localId = ((GameJoinedMsg)o).localId; 
+            game.SetGameId(gameId);           
+            logger.Info($"Joined game: {gameId} as ID: {localId}");             
             return true;
-        }        
+        }
+
+        public bool OnPeerJoined(object o)
+        {
+            BeamPeer p = ((PeerJoinedMsg)o).peer;
+            string lr = p.IsLocal ? "Local" : "Remote";
+            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");  
+            game.frontend?.OnNewPeer(p, ModeId());                           
+            return true;
+        }
+
+        public bool OnPeerLeft(object o)
+        {
+            string p2pId =  ((PeerLeftMsg)o).p2pId;
+            logger.Info($"Remote Peer Left: {p2pId}");  
+            game.frontend?.OnPeerLeft(p2pId);                     
+            return true;
+        }      
+
         public bool OnNewBike(object o)
         {
             IBike ib =  ((NewBikeMsg)o).ib;
-            logger.Info($"OnNewBike: {ib.bikeId}");                      
+            logger.Info($"OnNewBike: {ib.bikeId}");   
+            game.frontend?.OnNewBike(ib);                                  
             return true;
         }  
 
