@@ -128,6 +128,7 @@ namespace BeamBackend
             p.bike = bike;
             placeArray[xIdx, zIdx] = p;
             activePlaces.Add(p);
+            // TODO: ground should not need to know about the FE
             _feProxy?.SetupPlaceMarker(p);
             return p;
         }

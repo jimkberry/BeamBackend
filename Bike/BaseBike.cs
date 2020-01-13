@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Xml.Xsl.Runtime;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UniLog;
@@ -88,6 +89,9 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
         {
+            Need to send reports of claiming and hitting
+            The the scoring happens when the gamenet confirms
+
             Ground g = gameInst.gameData.Ground;
             Ground.Place p = g.GetPlace(pos);
             bool justClaimed = false;
@@ -109,7 +113,8 @@ namespace BeamBackend
                 gameInst.OnScoreEvent(this, p.bike.team == team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             }            
             
-            gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 
+            // TODO No: Backend (inst) needs to send events
+            //xxx gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 
             
         }
 

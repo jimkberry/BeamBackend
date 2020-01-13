@@ -26,18 +26,20 @@ namespace BeamBackend
         void OnEndMode(int modeId, object param = null);        
 
         // Players
-        void OnNewPeer(BeamPeer p, int modeId=-1);
-        void OnPeerLeft(string p2pId, int modeId=-1);
-        void OnClearPeers(int modeId=-1);        
+        void OnPeerJoinedEvt(object sender, BeamPeer p);
+        void OnPeerLeftEvt(object sender, string p2pId);
+        void OnPeersClearedEvt(object sender, EventArgs e);        
         // Bikes
-        void OnNewBike(IBike ib, int modeId=-1);
-        void OnBikeRemoved(string bikeId, bool doExplode, int modeId=-1);
-        void OnClearBikes(int modeId=-1);
-        void OnBikeAtPlace(string bikeId, Ground.Place place, bool justClaimed, int modeId=-1);
+        void OnNewBikeEvt(object sender, IBike ib);
+        void OnBikeRemovedEvt(object sender, BikeRemovedData data);
+        void OnBikesClearedEvt(object sender, EventArgs e);
+
+
+        void OnPlaceClaimedEvt(object sender, Ground.Place place);
         // Places
-        void SetupPlaceMarker(Ground.Place p, int modeId=-1);    
-        void OnFreePlace(Ground.Place p, int modeId=-1);     
-        void OnClearPlaces(int modeId=-1);
+        void OnPlaceHitEvt(object sender, PlaceHitArgs args);    
+        void OnPlaceFreedEvt(object sender, Ground.Place p);     
+        void OnPlacesClearedEvt(object sender, EventArgs e);
         // scoring
         // void OnScoreEvent(string bikeId, ScoreEvent evt, Ground.Place place); Need this?
     }

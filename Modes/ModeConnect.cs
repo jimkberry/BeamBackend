@@ -122,8 +122,7 @@ namespace BeamBackend
         {
             BeamPeer p = ((PeerJoinedMsg)o).peer;
             string lr = p.IsLocal ? "Local" : "Remote";
-            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");  
-            game.frontend?.OnNewPeer(p, ModeId());                           
+            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");                           
             return true;
         }
 
@@ -131,15 +130,14 @@ namespace BeamBackend
         {
             string p2pId =  ((PeerLeftMsg)o).p2pId;
             logger.Info($"Remote Peer Left: {p2pId}");  
-            game.frontend?.OnPeerLeft(p2pId);                     
+                     
             return true;
         }      
 
         public bool OnNewBike(object o)
         {
             IBike ib =  ((NewBikeMsg)o).ib;
-            logger.Info($"OnNewBike: {ib.bikeId}");   
-            game.frontend?.OnNewBike(ib);                                  
+            logger.Info($"OnNewBike: {ib.bikeId}");                                    
             return true;
         }  
 

@@ -89,6 +89,18 @@ namespace BeamBackend
         public string LocalPeerId => LocalPeer?.PeerId;
         public string CurrentGameId  { get; private set; }
 
+        // IBeamBackend events
+        public event EventHandler<BeamPeer> PeerJoinedEvt;    
+        public event EventHandler<string> PeerLeftEvt; // peer p2pId
+        public event EventHandler PeersClearedEvt;
+        public event EventHandler<IBike> NewBikeEvt;   
+        public event EventHandler<BikeRemovedData> BikeRemovedEvt; 
+        public event EventHandler BikesClearedEvt;      
+        public event EventHandler<Ground.Place> PlaceClaimedEvt;
+        public event EventHandler<PlaceHitArgs> PlaceHitEvt;    
+        public event EventHandler<Ground.Place> PlaceFreedEvt;     
+        public event EventHandler PlacesClearedEvt;              
+
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
             logger = UniLogger.GetLogger("GameInstance");
@@ -160,7 +172,7 @@ namespace BeamBackend
         public void OnPeerLeft(string p2pId)
         {
             logger.Info($"BGI.OnPeerLeft({p2pId})"); 
-            _RemovePeer(p2pId);                                                       
+            _RemovePeer(p2pId);                                            
         }
       
         // BeamMessage subclasses
@@ -228,6 +240,7 @@ namespace BeamBackend
             BaseBike b = (BaseBike)gameData.Bikes[bikeId];            
             Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
             // Ground sends message to FE when place s claimed
+            // TODO: No, don;t have the ground do it.
         }
 
 
@@ -278,23 +291,26 @@ namespace BeamBackend
                 return false;  
 
             gameData.Peers[p.PeerId] = p;
-            modeMgr.DispatchCmd(new PeerJoinedMsg(p));             
+            modeMgr.DispatchCmd(new PeerJoinedMsg(p));
+            PeerJoinedEvt?.Invoke(this, p);
+
             return true;
         }
 
         protected bool _RemovePeer(string p2pId)
         {
-            if  ( gameData.Peers.ContainsKey(p2pId))
+            if  (!gameData.Peers.ContainsKey(p2pId))
                 return false;              
 
-            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));                                          
+            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));  
+            PeerLeftEvt?.Invoke(this, p2pId);                                        
             gameData.Peers.Remove(p2pId);
             return true;
         }
 
         public void ClearPeers()
         {
-            frontend?.OnClearPeers();     
+            PeersClearedEvt?.Invoke(this, EventArgs.Empty);     
             gameData.Peers.Clear();
         }
 
@@ -322,18 +338,19 @@ namespace BeamBackend
                 return;
 
             gameData.Bikes[ib.bikeId] = ib; 
-            modeMgr.DispatchCmd(new NewBikeMsg(ib));                          
+            modeMgr.DispatchCmd(new NewBikeMsg(ib));    
+            NewBikeEvt?.Invoke(this, ib);                      
         }
 
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
             gameData.Ground.RemovePlacesForBike(ib);
-            frontend?.OnBikeRemoved(ib.bikeId, shouldBlowUp);  
+            BikeRemovedEvt?.Invoke(this, new BikeRemovedData(ib.bikeId,  shouldBlowUp));  
             gameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
         }
         public void ClearBikes()
         {
-            frontend?.OnClearBikes();
+            BikesClearedEvt?.Invoke(this, EventArgs.Empty);
             gameData.Bikes.Clear();
         }
 
