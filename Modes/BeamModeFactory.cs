@@ -9,6 +9,7 @@ namespace BeamBackend
         public const int kSplash = 0;        
         public static int kConnect = 1;        
         public const int kPlay = 2;
+        public const int kPractice = 3;  
 
         public BeamModeFactory()
         {      
@@ -16,6 +17,7 @@ namespace BeamBackend
                 { kConnect, ()=> new ModeConnect() },  
                 { kSplash, ()=> new ModeSplash() },                 
                 { kPlay, ()=> new ModePlay() },                      
+                { kPractice, ()=> new ModePractice() },                   
             }; 
         }       
     }
