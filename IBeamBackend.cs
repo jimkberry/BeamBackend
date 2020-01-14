@@ -5,6 +5,11 @@ using UnityEngine;
 
 namespace BeamBackend
 {
+    public struct GameJoinedArgs {
+        public string gameChannel;
+        public string localP2pId;
+        public GameJoinedArgs(string g, string p) {gameChannel=g; localP2pId=p;}        
+    }
     public struct BikeRemovedData {
         public string bikeId; 
         public bool doExplode; 
@@ -21,19 +26,22 @@ namespace BeamBackend
 
     public interface IBeamBackend {
 
+        event EventHandler<string> GameCreatedEvt; // game channel
+        event EventHandler<GameJoinedArgs> GameJoinedEvt; // local p2pid
         event EventHandler<BeamPeer> PeerJoinedEvt;
         event EventHandler<string> PeerLeftEvt; // peer p2pId
         event EventHandler PeersClearedEvt;
         event EventHandler<IBike> NewBikeEvt;   
         event EventHandler<BikeRemovedData> BikeRemovedEvt; 
         event EventHandler BikesClearedEvt;
-
         event EventHandler<Ground.Place> PlaceClaimedEvt;
         event EventHandler<PlaceHitArgs> PlaceHitEvt;    
-        event EventHandler<Ground.Place> PlaceFreedEvt;     
-        event EventHandler PlacesClearedEvt;
 
+        // The following events are  owned by the Ground instance:
+        // event EventHandler<Ground.Place> PlaceFreedEvt;     
+        // event EventHandler PlacesClearedEvt;
 
+        Ground GetGround();
 
         // Stuff From FE
         // TODO: This is getting sparse - is it needed?

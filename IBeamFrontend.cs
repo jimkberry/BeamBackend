@@ -33,15 +33,17 @@ namespace BeamBackend
         void OnNewBikeEvt(object sender, IBike ib);
         void OnBikeRemovedEvt(object sender, BikeRemovedData data);
         void OnBikesClearedEvt(object sender, EventArgs e);
-
-
         void OnPlaceClaimedEvt(object sender, Ground.Place place);
         // Places
         void OnPlaceHitEvt(object sender, PlaceHitArgs args);    
-        void OnPlaceFreedEvt(object sender, Ground.Place p);     
-        void OnPlacesClearedEvt(object sender, EventArgs e);
         // scoring
         // void OnScoreEvent(string bikeId, ScoreEvent evt, Ground.Place place); Need this?
+
+        // Ground events
+        void OnPlaceFreedEvt(object sender, Ground.Place p);     
+        void OnSetupPlaceMarkerEvt(object sender, Ground.Place p);            
+        void OnPlacesClearedEvt(object sender, EventArgs e);
+
     }
 
 }

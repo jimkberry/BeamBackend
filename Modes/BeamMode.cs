@@ -22,10 +22,8 @@ namespace BeamBackend
 			logger = UniLogger.GetLogger("BeamMode");
         }
 
-		protected Dictionary<string, dynamic> _cmdDispatch; 
-
 		public virtual void Start( object param = null)	{
-            _cmdDispatch = new Dictionary<string, dynamic>();            
+        
         }
 
 		public virtual void Loop(float frameSecs) {}
@@ -34,16 +32,6 @@ namespace BeamBackend
 		public virtual void Resume(string prevModeName, object prevModeResult) {}	
 		public virtual object End() => null;
         public virtual string ModeName() => this.GetType().Name;        
-
-
-        public bool HandleCmd(object cmd)
-        {
-			try {			
-            	return _cmdDispatch[((BeamMessage)cmd).msgType](cmd);
-			} catch (KeyNotFoundException) {
-				logger.Warn($"{this.ModeName()}: Unhandled Command: {((BeamMessage)cmd).msgType} {cmd.GetType()}");
-				return false;
-			}
-        }    
+   
     }
 }

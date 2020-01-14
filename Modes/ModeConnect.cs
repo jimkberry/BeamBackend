@@ -25,12 +25,14 @@ namespace BeamBackend
             UnityEngine.Debug.Log("Starting Connect");
             base.Start();
 
-            _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
-            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
-            _cmdDispatch[BeamMessage.kPeerLeft] = new Func<object, bool>(o => OnPeerLeft(o));
-            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));
-
             game = (BeamGameInstance)gameInst;
+
+            game.GameCreatedEvt += OnGameCreatedEvt;
+            game.GameJoinedEvt += OnGameJoinedEvt;
+            game.PeerJoinedEvt += OnPeerJoinedEvt;
+            game.PeerLeftEvt += OnPeerLeftEvt;
+            game.NewBikeEvt += OnNewBikeEvt;
+
             settings = game.frontend.GetUserSettings();
 
             game.ClearPeers();
@@ -99,47 +101,39 @@ namespace BeamBackend
                 _SetState(kCreatingBike);
         }
 
-        public bool OnGameCreated(object o)
+        // Event handlers
+		// Event handlers
+        public void OnGameCreatedEvt(object sender, string newGameId)
         {
-            string newGameId = ((GameCreatedMsg)o).gameId;
             Console.WriteLine($"Created game: {newGameId}");
-            // Tell frontend, if needed
             _SetState(kJoiningGame, newGameId);                   
-            return true;
         }
 
-        public bool OnGameJoined(object o)
-        {
-            string gameId = ((GameJoinedMsg)o).gameId;
-            string localId = ((GameJoinedMsg)o).localId; 
-            game.SetGameId(gameId);           
-            logger.Info($"Joined game: {gameId} as ID: {localId}");
+        public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
+        {     
+            logger.Info($"Joined game: {ga.gameChannel} as ID: {ga.localP2pId}");
             _SetState(kWaitingForPlayers1, null);             
-            return true;
         }
 
-        public bool OnPeerJoined(object o)
+        public void OnPeerJoinedEvt(object sender, BeamPeer p)
         {
-            BeamPeer p = ((PeerJoinedMsg)o).peer;
             string lr = p.IsLocal ? "Local" : "Remote";
             logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");                           
-            return true;
         }
 
-        public bool OnPeerLeft(object o)
+        public void OnPeerLeftEvt(object sender, string p2pId)
         {
-            string p2pId =  ((PeerLeftMsg)o).p2pId;
             logger.Info($"Remote Peer Left: {p2pId}");  
-                     
-            return true;
-        }      
+        }      		
 
-        public bool OnNewBike(object o)
+        public void OnNewBikeEvt(object sender, IBike ib)
         {
-            IBike ib =  ((NewBikeMsg)o).ib;
-            logger.Info($"OnNewBike: {ib.bikeId}");                                    
-            return true;
-        }  
+            string lr = ib.peerId == game.LocalPeerId ? "local" : "remote";
+            logger.Info($"New {lr} bike: {ib.bikeId}");             
+            if (ib.peerId == game.LocalPeerId)
+                _SetState(kReadyToPlay, null);                         
+        }
+
 
         //
         // utils

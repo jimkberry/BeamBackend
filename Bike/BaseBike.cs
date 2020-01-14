@@ -1,7 +1,4 @@
-﻿using System.Xml.Xsl.Runtime;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UniLog;
 
 
@@ -89,34 +86,66 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
         {
-            Need to send reports of claiming and hitting
-            The the scoring happens when the gamenet confirms
 
             Ground g = gameInst.gameData.Ground;
             Ground.Place p = g.GetPlace(pos);
-            bool justClaimed = false;
-
             logger.Debug($"DoAtGridPoint()");
             if (p == null)
             {
-                p = g.ClaimPlace(this, pos); 
-                if ( p == null)
+                // is it on the map?
+                if (g.PointIsOnMap(pos))
                 {
-                    // Off map
-                    gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);                    
+                    // Yes. Since it's empty send a claim report 
+                    // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
+                    gameInst.gameNet.ReportPlaceClaim(bikeId, pos.x, pos.y);
                 } else {
-                    justClaimed = true;
-                    gameInst.OnScoreEvent(this, ScoreEvent.kClaimPlace, null); 
+                    // Nope. Blow it up.
+                    // TODO: should going off the map be a consensus event?
+                    // Current thinking: yeah. But not now.
+                    // A thought: Could just skip the on-map check and call it a place claim and report it
+                    //   GameNet can grant/not grant it depending on the consensus rules, and if inst
+                    //   gets the claim it can just blow it up then. 
+
+                    //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);     
+                    // This is stupid and temporary (rather than just getting rid of the test)
+                    gameInst.gameNet.ReportPlaceClaim(bikeId,pos.x, pos.y);               
                 }
             } else {
-                // Hit a marker. Do score thing,
-                gameInst.OnScoreEvent(this, p.bike.team == team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+                // Hit a marker. Report it.
+                gameInst.gameNet.ReportPlaceHit(bikeId, p.xIdx, p.zIdx);
             }            
-            
-            // TODO No: Backend (inst) needs to send events
-            //xxx gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 
-            
         }
+
+        // protected virtual void OldDoAtGridPoint(Vector2 pos, Heading head)
+        // {
+        //     //Need to send reports of claiming and hitting
+        //     //Then the scoring happens when the gamenet confirms
+
+        //     Ground g = gameInst.gameData.Ground;
+        //     Ground.Place p = g.GetPlace(pos);
+        //     //bool justClaimed = false;
+
+        //     logger.Debug($"DoAtGridPoint()");
+        //     if (p == null)
+        //     {
+        //         p = g.ClaimPlace(this, pos); 
+        //         if ( p == null)
+        //         {
+        //             // Off map
+        //             gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);                    
+        //         } else {
+        //             justClaimed = true;
+        //             gameInst.OnScoreEvent(this, ScoreEvent.kClaimPlace, null); 
+        //         }
+        //     } else {
+        //         // Hit a marker. Do score thing,
+        //         gameInst.OnScoreEvent(this, p.bike.team == team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+        //     }            
+            
+        //     // TODO No: Backend (inst) needs to send events
+        //     //gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 
+            
+        // }
 
         //
         // Static tools. Potentially useful publicly

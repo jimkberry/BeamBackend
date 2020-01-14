@@ -90,6 +90,8 @@ namespace BeamBackend
         public string CurrentGameId  { get; private set; }
 
         // IBeamBackend events
+        public event EventHandler<string> GameCreatedEvt; // game channel
+        public event EventHandler<GameJoinedArgs> GameJoinedEvt;     
         public event EventHandler<BeamPeer> PeerJoinedEvt;    
         public event EventHandler<string> PeerLeftEvt; // peer p2pId
         public event EventHandler PeersClearedEvt;
@@ -97,9 +99,7 @@ namespace BeamBackend
         public event EventHandler<BikeRemovedData> BikeRemovedEvt; 
         public event EventHandler BikesClearedEvt;      
         public event EventHandler<Ground.Place> PlaceClaimedEvt;
-        public event EventHandler<PlaceHitArgs> PlaceHitEvt;    
-        public event EventHandler<Ground.Place> PlaceFreedEvt;     
-        public event EventHandler PlacesClearedEvt;              
+        public event EventHandler<PlaceHitArgs> PlaceHitEvt;          
 
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
@@ -116,10 +116,6 @@ namespace BeamBackend
             _AddPeer(p);
         }
         
-        public void SetGameId(string gid)
-        {
-            CurrentGameId = gid;
-        }
 
         //
         // IGameInstance
@@ -155,13 +151,14 @@ namespace BeamBackend
 
         public void OnGameCreated(string gameP2pChannel)
         {
-            logger.Info($"BGI.OnGameCreated({gameP2pChannel}");          
-            modeMgr.DispatchCmd( new GameCreatedMsg(gameP2pChannel));
+            logger.Info($"BGI.OnGameCreated({gameP2pChannel}"); 
+            GameCreatedEvt?.Invoke(this, gameP2pChannel);
         }
         public void OnGameJoined(string gameId, string localP2pId)
         {
             logger.Info($"OnGameJoined({gameId}, {localP2pId})");  
-            modeMgr.DispatchCmd(new GameJoinedMsg(gameId, localP2pId));                      
+            CurrentGameId = gameId;
+            GameJoinedEvt?.Invoke(this, new GameJoinedArgs(gameId, localP2pId));                  
         }
         public void OnPeerJoined(string p2pId, string helloData)
         {  
@@ -217,6 +214,8 @@ namespace BeamBackend
         // IBeamBackend (requests from the frontend)
         // 
 
+        public Ground GetGround() => gameData.Ground;
+
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
            modeMgr.SwitchToMode(newModeId, modeParam);       
@@ -234,15 +233,55 @@ namespace BeamBackend
         // Messages from the network/consensus layer (external or internal loopback)
         //
 
-        public void OnPlaceClaim(string bikeId, Vector2 pos)
+        public void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId)
         {
-            // TODO: should be coming from net, instead of the backend
-            BaseBike b = (BaseBike)gameData.Bikes[bikeId];            
-            Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
+            BaseBike b = (BaseBike)gameData.Bikes[msg.bikeId];    
+
+            // TODO: This test is implementing the "trusty" consensus 
+            // "bike owner is authority" rule. 
+            // &&&& IT SHOULD NOT HAPPEN HERE!!!! Apian should have taken care of it and the
+            // call only made if it passed
+            if (srcId == b.peerId)
+            {
+                Vector2 pos = new Vector2(msg.xPos, msg.zPos);
+                if (gameData.Ground.PointIsOnMap(pos))
+                {
+                    // Claim it                
+                    Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
+                    if (p != null)
+                    {
+                        OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
+                        PlaceClaimedEvt?.Invoke(this, p);                                                                      
+                    } else {
+                        logger.Warn($"OnPlaceClaimed() failed. Place already claimed.");
+                    }
+
+                } else {
+                    // Oh oh. It's an "off the map" notification
+                    OnScoreEvent(b, ScoreEvent.kOffMap, null);   // _RemoveBike() will raise BikeRemoved event                  
+                }
+            }
+
             // Ground sends message to FE when place s claimed
             // TODO: No, don;t have the ground do it.
         }
 
+        public void OnPlaceHit(PlaceHitReportMsg msg, string srcId)
+        {
+            // TODO: This test is implementing the "trusty" consensus 
+            // "place owner is authority" rule. 
+            // &&&& IT SHOULD NOT HAPPEN HERE!!!! Apian should have taken care of it and the
+            // call only made if it passed
+            Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
+            Ground.Place p = gameData.Ground.GetPlace(pos);
+            if (p != null && srcId == p.bike.peerId)
+            {
+                BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);
+                // Source of message is place owner (well, owner of the bike that owns the place...)
+                OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+                PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                
+            }
+        } 
 
         public void OnScoreEvent(BaseBike bike, ScoreEvent evt, Ground.Place place)
         {
@@ -291,7 +330,6 @@ namespace BeamBackend
                 return false;  
 
             gameData.Peers[p.PeerId] = p;
-            modeMgr.DispatchCmd(new PeerJoinedMsg(p));
             PeerJoinedEvt?.Invoke(this, p);
 
             return true;
@@ -302,7 +340,6 @@ namespace BeamBackend
             if  (!gameData.Peers.ContainsKey(p2pId))
                 return false;              
 
-            modeMgr.DispatchCmd(new PeerLeftMsg(p2pId));  
             PeerLeftEvt?.Invoke(this, p2pId);                                        
             gameData.Peers.Remove(p2pId);
             return true;
@@ -337,8 +374,7 @@ namespace BeamBackend
             if (gameData.GetBaseBike(ib.bikeId) != null)
                 return;
 
-            gameData.Bikes[ib.bikeId] = ib; 
-            modeMgr.DispatchCmd(new NewBikeMsg(ib));    
+            gameData.Bikes[ib.bikeId] = ib;   
             NewBikeEvt?.Invoke(this, ib);                      
         }
 

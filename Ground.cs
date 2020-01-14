@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,6 +19,10 @@ namespace BeamBackend
 
         public static float secsHeld = 15; // TODO: Maybe should be per-bike and increase with time? Bike Trail FX would have to as well.
 
+        public event EventHandler<Ground.Place> PlaceFreedEvt;     
+        public event EventHandler<Ground.Place> SetupPlaceMarkerEvt;        
+        public event EventHandler PlacesClearedEvt;
+
         public class Place
         {
             public int xIdx; // x index into array.
@@ -26,11 +30,16 @@ namespace BeamBackend
             public BaseBike bike;
             public float secsLeft;
 
-            public int posHash() => xIdx + zIdx * Ground.pointsPerAxis;
+            public int posHash() => xIdx + zIdx * Ground.pointsPerAxis; // Is this useful?
 
             public Vector2 GetPos()
             {
-                return new Vector2(xIdx*gridSize+minX,zIdx*gridSize+minZ);
+                return PlacePos(xIdx,zIdx);
+            }
+
+            public static Vector2 PlacePos(int x, int z)
+            {
+                return new Vector2(x*gridSize+minX,z*gridSize+minZ);                
             }
         }
 
@@ -39,10 +48,10 @@ namespace BeamBackend
         protected List<Place> activePlaces = null;
         protected Stack<Place> freePlaces = null; // re-use released/expired ones
 
-        protected IBeamFrontend _feProxy = null;
+        //protected IBeamFrontend _feProxy = null;
         public Ground(IBeamFrontend fep)
         {
-            _feProxy = fep;
+           // _feProxy = fep;
             InitPlaces();
         }
 
@@ -63,7 +72,8 @@ namespace BeamBackend
         }
 
         protected void RecyclePlace(Place p){
-            _feProxy?.OnFreePlace(p);
+
+            PlaceFreedEvt?.Invoke(this,p);
             p.bike = null;                 
             freePlaces.Push(p); // add to free list
             placeArray[p.xIdx, p.zIdx] = null;
@@ -79,7 +89,7 @@ namespace BeamBackend
         public void ClearPlaces()
         {
             InitPlaces();
-            _feProxy?.OnClearPlaces();                             
+            PlacesClearedEvt?.Invoke(this, EventArgs.Empty);                             
         }
 
         public void RemovePlacesForBike(IBike bike)
@@ -102,6 +112,7 @@ namespace BeamBackend
 
         public Place ClaimPlace(BaseBike bike, Vector2 pos)
         {
+            // returns place ref if successful. null if already claimed or off map
             Vector2 gridPos = NearestGridPoint(pos);        
             int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
             int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize );
@@ -128,8 +139,7 @@ namespace BeamBackend
             p.bike = bike;
             placeArray[xIdx, zIdx] = p;
             activePlaces.Add(p);
-            // TODO: ground should not need to know about the FE
-            _feProxy?.SetupPlaceMarker(p);
+            SetupPlaceMarkerEvt?.Invoke(this,p);
             return p;
         }
 

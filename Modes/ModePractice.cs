@@ -20,10 +20,6 @@ namespace BeamBackend
 		public override void Start(object param = null)	
         {
             base.Start();
-            _cmdDispatch[BeamMessage.kGameCreated ] = new Func<object, bool>(o => OnGameCreated(o)); 
-            _cmdDispatch[BeamMessage.kGameJoined] = new Func<object, bool>(o => OnGameJoined(o));              
-            _cmdDispatch[BeamMessage.kPeerLeft] = new Func<object, bool>(o => OnPeerLeft(o));
-            _cmdDispatch[BeamMessage.kNewBike] = new Func<object, bool>(o => OnNewBike(o));   
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
             game.ClearPeers();
@@ -70,46 +66,7 @@ namespace BeamBackend
             game.ClearPlaces();              
             return null;
         } 
-
-        public bool OnGameCreated(object o)
-        {
-            string newGameId = ((GameCreatedMsg)o).gameId;
-            Console.WriteLine($"Created game: {newGameId}");
-            // Tell frontend, if needed                 
-            return true;
-        }
-
-        public bool OnGameJoined(object o)
-        {
-            string gameId = ((GameJoinedMsg)o).gameId;
-            string localId = ((GameJoinedMsg)o).localId; 
-            game.SetGameId(gameId);           
-            logger.Info($"Joined game: {gameId} as ID: {localId}");             
-            return true;
-        }
-
-        public bool OnPeerJoined(object o)
-        {
-            BeamPeer p = ((PeerJoinedMsg)o).peer;
-            string lr = p.IsLocal ? "Local" : "Remote";
-            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");                            
-            return true;
-        }
-
-        public bool OnPeerLeft(object o)
-        {
-            string p2pId =  ((PeerLeftMsg)o).p2pId;
-            logger.Info($"Remote Peer Left: {p2pId}");                       
-            return true;
-        }      
-
-        public bool OnNewBike(object o)
-        {
-            IBike ib =  ((NewBikeMsg)o).ib;
-            logger.Info($"OnNewBike: {ib.bikeId}");                                    
-            return true;
-        }  
-
+  
         protected string CreateBaseBike(int ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();

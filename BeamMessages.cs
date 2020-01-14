@@ -4,16 +4,18 @@ namespace BeamBackend
 {
     public class BeamMessage
     {
-        public const string kGameCreated = "100";
-        public const string kGameJoined = "101";
-        public const string kPeerJoined = "102";
-        public const string kPeerLeft = "103";      
+//        public const string kGameCreated = "100";
+//        public const string kGameJoined = "101";
+//        public const string kPeerJoined = "102";
+//        public const string kPeerLeft = "103";      
         public const string kBikeCreateData = "104";
         public const string kBikeDataReq = "105";    
         public const string kBikeUpdate = "106";
+        public const string kPlaceClaimReport = "107";
+        public const string kPlaceHitReport = "108";
          
         // Internal (not serializable)
-        public const string kNewBike = "206";  
+//        public const string kNewBike = "206";  
 
         public string msgType;
         public BeamMessage(string t) => msgType = t;
@@ -23,34 +25,34 @@ namespace BeamBackend
     // Basic connection messages
     //
 
-    public class GameCreatedMsg : BeamMessage
-    {
-        public string gameId;
-        public GameCreatedMsg(string _gameId) : base(kGameCreated) => gameId = _gameId;
-    }
+    // public class GameCreatedMsg : BeamMessage
+    // {
+    //     public string gameId;
+    //     public GameCreatedMsg(string _gameId) : base(kGameCreated) => gameId = _gameId;
+    // }
     
-    public class GameJoinedMsg : BeamMessage
-    {
-        public string gameId;
-        public string localId;
-        public GameJoinedMsg(string _gameId, string _localId) :  base(kGameJoined)
-        {
-            gameId = _gameId; 
-            localId = _localId;
-        }
-    }
+    // public class GameJoinedMsg : BeamMessage
+    // {
+    //     public string gameId;
+    //     public string localId;
+    //     public GameJoinedMsg(string _gameId, string _localId) :  base(kGameJoined)
+    //     {
+    //         gameId = _gameId; 
+    //         localId = _localId;
+    //     }
+    // }
 
-    public class PeerJoinedMsg : BeamMessage
-    {
-        public BeamPeer peer;
-        public PeerJoinedMsg(BeamPeer _p) : base(kPeerJoined) => peer = _p;
-    }    
+    // public class PeerJoinedMsg : BeamMessage
+    // {
+    //     public BeamPeer peer;
+    //     public PeerJoinedMsg(BeamPeer _p) : base(kPeerJoined) => peer = _p;
+    // }    
 
-    public class PeerLeftMsg : BeamMessage
-    {
-        public string p2pId;
-        public PeerLeftMsg(string _pid) : base(kPeerLeft) => p2pId = _pid;
-    }      
+    // public class PeerLeftMsg : BeamMessage
+    // {
+    //     public string p2pId;
+    //     public PeerLeftMsg(string _pid) : base(kPeerLeft) => p2pId = _pid;
+    // }      
 
     //
     // GameNet messages
@@ -122,14 +124,40 @@ namespace BeamBackend
         }
     }
 
+    public class PlaceClaimReportMsg : BeamMessage
+    {
+        public string bikeId;
+        public float xPos;
+        public float zPos;
+        public PlaceClaimReportMsg(string _bikeId, float  _xPos, float _zPos) : base(kPlaceClaimReport) 
+        { 
+            bikeId = _bikeId; 
+            xPos = _xPos;
+            zPos = _zPos;
+        }
+    }
+
+    public class PlaceHitReportMsg : BeamMessage
+    {
+        public string bikeId;
+        public int xIdx;
+        public int zIdx;
+        public PlaceHitReportMsg(string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitReport) 
+        { 
+            bikeId = _bikeId; 
+            xIdx=_xIdx;
+            zIdx=_zIdx;
+        }
+    }
+
     //
     // Internal-only messages.
     // (So can have references.)
     //
-    public class NewBikeMsg : BeamMessage
-    {
-        public IBike ib;
-        public NewBikeMsg(IBike _ib) : base(kNewBike) => ib = _ib;
-    }   
+    // public class NewBikeMsg : BeamMessage
+    // {
+    //     public IBike ib;
+    //     public NewBikeMsg(IBike _ib) : base(kNewBike) => ib = _ib;
+    // }   
 
 }
