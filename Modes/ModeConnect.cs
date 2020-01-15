@@ -1,6 +1,5 @@
-using System.Reflection.Emit;
+using System.Linq;
 using System;
-using GameModeMgr;
 namespace BeamBackend
 {
     public class ModeConnect : BeamGameMode
@@ -8,9 +7,10 @@ namespace BeamBackend
         protected const float kWaitForPlayersSecs = 3.0f;
         protected const int kCreatingGame = 0;        
         protected const int kJoiningGame = 1;
-        protected const int kWaitingForPlayers1 = 2; // wait a couple seconds
-        protected const int kCreatingBike = 3;        
-        protected const int kReadyToPlay = 4;   
+        protected const int kWaitingForPlayers = 2; // wait a couple seconds before creating bike
+        protected const int kCreatingBike = 3;     
+        protected const int kWaitingForRemoteBike = 4; // Wait until there is at least 1 remote bike           
+        protected const int kReadyToPlay = 5;   
 
         public BeamGameInstance game = null; 
         public BeamUserSettings settings = null;     
@@ -22,7 +22,7 @@ namespace BeamBackend
 
 		public override void Start(object param = null)	
         {
-            UnityEngine.Debug.Log("Starting Connect");
+            logger.Info("Starting Connect");
             base.Start();
 
             game = (BeamGameInstance)gameInst;
@@ -71,22 +71,28 @@ namespace BeamBackend
             switch (newState)
             {
             case kCreatingGame:
-                UnityEngine.Debug.Log("Creating game");                     
+                logger.Info("Creating game");                     
                 game.gameNet.CreateGame(startParam);  
                 break;            
             case kJoiningGame:      
-                UnityEngine.Debug.Log($"Joining Game {(string)startParam}");            
+                logger.Info($"Joining Game {(string)startParam}");            
                 game.gameNet.JoinGame((string)startParam);
                 break;                      
-            case kWaitingForPlayers1:
-                UnityEngine.Debug.Log($"Waiting for players");
-                _loopFunc = _WaitForPlayers1Loop;
+            case kWaitingForPlayers:
+                logger.Info($"Waiting for players");
+                _loopFunc = _WaitForPlayersLoop;
                 break;
             case kCreatingBike:
-                UnityEngine.Debug.Log($"Creating local bike");  
-                _CreateLocalBike();    
+                logger.Info($"Creating local bike");  
+                _CreateLocalBike(settings.localPlayerCtrlType);    
                 break;
+            case kWaitingForRemoteBike:
+                logger.Info($"Waiting for a remote bike.");
+                _loopFunc = _WaitForRemoteBikeLoop;
+                break;                
             case kReadyToPlay:
+                logger.Info($"Ready to play."); 
+                game.RaiseReadyToPlay();
                 break;
             default:
                 logger.Error($"ModeConnect._SetState() - Unknown state: {newState}");
@@ -95,11 +101,18 @@ namespace BeamBackend
         }
 
         protected void _DoNothingLoop(float frameSecs) {}
-        protected void _WaitForPlayers1Loop(float frameSecs) 
+        protected void _WaitForPlayersLoop(float frameSecs) 
         {
             if (_curStateSecs > kWaitForPlayersSecs)
                 _SetState(kCreatingBike);
         }
+
+        protected void _WaitForRemoteBikeLoop(float frameSecs) 
+        {
+            if ( _RemoteBikeExists() )
+                _SetState(kReadyToPlay);
+        }
+
 
         // Event handlers
 		// Event handlers
@@ -112,7 +125,7 @@ namespace BeamBackend
         public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
         {     
             logger.Info($"Joined game: {ga.gameChannel} as ID: {ga.localP2pId}");
-            _SetState(kWaitingForPlayers1, null);             
+            _SetState(kWaitingForPlayers, null);             
         }
 
         public void OnPeerJoinedEvt(object sender, BeamPeer p)
@@ -131,7 +144,7 @@ namespace BeamBackend
             string lr = ib.peerId == game.LocalPeerId ? "local" : "remote";
             logger.Info($"New {lr} bike: {ib.bikeId}");             
             if (ib.peerId == game.LocalPeerId)
-                _SetState(kReadyToPlay, null);                         
+                _SetState(kWaitingForRemoteBike, null);                         
         }
 
 
@@ -139,19 +152,22 @@ namespace BeamBackend
         // utils
         //
 
+        protected bool _RemoteBikeExists()
+        {
+            return game.gameData.Bikes.Values.Where( ib => ib.peerId != game.LocalPeerId).Count() > 0;
+        }
+
         protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
         {               
             // Game.LocalP2pId is not set yet
             return new BeamPeer(p2pId, settings.screenName, null, true);
         }
-        
 
-        protected void _CreateLocalBike()
+        protected void _CreateLocalBike(int bikeCtrlType)
         {
-            // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            BaseBike bb =  game.CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
+            BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
             game.gameNet.SendBikeCreateData(bb); // will result in OnBikeInfo()            
         }          
 

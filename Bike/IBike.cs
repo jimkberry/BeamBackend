@@ -20,6 +20,9 @@ namespace BeamBackend
 
         // Temporary ctrl stuff
         TurnDir pendingTurn { get;}
+        // Other ctrl stuff
+        void Go();
+        void Stop();
     }
 
 }

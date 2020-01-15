@@ -37,9 +37,14 @@ namespace BeamBackend
         event EventHandler<Ground.Place> PlaceClaimedEvt;
         event EventHandler<PlaceHitArgs> PlaceHitEvt;    
 
+        // Instigated by game mode code
+        event EventHandler ReadyToPlayEvt;          
+		void RaiseReadyToPlay(); 
+
         // The following events are  owned by the Ground instance:
         // event EventHandler<Ground.Place> PlaceFreedEvt;     
         // event EventHandler PlacesClearedEvt;
+
 
         Ground GetGround();
 

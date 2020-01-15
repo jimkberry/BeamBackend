@@ -20,35 +20,17 @@ namespace BeamBackend
 		public override void Start(object param = null)	
         {
             base.Start();
-           // TODO: respawning  _cmdDispatch["Respawn"] = new Action<object>(o => RespawnPlayerBike());  
-
-            game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.ClearPeers();
-            game.ClearBikes();    
+            logger.Info("Starting ModePlay");            
+            game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode 
             game.ClearPlaces();     
-
-            // Create player bike
-            SpawnPlayerBike();
-
-            for( int i=1;i<kMaxPlayers; i++) 
-            {
-                // TODO: create a list of names/teams and respawn them when the blow up?
-                // ...or do it when respawn gets called
-                SpawnAIBike(); 
-            }
-
+            IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();
+            _startLocalBikes();
             game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );             
         }
 
 		public override void Loop(float frameSecs) 
         {
-            _secsToNextRespawnCheck -= frameSecs;
-            if (_secsToNextRespawnCheck <= 0)
-            {
-                // TODO: respawn with prev names/teams?
-                SpawnAIBike();
-                _secsToNextRespawnCheck = kRespawnCheckInterval;
-            }
+
         }
 
 		public override object End() {            
@@ -58,6 +40,11 @@ namespace BeamBackend
             game.ClearPlaces();              
             return null;
         } 
+
+        protected void _startLocalBikes()
+        {
+            foreach( IBike ib in game.gameData.LocalBikes(game.LocalPeerId)) { ib.Go();  }
+        }
 
         protected string CreateBaseBike(int ctrlType, string peerId, string name, Team t)
         {
@@ -77,16 +64,6 @@ namespace BeamBackend
             return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);                 
         }        
 
-        protected string SpawnAIBike(string name = null, Team team = null)
-        {
-            if (name == null)
-                name = BikeDemoData.RandomName();
-
-            if (team == null)
-                team = BikeDemoData.RandomTeam();
-
-            return CreateBaseBike(BikeFactory.AiCtrl, game.LocalPeerId, name, team);
-        }
 
         protected void RespawnPlayerBike()
         {       

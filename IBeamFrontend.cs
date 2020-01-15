@@ -14,7 +14,6 @@ namespace BeamBackend
         void OnEndMode(int modeId, object param);
     }
 
-
     public interface IBeamFrontend 
     {
         // Called by backend
@@ -43,6 +42,9 @@ namespace BeamBackend
         void OnPlaceFreedEvt(object sender, Ground.Place p);     
         void OnSetupPlaceMarkerEvt(object sender, Ground.Place p);            
         void OnPlacesClearedEvt(object sender, EventArgs e);
+
+        // Game Events
+        void OnReadyToPlay(object sender, EventArgs e);
 
     }
 
