@@ -33,7 +33,11 @@ namespace BeamBackend
         public void Stop() => speed = 0;
 
         // TODO: check to see if these are used in BeamUnity. Delete if not
-        public void TempSetPendingTurn(TurnDir d) => pendingTurn = d;
+        public void TempSetPendingTurn(TurnDir d)
+        {
+            pendingTurn = d; 
+            gameInst.gameNet.SendBikeUpdate(this);
+        }
 
         public void TempSetHeading(Heading h) => heading = h;
 
@@ -64,11 +68,12 @@ namespace BeamBackend
         }
 
 
-        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore)
+        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, TurnDir newPendingTurn, int newScore)
         {
             // STOOOPID 1st cut - just dump it in there...
             speed = newSpeed;
             heading = newHeading;
+            pendingTurn = newPendingTurn;
             // score = newScore; Not this one.
 
             // Make sure the bike is on a grid line...     

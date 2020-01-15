@@ -8,6 +8,7 @@ namespace BeamBackend
     public interface IBeamGameNet : IGameNet
     {
         void SendBikeCreateData(IBike ib, string destId = null);
+        void SendBikeUpdate(IBike localBike);        
         void RequestBikeData(string bikeId, string destId);
         void SendBikeUpdates(List<IBike> localBikes);
         void ReportPlaceClaim(string bikeId, float xPos, float zPos);
@@ -67,19 +68,25 @@ namespace BeamBackend
             _SendClientMessage( destId, msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
+        public void SendBikeUpdate(IBike bike)
+        {
+            // Always sent
+            long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
+            _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
+            logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
+            BikeUpdateMsg msg = new BikeUpdateMsg(bike);
+            _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));            
+        }
+
         public void SendBikeUpdates(List<IBike> localBikes)
         {
+            // Not sent if too recent
             long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             foreach(IBike ib in localBikes)
             {
                 long prevMs;
                 if ( !_lastBikeUpdatesMs.TryGetValue(ib.bikeId, out prevMs) || (nowMs - prevMs > kBikeUpdateMs))
-                {
-                    _lastBikeUpdatesMs[ib.bikeId] = nowMs;  
-                    logger.Debug($"BeamGameNet.SendBikeUpdates() Bike: {ib.bikeId}");                    
-                    BikeUpdateMsg msg = new BikeUpdateMsg(ib);
-                    _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));      
-                }
+                    SendBikeUpdate(ib);
             }
       
         }

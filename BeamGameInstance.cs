@@ -131,6 +131,9 @@ namespace BeamBackend
         {
             //logger.Debug("Loop()");
             gameData.Loop(frameSecs);
+            // TODO: gets throttled per-bike by gamenet, but we should probably
+            // have it time-based here as well rather than going though
+            // the whole thing every frame
             gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
             return modeMgr.Loop(frameSecs);
         }
@@ -208,7 +211,7 @@ namespace BeamBackend
             else
             {
                 logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
-                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score);
+                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.pendingTurn, msg.score);
 
             }
         }

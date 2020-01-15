@@ -21,38 +21,6 @@ namespace BeamBackend
         public BeamMessage(string t) => msgType = t;
     }
 
-    //
-    // Basic connection messages
-    //
-
-    // public class GameCreatedMsg : BeamMessage
-    // {
-    //     public string gameId;
-    //     public GameCreatedMsg(string _gameId) : base(kGameCreated) => gameId = _gameId;
-    // }
-    
-    // public class GameJoinedMsg : BeamMessage
-    // {
-    //     public string gameId;
-    //     public string localId;
-    //     public GameJoinedMsg(string _gameId, string _localId) :  base(kGameJoined)
-    //     {
-    //         gameId = _gameId; 
-    //         localId = _localId;
-    //     }
-    // }
-
-    // public class PeerJoinedMsg : BeamMessage
-    // {
-    //     public BeamPeer peer;
-    //     public PeerJoinedMsg(BeamPeer _p) : base(kPeerJoined) => peer = _p;
-    // }    
-
-    // public class PeerLeftMsg : BeamMessage
-    // {
-    //     public string p2pId;
-    //     public PeerLeftMsg(string _pid) : base(kPeerLeft) => p2pId = _pid;
-    // }      
 
     //
     // GameNet messages
@@ -110,6 +78,7 @@ namespace BeamBackend
         public float yPos;
         public Heading heading;   
         public float speed;  
+        public TurnDir pendingTurn;
 
         public BikeUpdateMsg() : base(kBikeUpdate)  {}
 
@@ -121,6 +90,7 @@ namespace BeamBackend
             yPos = ib.position.y;
             heading = ib.heading;
             speed = ib.speed;
+            pendingTurn = ib.pendingTurn;
         }
     }
 
