@@ -243,13 +243,12 @@ namespace BeamBackend
 
         public void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId)
         {
-            BaseBike b = (BaseBike)gameData.Bikes[msg.bikeId];    
-
+            BaseBike b = gameData.GetBaseBike(msg.bikeId);
             // TODO: This test is implementing the "trusty" consensus 
             // "bike owner is authority" rule. 
             // &&&& IT SHOULD NOT HAPPEN HERE!!!! Apian should have taken care of it and the
             // call only made if it passed
-            if (srcId == b.peerId)
+            if (b != null && srcId == b.peerId)
             {
                 Vector2 pos = new Vector2(msg.xPos, msg.zPos);
                 if (gameData.Ground.PointIsOnMap(pos))

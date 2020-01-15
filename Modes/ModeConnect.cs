@@ -1,5 +1,7 @@
 using System.Linq;
 using System;
+using UnityEngine;
+
 namespace BeamBackend
 {
     public class ModeConnect : BeamGameMode
@@ -84,7 +86,9 @@ namespace BeamBackend
                 break;
             case kCreatingBike:
                 logger.Info($"Creating local bike");  
-                _CreateLocalBike(settings.localPlayerCtrlType);    
+                _CreateLocalBike(settings.localPlayerCtrlType);  
+                _CreateADemoBike();  
+                _CreateADemoBike();               
                 break;
             case kWaitingForRemoteBike:
                 logger.Info($"Waiting for a remote bike.");
@@ -171,6 +175,17 @@ namespace BeamBackend
             game.gameNet.SendBikeCreateData(bb); // will result in OnBikeInfo()            
         }          
 
+        protected string _CreateADemoBike()
+        {
+            Heading heading = BikeFactory.PickRandomHeading();
+            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            string bikeId = Guid.NewGuid().ToString();
+            IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(), 
+                BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
+            game.gameNet.SendBikeCreateData(ib); 
+            logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
+            return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
+        }
 
     }
 }

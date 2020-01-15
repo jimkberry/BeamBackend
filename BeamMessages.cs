@@ -119,15 +119,6 @@ namespace BeamBackend
             zIdx=_zIdx;
         }
     }
-
-    //
-    // Internal-only messages.
-    // (So can have references.)
-    //
-    // public class NewBikeMsg : BeamMessage
-    // {
-    //     public IBike ib;
-    //     public NewBikeMsg(IBike _ib) : base(kNewBike) => ib = _ib;
-    // }   
+ 
 
 }

@@ -26,7 +26,7 @@ namespace BeamBackend
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
     {
-        public readonly long kBikeUpdateMs = 500;
+        public readonly long kBikeUpdateMs = 125;
         protected Dictionary<string, long> _lastBikeUpdatesMs;
 
         protected Dictionary<string, Action<string, string, GameNetClientMessage>> _MsgHandlers;
@@ -110,11 +110,11 @@ namespace BeamBackend
         //
         protected override void _HandleClientMessage(string from, string to, GameNetClientMessage msg)
         {
-            try {
+ //           try {
                 _MsgHandlers[msg.clientMsgType](from, to, msg);
-            } catch(KeyNotFoundException) {
-                logger.Warn($"Unknown client message type: {msg.clientMsgType}");
-            }
+//            } catch(KeyNotFoundException) {
+//                logger.Warn($"Unknown client message type: {msg.clientMsgType}");
+//            }
         }
 
         protected void _HandleBikeCreateData(string from, string to, GameNetClientMessage clientMessage)
