@@ -29,6 +29,8 @@ namespace BeamBackend
         //
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
+        public void Go() => speed = defaultSpeed;
+        public void Stop() => speed = 0;
 
         // TODO: check to see if these are used in BeamUnity. Delete if not
         public void TempSetPendingTurn(TurnDir d) => pendingTurn = d;
@@ -60,6 +62,26 @@ namespace BeamBackend
             //logger.Debug($"Loop(). Bike: {bikeId} Speed: {speed})");            
             _updatePosition(secs);
         }
+
+
+        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore)
+        {
+            // STOOOPID 1st cut - just dump it in there...
+            speed = newSpeed;
+            heading = newHeading;
+            // score = newScore; Not this one.
+
+            // Make sure the bike is on a grid line...     
+            Vector2 ptPos = Ground.NearestGridPoint(newPos);   
+            if (heading == Heading.kEast || heading == Heading.kWest)
+            {
+                newPos.y = ptPos.y;
+            } else {
+                newPos.x = ptPos.x;
+            }
+            position = newPos;
+        }
+
 
         private void _updatePosition(float secs)
         {

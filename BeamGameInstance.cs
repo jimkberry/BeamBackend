@@ -101,6 +101,8 @@ namespace BeamBackend
         public event EventHandler<Ground.Place> PlaceClaimedEvt;
         public event EventHandler<PlaceHitArgs> PlaceHitEvt;          
 
+        public event EventHandler ReadyToPlayEvt;         
+
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
             logger = UniLogger.GetLogger("GameInstance");
@@ -206,13 +208,16 @@ namespace BeamBackend
             else
             {
                 logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
-                // DO UPDATE!!!!!                
+                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score);
+
             }
         }
 
         //
         // IBeamBackend (requests from the frontend)
         // 
+
+        public void RaiseReadyToPlay() => ReadyToPlayEvt?.Invoke(this, EventArgs.Empty); // GameCode -> FE
 
         public Ground GetGround() => gameData.Ground;
 
