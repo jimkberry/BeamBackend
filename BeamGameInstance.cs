@@ -285,8 +285,14 @@ namespace BeamBackend
             {
                 BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);
                 // Source of message is place owner (well, owner of the bike that owns the place...)
-                OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
-                PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                
+                if (hittingBike != null)
+                {
+                    OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+                    PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                
+                } else {
+                    logger.Warn($"PlaceHit sent by {srcId} for unknown bike {hittingBike.bikeId}");
+                }
+
             }
         } 
 
