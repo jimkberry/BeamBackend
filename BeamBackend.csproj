@@ -1,17 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>     
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>     
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>        
   </PropertyGroup>
 
   <ItemGroup>
       <ProjectReference Include="../GameModeMgr/GameModeMgr.csproj" />
-      <ProjectReference Include="..\GameNet\GameNet.csproj" />  
+      <ProjectReference Include="..\GameNet\GameNet.csproj" />
+      <ProjectReference Include="..\UniLog\UniLog.csproj" />  
   </ItemGroup>
 
   <ItemGroup Condition=" '$(UNITY_2019_1_OR_NEWER)' == '' ">
     <ProjectReference Include="../NotUnityEngine/UnityEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>   
 
 </Project>
