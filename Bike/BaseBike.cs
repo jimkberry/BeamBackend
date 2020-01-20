@@ -69,7 +69,23 @@ namespace BeamBackend
             // is valid before it even makes it here. Or... we might have to "fix things up"
 
             if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
+            {
                 logger.Warn($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
+                // Fix it up...
+                // Go back 1 grid space
+                Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
+                if (UpcomingGridPoint(p2, heading, Ground.gridSize).Equals(nextPt))
+                {
+                    // We can fix
+                    Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
+                    Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
+                    heading = newHead;
+                    logger.Warn($"  Fixed.");                     
+                } else {
+                    logger.Warn($"  Unable to fix.");                    
+                }
+
+            }
 
             pendingTurn = dir;
         }
@@ -206,24 +222,28 @@ namespace BeamBackend
         //
         // Static tools. Potentially useful publicly
         // 
-        public Vector2 NearestGridPoint(float gridSize)
+        public static Vector2 NearestGridPoint(Vector2 pos, float gridSize)
         {
             float invGridSize = 1.0f / gridSize;
-            return new Vector2(Mathf.Round(position.x * invGridSize) * gridSize, Mathf.Round(position.y * invGridSize) * gridSize);
+            return new Vector2(Mathf.Round(pos.x * invGridSize) * gridSize, Mathf.Round(pos.y * invGridSize) * gridSize);
         }
 
-        public Vector2 UpcomingGridPoint(float gridSize)
+        public static Vector2 UpcomingGridPoint(Vector2 pos, Heading head, float gridSize)
         {
             // it's either the current closest point (if direction to it is the same as heading)
             // or is the closest point + gridSize*unitOffsetForHeading[curHead] if closest point is behind us
-            Vector2 point = NearestGridPoint( gridSize);
-            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(heading), point - position) < 0)
+            Vector2 point = NearestGridPoint( pos, gridSize);
+            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(head), point - pos) < 0)
             {
-                point += GameConstants.UnitOffset2ForHeading(heading) * gridSize;
+                point += GameConstants.UnitOffset2ForHeading(head) * gridSize;
             }            
             return point;
         }    
 
+        public Vector2 UpcomingGridPoint( float gridSize)
+        {
+            return UpcomingGridPoint(position, heading, gridSize);
+        }
 
     }
 }
