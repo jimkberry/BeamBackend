@@ -134,7 +134,8 @@ namespace BeamBackend
             // TODO: gets throttled per-bike by gamenet, but we should probably
             // have it time-based here as well rather than going though
             // the whole thing every frame
-            gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
+            //gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
+            
             return modeMgr.Loop(frameSecs);
         }
 
@@ -200,6 +201,42 @@ namespace BeamBackend
                 gameNet.SendBikeCreateData(ib, srcId);
         }
 
+        public void OnBikeCommand(BikeCommandMsg msg, string srcId)
+        {
+            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            if (bb == null)
+            {
+                logger.Debug($"OnBikeCommand() - requesting data fror unknown bike: {msg.bikeId}");
+                gameNet.RequestBikeData(msg.bikeId, srcId);
+            }
+            else
+            {
+                // Code (Apian) SHOULD check the validity
+                // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
+                // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
+                logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
+                bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ));
+            }
+        }
+
+        public void OnBikeTurn(BikeTurnMsg msg, string srcId)
+        {
+            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            if (bb == null)
+            {
+                logger.Debug($"OnBikeTurnCommand() - requesting data fror unknown bike: {msg.bikeId}");
+                gameNet.RequestBikeData(msg.bikeId, srcId);
+            }
+            else
+            {
+                // Code (Apian) SHOULD check the validity
+                // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
+                // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
+                logger.Debug($"OnBikeTurnCommand({msg.dir}): Bike:{msg.bikeId}");
+                bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ));
+            }
+        }
+
         public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId)
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
@@ -229,13 +266,23 @@ namespace BeamBackend
            modeMgr.SwitchToMode(newModeId, modeParam);       
         }
 
-        public void OnTurnReq(string bikeId, TurnDir turn)
+        // public void OnTurnReq(string bikeId, TurnDir turn)
+        // {
+        //     // TODO: In real life, this message from the FE should get sent to the net layer
+        //     // and looped back, rather than directly talking to the bike
+        //     logger.Debug(string.Format("OnTurnReq({0}, {1})", bikeId, turn));               
+        //     gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);            
+        // }       
+
+        public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            // TODO: In real life, this message from the FE should get sent to the net layer
-            // and looped back, rather than directly talking to the bike
-            logger.Debug(string.Format("OnTurnReq({0}, {1})", bikeId, turn));               
-            gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);            
-        }       
+            gameNet.SendBikeCommandMsg(bike, cmd, (bike as BaseBike).UpcomingGridPoint(Ground.gridSize));
+        }
+
+       public void PostBikeTurn(IBike bike, TurnDir dir)
+        {
+            gameNet.SendBikeTurnMsg(bike, dir, (bike as BaseBike).UpcomingGridPoint(Ground.gridSize));
+        }
 
         //
         // Messages from the network/consensus layer (external or internal loopback)

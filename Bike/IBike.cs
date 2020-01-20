@@ -17,12 +17,8 @@ namespace BeamBackend
         float speed { get; }
         int score {get;}          
         void Loop(float secs);  
+        TurnDir pendingTurn { get;}        
 
-        // Temporary ctrl stuff
-        TurnDir pendingTurn { get;}
-        // Other ctrl stuff
-        void Go();
-        void Stop();
     }
 
 }

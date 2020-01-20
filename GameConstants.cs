@@ -20,6 +20,15 @@ namespace BeamBackend
         kUnset = 3, 
     }
 
+    public enum BikeCommand
+    {
+        kNone = 0,
+        kStop = 1,             
+        kGo =  2,
+        kTurbo = 3,
+   
+    }
+
     public enum ScoreEvent // Is "event" a bad name (because C#)?
     {
         kClaimPlace = 0,
@@ -64,6 +73,7 @@ namespace BeamBackend
 
         public static Vector2 UnitOffset2ForHeading(Heading h) => unitOffset2ForHeading[(int)h%4];
 
+        public static string[] turnNames = {"Straight", "Left", "Right", "Unset"};
 
         private static readonly Heading[][] newHeadForTurn = {
             // newHead = GameConstants.newHeadForTurn[oldHead][turnDir];

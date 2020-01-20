@@ -43,7 +43,7 @@ namespace BeamBackend
 
         protected void _startLocalBikes()
         {
-            foreach( IBike ib in game.gameData.LocalBikes(game.LocalPeerId)) { ib.Go();  }
+            foreach( IBike ib in game.gameData.LocalBikes(game.LocalPeerId)) { game.PostBikeCommand(ib, BikeCommand.kGo);  }
         }
 
         protected string CreateBaseBike(int ctrlType, string peerId, string name, Team t)

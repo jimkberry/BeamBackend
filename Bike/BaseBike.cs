@@ -24,13 +24,8 @@ namespace BeamBackend
 
         public UniLogger logger;
 
-        //
-        // Temporary stuff for refactoring
-        //
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public void Go() => speed = defaultSpeed;
-        public void Stop() => speed = 0;
 
         // TODO: check to see if these are used in BeamUnity. Delete if not
         public void TempSetPendingTurn(TurnDir d)
@@ -67,6 +62,40 @@ namespace BeamBackend
             _updatePosition(secs);
         }
 
+        public void ApplyTurn(TurnDir dir, Vector2 nextPt)
+        {
+            // Check to see that the reported upcoming point is what we think it is, too
+            // In real life this'll get checked by Apian/consensus code to decide if the command 
+            // is valid before it even makes it here. Or... we might have to "fix things up"
+
+            if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
+                logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
+
+            pendingTurn = dir;
+        }
+
+        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt)
+        {
+            // Check to see that the reported upcoming point is what we think it is, too
+            // In real life this'll get checked by Apian/consensus code to decide if the command 
+            // is valid before it even makes it here. Or... we might have to "fix things up"
+
+            if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
+                logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
+
+            switch(cmd)
+            {
+            case BikeCommand.kStop:
+                speed = 0;
+                break;
+            case BikeCommand.kGo:
+                speed = defaultSpeed;
+                break;
+            default:
+                logger.Warn($"ApplyCommand(): Unknown BikeCommand: {cmd}");
+                break;
+            }
+        }        
 
         public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, TurnDir newPendingTurn, int newScore)
         {
@@ -90,7 +119,7 @@ namespace BeamBackend
 
         private void _updatePosition(float secs)
         {
-            Vector2 upcomingPoint = UpcomingGridPoint(this, Ground.gridSize);
+            Vector2 upcomingPoint = UpcomingGridPoint(Ground.gridSize);
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 
             Vector2 newPos = position;
@@ -177,20 +206,20 @@ namespace BeamBackend
         //
         // Static tools. Potentially useful publicly
         // 
-        public static Vector2 NearestGridPoint(BaseBike bb, float gridSize)
+        public Vector2 NearestGridPoint(float gridSize)
         {
             float invGridSize = 1.0f / gridSize;
-            return new Vector2(Mathf.Round(bb.position.x * invGridSize) * gridSize, Mathf.Round(bb.position.y * invGridSize) * gridSize);
+            return new Vector2(Mathf.Round(position.x * invGridSize) * gridSize, Mathf.Round(position.y * invGridSize) * gridSize);
         }
 
-        public static Vector2 UpcomingGridPoint(BaseBike bb, float gridSize)
+        public Vector2 UpcomingGridPoint(float gridSize)
         {
             // it's either the current closest point (if direction to it is the same as heading)
             // or is the closest point + gridSize*unitOffsetForHeading[curHead] if closest point is behind us
-            Vector2 point = NearestGridPoint(bb, gridSize);
-            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(bb.heading), point - bb.position) < 0)
+            Vector2 point = NearestGridPoint( gridSize);
+            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(heading), point - position) < 0)
             {
-                point += GameConstants.UnitOffset2ForHeading(bb.heading) * gridSize;
+                point += GameConstants.UnitOffset2ForHeading(heading) * gridSize;
             }            
             return point;
         }    

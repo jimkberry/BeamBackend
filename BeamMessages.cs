@@ -11,12 +11,11 @@ namespace BeamBackend
         public const string kBikeCreateData = "104";
         public const string kBikeDataReq = "105";    
         public const string kBikeUpdate = "106";
-        public const string kPlaceClaimReport = "107";
-        public const string kPlaceHitReport = "108";
+        public const string kBikeTurnMsg = "107";        
+        public const string kBikeCommandMsg = "108";        
+        public const string kPlaceClaimReport = "109";
+        public const string kPlaceHitReport = "110";
          
-        // Internal (not serializable)
-//        public const string kNewBike = "206";  
-
         public string msgType;
         public BeamMessage(string t) => msgType = t;
     }
@@ -93,6 +92,44 @@ namespace BeamBackend
             pendingTurn = ib.pendingTurn;
         }
     }
+
+    public class BikeTurnMsg : BeamMessage
+    {
+        // TODO: use place hashes instad of positions?
+        public string bikeId;   
+        public TurnDir dir;
+        public float nextPtX;
+        public float nextPtZ;  
+
+        public BikeTurnMsg() : base(kBikeTurnMsg)  {}
+
+        public BikeTurnMsg(string _bikeId, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg) 
+        {
+            bikeId = _bikeId;
+            dir = _dir;
+            nextPtX = nextGridPt.x;
+            nextPtZ = nextGridPt.y;
+        }
+    }    
+
+    public class BikeCommandMsg : BeamMessage
+    {
+        // TODO: use place hashes instad of positions?
+        public string bikeId;   
+        public BikeCommand cmd;
+        public float nextPtX;
+        public float nextPtZ;  
+
+        public BikeCommandMsg() : base(kBikeCommandMsg)  {}
+
+        public BikeCommandMsg(string _bikeId, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg) 
+        {
+            bikeId = _bikeId;
+            cmd = _cmd;
+            nextPtX = nextGridPt.x;
+            nextPtZ = nextGridPt.y;
+        }
+    }  
 
     public class PlaceClaimReportMsg : BeamMessage
     {

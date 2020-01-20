@@ -51,7 +51,9 @@ namespace BeamBackend
         // Stuff From FE
         // TODO: This is getting sparse - is it needed?
         void OnSwitchModeReq(int newMode, object modeParams);
-        void OnTurnReq(string bikeId, TurnDir turn);
+        void PostBikeCommand(IBike bike, BikeCommand cmd);
+
+        void PostBikeTurn(IBike bike, TurnDir dir);        
     }
 
 
