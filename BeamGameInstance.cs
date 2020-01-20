@@ -265,14 +265,7 @@ namespace BeamBackend
         {
            modeMgr.SwitchToMode(newModeId, modeParam);       
         }
-
-        // public void OnTurnReq(string bikeId, TurnDir turn)
-        // {
-        //     // TODO: In real life, this message from the FE should get sent to the net layer
-        //     // and looped back, rather than directly talking to the bike
-        //     logger.Debug(string.Format("OnTurnReq({0}, {1})", bikeId, turn));               
-        //     gameData.GetBaseBike(bikeId)?.PostPendingTurn(turn);            
-        // }       
+     
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
@@ -281,7 +274,13 @@ namespace BeamBackend
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
         {
-            gameNet.SendBikeTurnMsg(bike, dir, (bike as BaseBike).UpcomingGridPoint(Ground.gridSize));
+            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(Ground.gridSize);
+
+            float dx = Vector2.Distance(bike.position, nextPt);
+            if (dx < BaseBike.length)
+                logger.Warn("PostBikeTurn(): Bike too close to turn");
+            else
+                gameNet.SendBikeTurnMsg(bike, dir, nextPt);
         }
 
         //

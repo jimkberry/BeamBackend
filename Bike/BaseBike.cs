@@ -69,7 +69,7 @@ namespace BeamBackend
             // is valid before it even makes it here. Or... we might have to "fix things up"
 
             if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
-                logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
+                logger.Warn($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
 
             pendingTurn = dir;
         }
