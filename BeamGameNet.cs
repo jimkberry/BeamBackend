@@ -32,7 +32,7 @@ namespace BeamBackend
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
     {
-        public readonly long kBikeUpdateMs = 125;
+        public readonly long kBikeUpdateMs = 300;
         protected Dictionary<string, long> _lastBikeUpdatesMs;
 
         protected Dictionary<string, Action<string, string, GameNetClientMessage>> _MsgHandlers;

@@ -14,6 +14,7 @@ namespace BeamBackend
         public string peerId {get; private set;}
         public string name {get; private set;}
         public Team team {get; private set;}
+        public bool isActive {get; private set;} // Set when bike is fully ready. TYpically first Update()?
         public int score {get; set;}        
         public int ctrlType {get; private set;}
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
@@ -26,18 +27,9 @@ namespace BeamBackend
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-
-        // TODO: check to see if these are used in BeamUnity. Delete if not
-        public void TempSetPendingTurn(TurnDir d)
-        {
-            pendingTurn = d; 
-            gameInst.gameNet.SendBikeUpdate(this);
-        }
-
-        public void TempSetHeading(Heading h) => heading = h;
-
         public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, int ctrl, Vector2 initialPos, Heading head, float _speed)
         { 
+            isActive = true; // remote bikes will be set NOT active when added. Activated on first udpate
             gameInst = gi;
             bikeId = _id;
             peerId = _peerId;
@@ -53,7 +45,7 @@ namespace BeamBackend
 
         // Commands from outside
         public void PostPendingTurn(TurnDir t) => pendingTurn = t;
-
+        public void SetActive(bool isIt) => isActive = isIt;
         //
   
         public void Loop(float secs)
@@ -67,22 +59,26 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
+            if (!isActive)
+                return;
 
-            if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
+            Vector2 testPt = UpcomingGridPoint(Ground.gridSize);
+            if (!testPt.Equals(nextPt))
             {
-                logger.Warn($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
+                logger.Info($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
                 // Fix it up...
                 // Go back 1 grid space
                 Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
-                if (UpcomingGridPoint(p2, heading, Ground.gridSize).Equals(nextPt))
+                testPt = UpcomingGridPoint(p2, heading, Ground.gridSize);
+                if (testPt.Equals(nextPt))
                 {
                     // We can fix
                     Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
                     Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
                     heading = newHead;
-                    logger.Warn($"  Fixed.");                     
+                    logger.Info($"  Fixed.");                     
                 } else {
-                    logger.Warn($"  Unable to fix.");                    
+                    logger.Info($"  Unable to fix.");                    
                 }
 
             }
@@ -95,6 +91,8 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
+            if (!isActive)
+                return;
 
             if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
@@ -113,12 +111,13 @@ namespace BeamBackend
             }
         }        
 
-        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, TurnDir newPendingTurn, int newScore)
+        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore)
         {
+            // This happens even for an inactive bike. Sets it active, in fact.
+
             // STOOOPID 1st cut - just dump it in there...
             speed = newSpeed;
             heading = newHeading;
-            pendingTurn = newPendingTurn;
             // score = newScore; Not this one.
 
             // Make sure the bike is on a grid line...     
@@ -130,11 +129,15 @@ namespace BeamBackend
                 newPos.x = ptPos.x;
             }
             position = newPos;
+            isActive = true;
         }
 
 
         private void _updatePosition(float secs)
         {
+            if (!isActive)
+                return;
+
             Vector2 upcomingPoint = UpcomingGridPoint(Ground.gridSize);
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 
@@ -158,7 +161,6 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
         {
-
             Ground g = gameInst.gameData.Ground;
             Ground.Place p = g.GetPlace(pos);
             logger.Debug($"DoAtGridPoint()");
@@ -187,37 +189,6 @@ namespace BeamBackend
                 gameInst.gameNet.ReportPlaceHit(bikeId, p.xIdx, p.zIdx);
             }            
         }
-
-        // protected virtual void OldDoAtGridPoint(Vector2 pos, Heading head)
-        // {
-        //     //Need to send reports of claiming and hitting
-        //     //Then the scoring happens when the gamenet confirms
-
-        //     Ground g = gameInst.gameData.Ground;
-        //     Ground.Place p = g.GetPlace(pos);
-        //     //bool justClaimed = false;
-
-        //     logger.Debug($"DoAtGridPoint()");
-        //     if (p == null)
-        //     {
-        //         p = g.ClaimPlace(this, pos); 
-        //         if ( p == null)
-        //         {
-        //             // Off map
-        //             gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);                    
-        //         } else {
-        //             justClaimed = true;
-        //             gameInst.OnScoreEvent(this, ScoreEvent.kClaimPlace, null); 
-        //         }
-        //     } else {
-        //         // Hit a marker. Do score thing,
-        //         gameInst.OnScoreEvent(this, p.bike.team == team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
-        //     }            
-            
-        //     // TODO No: Backend (inst) needs to send events
-        //     //gameInst.frontend?.OnBikeAtPlace(bikeId, p, justClaimed); 
-            
-        // }
 
         //
         // Static tools. Potentially useful publicly

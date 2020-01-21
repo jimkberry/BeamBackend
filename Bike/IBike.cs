@@ -11,6 +11,7 @@ namespace BeamBackend
         string peerId {get;}
         string name {get;}
         Team team { get;}   
+        bool isActive { get;}         
         int ctrlType {get;}        
         Vector2 position {get;}   
         Heading heading { get;} 

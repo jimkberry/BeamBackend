@@ -77,7 +77,6 @@ namespace BeamBackend
         public float yPos;
         public Heading heading;   
         public float speed;  
-        public TurnDir pendingTurn;
 
         public BikeUpdateMsg() : base(kBikeUpdate)  {}
 
@@ -89,7 +88,6 @@ namespace BeamBackend
             yPos = ib.position.y;
             heading = ib.heading;
             speed = ib.speed;
-            pendingTurn = ib.pendingTurn;
         }
     }
 
