@@ -277,8 +277,8 @@ namespace BeamBackend
             Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(Ground.gridSize);
 
             float dx = Vector2.Distance(bike.position, nextPt);
-            if (dx < BaseBike.length)
-                logger.Warn("PostBikeTurn(): Bike too close to turn");
+            if (dx < BaseBike.length * .5f)
+                logger.Debug($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else
                 gameNet.SendBikeTurnMsg(bike, dir, nextPt);
         }
@@ -336,7 +336,7 @@ namespace BeamBackend
                     OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
                     PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                
                 } else {
-                    logger.Warn($"PlaceHit sent by {srcId} for unknown bike {hittingBike.bikeId}");
+                    logger.Warn($"PlaceHit sent by {srcId} for unknown bike {msg.bikeId}");
                 }
 
             }
