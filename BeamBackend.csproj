@@ -6,9 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-      <ProjectReference Include="../GameModeMgr/GameModeMgr.csproj" />
-      <ProjectReference Include="..\GameNet\GameNet.csproj" />
-      <ProjectReference Include="..\UniLog\UniLog.csproj" />  
+      <ProjectReference Include="..\GameModeMgr\GameModeMgr.csproj" />
+      <ProjectReference Include="..\GameNet\GameNet.csproj" />    
+      <ProjectReference Include="..\UniLog\UniLog.csproj" /> 
+      <ProjectReference Include="..\P2pNet\src\P2pNet.Base\P2pNet.Base.csproj" />      
+      <ProjectReference Include="..\P2pNet\src\P2pNet.Redis\P2pNet.Redis.csproj" />           
   </ItemGroup>
 
   <ItemGroup Condition=" '$(UNITY_2019_1_OR_NEWER)' == '' ">
