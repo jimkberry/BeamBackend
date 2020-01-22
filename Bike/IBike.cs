@@ -16,9 +16,10 @@ namespace BeamBackend
         Vector2 position {get;}   
         Heading heading { get;} 
         float speed { get; }
-        int score {get;}          
-        void Loop(float secs);  
-        TurnDir pendingTurn { get;}        
+        int score {get;}           
+        TurnDir pendingTurn { get;}    
+        void Loop(float secs);             
+        void AddScore(int val);
 
     }
 

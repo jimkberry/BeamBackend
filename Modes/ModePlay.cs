@@ -52,7 +52,7 @@ namespace BeamBackend
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
             string bikeId = Guid.NewGuid().ToString();
             BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
-            game.gameNet.SendBikeCreateData(bb); 
+            game.PostBikeCreateData(bb); 
             return bb.bikeId;
         }
 

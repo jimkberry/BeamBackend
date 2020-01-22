@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BeamBackend
@@ -27,6 +28,20 @@ namespace BeamBackend
     //
     public class BikeCreateDataMsg : BeamMessage
     {
+        public class PlaceCreateData // Don;t need bikeId since this is part of a bike data msg
+        {
+            public int xIdx;
+            public int zIdx;
+            public float secsLeft;
+
+            public PlaceCreateData(Ground.Place p)
+            {
+                xIdx = p.xIdx;
+                zIdx = p.zIdx;
+                secsLeft = p.secsLeft;
+            }
+        }
+
         public string bikeId; 
         public string peerId;
         public string name;
@@ -38,7 +53,9 @@ namespace BeamBackend
         public Heading heading;     
         public float speed;
 
-        public BikeCreateDataMsg(IBike ib) : base(kBikeCreateData) 
+        public List<PlaceCreateData> ownedPlaces;
+
+        public BikeCreateDataMsg(IBike ib, List<Ground.Place> places = null) : base(kBikeCreateData) 
         {
             bikeId = ib.bikeId;
             peerId = ib.peerId;
@@ -50,6 +67,10 @@ namespace BeamBackend
             yPos = ib.position.y;
             heading = ib.heading;
             speed = ib.speed;
+            ownedPlaces = new List<PlaceCreateData>();
+            if (places != null)
+                foreach (Ground.Place p in places)
+                    ownedPlaces.Add(new PlaceCreateData(p));
         }
 
         public BikeCreateDataMsg() : base(kBikeCreateData) 

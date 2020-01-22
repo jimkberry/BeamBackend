@@ -172,7 +172,7 @@ namespace BeamBackend
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
             BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
-            game.gameNet.SendBikeCreateData(bb); // will result in OnBikeInfo()            
+            game.PostBikeCreateData(bb); // will result in OnBikeInfo()            
         }          
 
         protected string _CreateADemoBike()
@@ -182,7 +182,7 @@ namespace BeamBackend
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(), 
                 BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
-            game.gameNet.SendBikeCreateData(ib); 
+            game.PostBikeCreateData(ib); 
             logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
         }

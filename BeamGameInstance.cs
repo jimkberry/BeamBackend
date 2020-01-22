@@ -190,15 +190,19 @@ namespace BeamBackend
             logger.Info($"OnBikeCreateData() for {msg.bikeId}");
             IBike ib = msg.ToBike(this);             
             _AddBike(ib);
+            foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
+            {
+                if (gameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
+                    logger.Warn($"OnBikeCreateData() Claimplace() failed");
+            }
         }
-
 
         public void OnBikeDataReq(BikeDataReqMsg msg, string srcId)
         {
             logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
             IBike ib = gameData.GetBaseBike(msg.bikeId);
             if (ib != null)
-                gameNet.SendBikeCreateData(ib, srcId);
+                PostBikeCreateData(ib, srcId);
         }
 
         public void OnBikeCommand(BikeCommandMsg msg, string srcId)
@@ -283,6 +287,11 @@ namespace BeamBackend
                 gameNet.SendBikeTurnMsg(bike, dir, nextPt);
         }
 
+        public void PostBikeCreateData(IBike ib, string destId = null)
+        {
+            gameNet.SendBikeCreateData(ib, gameData.Ground.PlacesForBike(ib), destId);            
+        }
+
         //
         // Messages from the network/consensus layer (external or internal loopback)
         //
@@ -347,7 +356,7 @@ namespace BeamBackend
             // TODO: as with above: This is coming from the backend (BaseBike, mostly) and should
             // be comming from the Net/event/whatever layer
             int scoreDelta = GameConstants.eventScores[(int)evt];
-            bike.score += scoreDelta;
+            bike.AddScore(scoreDelta);
 
             if (evt == ScoreEvent.kHitEnemyPlace || evt == ScoreEvent.kHitFriendPlace)
             {
@@ -358,7 +367,7 @@ namespace BeamBackend
                 // UNLESS: the bike doing the hitting IS the owner - then the rest of the team just splits it
                 if (bike != place.bike) {
                     scoreDelta /= 2;
-                    place.bike.score -= scoreDelta; // adds
+                    place.bike.AddScore(-scoreDelta); // adds
                 }
 
                 IEnumerable<IBike> rewardedOtherBikes = 
@@ -366,7 +375,7 @@ namespace BeamBackend
                 if (rewardedOtherBikes.Count() > 0)
                 {
                     foreach (BaseBike b  in rewardedOtherBikes) 
-                        b.score -= scoreDelta / rewardedOtherBikes.Count();
+                        b.AddScore(-scoreDelta / rewardedOtherBikes.Count());
                 }
             }
 

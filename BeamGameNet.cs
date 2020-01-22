@@ -9,7 +9,7 @@ namespace BeamBackend
 {
     public interface IBeamGameNet : IGameNet
     {
-        void SendBikeCreateData(IBike ib, string destId = null);
+        void SendBikeCreateData(IBike ib, List<Ground.Place> ownedPlaces, string destId = null);
         void SendBikeUpdate(IBike localBike);        
         void RequestBikeData(string bikeId, string destId);
         void SendBikeUpdates(List<IBike> localBikes);
@@ -92,7 +92,7 @@ namespace BeamBackend
         }        
 
         // IBeamGameNet
-        public void SendBikeCreateData(IBike ib, string destId = null)
+        public void SendBikeCreateData(IBike ib, List<Ground.Place> ownedPlaces, string destId = null)
         {
             logger.Info($"SendBikeCreateData()");            
             // Info to create a bike.

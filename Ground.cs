@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BeamBackend
@@ -27,7 +28,7 @@ namespace BeamBackend
         {
             public int xIdx; // x index into array.
             public int zIdx;
-            public BaseBike bike;
+            public IBike bike;
             public float secsLeft;
 
             public int posHash() => xIdx + zIdx * Ground.pointsPerAxis; // Is this useful?
@@ -101,6 +102,12 @@ namespace BeamBackend
             });        
         }
 
+
+        public List<Ground.Place> PlacesForBike(IBike ib)
+        {
+            return activePlaces.Where(p => p.bike.bikeId == ib.bikeId).ToList();
+        }        
+
         public Place GetPlace(Vector2 pos)
         {
             Vector2 gridPos = NearestGridPoint(pos);
@@ -110,14 +117,17 @@ namespace BeamBackend
             return IndicesAreOnMap(xIdx,zIdx) ? placeArray[xIdx,zIdx] : null;
         }
 
-        public Place ClaimPlace(BaseBike bike, Vector2 pos)
+        public Place ClaimPlace(IBike bike, Vector2 pos)
         {
             // returns place ref if successful. null if already claimed or off map
-            Vector2 gridPos = NearestGridPoint(pos);        
+            Vector2 gridPos = NearestGridPoint(pos); 
             int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
-            int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize );
-
-            Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx) ) : null;
+            int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize ); 
+            return ClaimPlace(bike, xIdx, zIdx);                  
+        }
+        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, float secsLeft=-1)
+        {
+            Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,secsLeft) ) : null;
             // TODO: Should claiming a place already held by team reset the timer?
             return (p?.bike == bike) ? p : null;
         }
@@ -129,11 +139,11 @@ namespace BeamBackend
         } 
 
         // Set up a place instance for use or re-use
-        protected Place SetupPlace(BaseBike bike, int xIdx, int zIdx)
+        protected Place SetupPlace(IBike bike, int xIdx, int zIdx, float secsLeft )
         {
             Place p = freePlaces.Count > 0 ? freePlaces.Pop() : new Place(); 
             // Maybe populating a new one, maybe re-populating a used one.
-            p.secsLeft = secsHeld;
+            p.secsLeft = secsLeft < 0 ? secsLeft : secsHeld; // usually secsLeft is -1
             p.xIdx = xIdx;
             p.zIdx = zIdx;
             p.bike = bike;

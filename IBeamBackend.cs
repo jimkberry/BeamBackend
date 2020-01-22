@@ -52,8 +52,8 @@ namespace BeamBackend
         // TODO: This is getting sparse - is it needed?
         void OnSwitchModeReq(int newMode, object modeParams);
         void PostBikeCommand(IBike bike, BikeCommand cmd);
-
-        void PostBikeTurn(IBike bike, TurnDir dir);        
+        void PostBikeTurn(IBike bike, TurnDir dir);      
+        void PostBikeCreateData(IBike ib, string destId);  
     }
 
 

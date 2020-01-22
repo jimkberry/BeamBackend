@@ -54,6 +54,8 @@ namespace BeamBackend
             _updatePosition(secs);
         }
 
+        public void AddScore(int val) => score += val;
+
         public void ApplyTurn(TurnDir dir, Vector2 nextPt)
         {
             // Check to see that the reported upcoming point is what we think it is, too
