@@ -187,7 +187,7 @@ namespace BeamBackend
 
         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
-            logger.Info($"OnBikeCreateData() for {msg.bikeId}");
+            logger.Info($"OnBikeCreateData() {msg.ownedPlaces.Count} places for {msg.bikeId}.");
             IBike ib = msg.ToBike(this);             
             _AddBike(ib);
             foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
@@ -253,7 +253,6 @@ namespace BeamBackend
             {
                 logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
                 gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score);
-
             }
         }
 
