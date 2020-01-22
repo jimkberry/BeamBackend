@@ -123,9 +123,9 @@ namespace BeamBackend
             Vector2 gridPos = NearestGridPoint(pos); 
             int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
             int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize ); 
-            return ClaimPlace(bike, xIdx, zIdx);                  
+            return ClaimPlace(bike, xIdx, zIdx, secsHeld); // This is always claiming a new place        
         }
-        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, float secsLeft=-1)
+        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, float secsLeft)
         {
             Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,secsLeft) ) : null;
             // TODO: Should claiming a place already held by team reset the timer?
@@ -143,7 +143,7 @@ namespace BeamBackend
         {
             Place p = freePlaces.Count > 0 ? freePlaces.Pop() : new Place(); 
             // Maybe populating a new one, maybe re-populating a used one.
-            p.secsLeft = secsLeft < 0 ? secsLeft : secsHeld; // usually secsLeft is -1
+            p.secsLeft = secsLeft > 0 ? secsLeft : secsHeld; // usually secsLeft is -1
             p.xIdx = xIdx;
             p.zIdx = zIdx;
             p.bike = bike;
