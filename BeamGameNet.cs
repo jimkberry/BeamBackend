@@ -97,7 +97,7 @@ namespace BeamBackend
             logger.Info($"SendBikeCreateData()");            
             // Info to create a bike.
             // Broadcast this to send it to everyone
-            BikeCreateDataMsg msg = new BikeCreateDataMsg(ib);
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(ib, ownedPlaces);
             _SendClientMessage( destId ?? CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
         }
         public void RequestBikeData(string bikeId, string destId)

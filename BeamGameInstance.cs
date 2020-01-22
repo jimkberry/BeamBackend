@@ -288,7 +288,9 @@ namespace BeamBackend
 
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
-            gameNet.SendBikeCreateData(ib, gameData.Ground.PlacesForBike(ib), destId);            
+            List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
+            logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
+            gameNet.SendBikeCreateData(ib, places, destId);            
         }
 
         //

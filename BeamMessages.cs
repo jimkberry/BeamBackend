@@ -34,6 +34,7 @@ namespace BeamBackend
             public int zIdx;
             public float secsLeft;
 
+            public PlaceCreateData() {} // need a default ctor to deserialize
             public PlaceCreateData(Ground.Place p)
             {
                 xIdx = p.xIdx;
