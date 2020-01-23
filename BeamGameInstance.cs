@@ -187,7 +187,13 @@ namespace BeamBackend
 
         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
-            logger.Info($"OnBikeCreateData() {msg.ownedPlaces.Count} places for {msg.bikeId}.");
+            if ( gameData.GetBaseBike(msg.bikeId) != null)
+            {
+                logger.Info($"OnBikeCreateData() Bike already exists: {msg.bikeId}.");   
+                return;
+            }             
+
+            logger.Info($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);             
             _AddBike(ib);
             foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
@@ -289,7 +295,7 @@ namespace BeamBackend
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
             List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
-            logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
+            //logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
             gameNet.SendBikeCreateData(ib, places, destId);            
         }
 
