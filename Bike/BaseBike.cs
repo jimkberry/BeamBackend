@@ -44,7 +44,6 @@ namespace BeamBackend
         }
 
         // Commands from outside
-        public void PostPendingTurn(TurnDir t) => pendingTurn = t;
         public void SetActive(bool isIt) => isActive = isIt;
         //
   

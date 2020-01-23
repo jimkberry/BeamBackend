@@ -25,7 +25,7 @@ namespace BeamBackend
         void OnBikeCreateData(BikeCreateDataMsg msg, string srcId);
         void OnBikeDataReq(BikeDataReqMsg msg, string srcId);
         void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId);
-        void OnBikeTurn(BikeTurnMsg msg, string srcId);
+        void OnBikeTurnMsg(BikeTurnMsg msg, string srcId);
         void OnBikeCommand(BikeCommandMsg msg, string srcId);        
         void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId);
         void OnPlaceHit(PlaceHitReportMsg msg, string srcId);        
@@ -188,7 +188,7 @@ namespace BeamBackend
 
         protected void _HandleBikeTurnMsg(string from, string to, GameNetClientMessage clientMessage)
         {             
-            (client as IBeamGameNetClient).OnBikeTurn(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from);
+            (client as IBeamGameNetClient).OnBikeTurnMsg(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from);
         }
         protected void _HandleBikeUpdate(string from, string to, GameNetClientMessage clientMessage)
         {             

@@ -223,7 +223,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnBikeTurn(BikeTurnMsg msg, string srcId)
+        public void OnBikeTurnMsg(BikeTurnMsg msg, string srcId)
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
@@ -236,7 +236,7 @@ namespace BeamBackend
                 // Code (Apian) SHOULD check the validity
                 // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
                 // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-                logger.Debug($"OnBikeTurnCommand({msg.dir}): Bike:{msg.bikeId}");
+                logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
                 bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ));
             }
         }
@@ -409,7 +409,11 @@ namespace BeamBackend
             if  (!gameData.Peers.ContainsKey(p2pId))
                 return false;              
 
-            PeerLeftEvt?.Invoke(this, p2pId);                                        
+            PeerLeftEvt?.Invoke(this, p2pId);    
+
+            foreach (IBike ib in gameData.LocalBikes(p2pId)) 
+                _RemoveBike(ib, true); // Blow em up just for yuks.
+
             gameData.Peers.Remove(p2pId);
             return true;
         }
