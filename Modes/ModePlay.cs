@@ -22,6 +22,8 @@ namespace BeamBackend
             base.Start();
             logger.Info("Starting ModePlay");            
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode 
+            game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
+
             game.ClearPlaces();     
             IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();
             _startLocalBikes();
@@ -64,15 +66,13 @@ namespace BeamBackend
             return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);                 
         }        
 
-
-        protected void RespawnPlayerBike()
-        {       
-            logger.Error("RespawnPlayerBike() not implmented");
-            // Player localPlayer = _mainObj.backend.Players.Values.Where( p => p.IsLocal).First();
-            // GameObject playerBike = SpawnPlayerBike(localPlayer);
-            // _mainObj.uiCamera.CurrentStage().transform.Find("RestartCtrl")?.SendMessage("moveOffScreen", null);         
-            // _mainObj.uiCamera.CurrentStage().transform.Find("Scoreboard").SendMessage("SetLocalPlayerBike", playerBike); 
-            // _mainObj.gameCamera.StartBikeMode( playerBike);                
-        }     
+        public void OnRespawnPlayerEvt(object sender, EventArgs args)
+        {
+            logger.Info("Respawning Player");
+            SpawnPlayerBike();
+            // Note that this will eventually result in a NewBikeEvt which the frontend 
+            // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.            
+        }
+ 
     }
 }
