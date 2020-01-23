@@ -101,7 +101,8 @@ namespace BeamBackend
         public event EventHandler<Ground.Place> PlaceClaimedEvt;
         public event EventHandler<PlaceHitArgs> PlaceHitEvt;          
 
-        public event EventHandler ReadyToPlayEvt;         
+        public event EventHandler ReadyToPlayEvt;
+        public event EventHandler RespawnPlayerEvt;        
 
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
@@ -178,14 +179,7 @@ namespace BeamBackend
             _RemovePeer(p2pId);                                            
         }
       
-        // BeamMessage subclasses
-        // public void OnBeamMessage(BeamMessage msg, string fromId, string toId)
-        // {
-        //     logger.Info($"OnBeamMessage() got {msg.ToString()}");  
-        //     modeMgr.DispatchCmd(msg); // they all go to current mode      
-        // }
-
-        public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
+         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
         {
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
@@ -267,7 +261,7 @@ namespace BeamBackend
         // 
 
         public void RaiseReadyToPlay() => ReadyToPlayEvt?.Invoke(this, EventArgs.Empty); // GameCode -> FE
-
+        public void RaiseRespawnPlayer() => RespawnPlayerEvt?.Invoke(this, EventArgs.Empty); // FE -> GameCode
         public Ground GetGround() => gameData.Ground;
 
         public void OnSwitchModeReq(int newModeId, object modeParam)

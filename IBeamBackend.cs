@@ -39,7 +39,9 @@ namespace BeamBackend
 
         // Instigated by game mode code
         event EventHandler ReadyToPlayEvt;          
+        event EventHandler RespawnPlayerEvt;           
 		void RaiseReadyToPlay(); 
+		void RaiseRespawnPlayer(); 
 
         // The following events are  owned by the Ground instance:
         // event EventHandler<Ground.Place> PlaceFreedEvt;     
