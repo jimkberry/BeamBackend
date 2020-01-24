@@ -116,10 +116,11 @@ namespace BeamBackend
         {
             // This happens even for an inactive bike. Sets it active, in fact.
 
-            // STOOOPID 1st cut - just dump it in there...
+            // STOOOPID 1st cut - just dump the data in there... no attempt at smoothing
             speed = newSpeed;
             heading = newHeading;
-            // score = newScore; Not this one.
+            
+            score = newScore; // TODO: this might be problematic
 
             // Make sure the bike is on a grid line...     
             Vector2 ptPos = Ground.NearestGridPoint(newPos);   
@@ -132,7 +133,6 @@ namespace BeamBackend
             position = newPos;
             isActive = true;
         }
-
 
         private void _updatePosition(float secs)
         {
