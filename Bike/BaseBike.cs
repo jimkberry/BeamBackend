@@ -66,7 +66,7 @@ namespace BeamBackend
             Vector2 testPt = UpcomingGridPoint(Ground.gridSize);
             if (!testPt.Equals(nextPt))
             {
-                logger.Info($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
+                logger.Verbose($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
                 // Fix it up...
                 // Go back 1 grid space
                 Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
@@ -77,9 +77,9 @@ namespace BeamBackend
                     Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
                     Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
                     heading = newHead;
-                    logger.Info($"  Fixed.");                     
+                    logger.Verbose($"  Fixed.");                     
                 } else {
-                    logger.Info($"  Unable to fix.");                    
+                    logger.Verbose($"  Unable to fix.");                    
                 }
 
             }

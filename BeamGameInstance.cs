@@ -158,7 +158,7 @@ namespace BeamBackend
 
         public void OnGameCreated(string gameP2pChannel)
         {
-            logger.Info($"BGI.OnGameCreated({gameP2pChannel}"); 
+            logger.Info($"OnGameCreated({gameP2pChannel}"); 
             GameCreatedEvt?.Invoke(this, gameP2pChannel);
         }
         public void OnGameJoined(string gameId, string localP2pId)
@@ -175,7 +175,7 @@ namespace BeamBackend
         }
         public void OnPeerLeft(string p2pId)
         {
-            logger.Info($"BGI.OnPeerLeft({p2pId})"); 
+            logger.Info($"OnPeerLeft({p2pId})"); 
             _RemovePeer(p2pId);                                            
         }
       
@@ -183,11 +183,11 @@ namespace BeamBackend
         {
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
-                logger.Info($"OnBikeCreateData() Bike already exists: {msg.bikeId}.");   
+                logger.Verbose($"OnBikeCreateData() Bike already exists: {msg.bikeId}.");   
                 return;
             }             
 
-            logger.Info($"OnBikeCreateData(): {msg.bikeId}.");
+            logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);             
             _AddBike(ib);
             foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
@@ -289,7 +289,7 @@ namespace BeamBackend
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
             List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
-            //logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
+            logger.Debug($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
             gameNet.SendBikeCreateData(ib, places, destId);            
         }
 
@@ -442,7 +442,7 @@ namespace BeamBackend
 
         public void _AddBike(IBike ib)
         {
-            logger.Info($"AddBike()");    
+            logger.Debug($"AddBike()");    
             
             if (gameData.GetBaseBike(ib.bikeId) != null)
                 return;
@@ -473,8 +473,6 @@ namespace BeamBackend
         {           
             gameData.Ground.ClearPlaces(); // ground notifies FE.
         }
-
-        // Info    
 
     }
 
