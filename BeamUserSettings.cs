@@ -3,7 +3,9 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEngine;
 using UniLog;
+
 namespace BeamBackend
 {
     public static class UserSettingsMgr
@@ -49,11 +51,15 @@ namespace BeamBackend
 
         public static string GetPath(string leafFolder)
         {
+#if UNITY_2019_1_OR_NEWER
+            string homePath =  Application.persistentDataPath;
+
+#else
             string homePath = (Environment.OSVersion.Platform == PlatformID.Unix || 
                         Environment.OSVersion.Platform == PlatformID.MacOSX)
                         ? Environment.GetEnvironmentVariable("HOME")
                         : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");        
-
+#endif
             return homePath + Path.DirectorySeparatorChar + leafFolder;
         }
 
