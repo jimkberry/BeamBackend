@@ -201,13 +201,12 @@ namespace BeamBackend
         protected void _HandlePlaceClaimReport(string from, string to, GameNetClientMessage clientMessage)
         {
             logger.Info($"_HandlePlaceClaimReport()");             
-            // TRUSTY: owner of bike is authoritative
-            // TODO: We can't know that here, but GameInst can. A proper Apian implmentation of this 
-            // trust gamenet would have to be able to ask questions about game internals.
-            // maybe the Apian implmentation is part of the backend, and not gamenet?
-            //PlaceClaimReportMsg msg = JsonConvert.DeserializeObject<PlaceClaimReportMsg>(clientMessage.payload);
-
-            // For now we'll just apss it to the game inst, which will have to decide
+            // TRUSTY rule: There isn;t one. No peer can be authoritative.
+            // For now we'll just pass it to the game inst, which will accept the bike owner's message as authoritative.
+            // NOTE: This WILL lead to inconsistency between peers unles some sort of multi-peer protocol is
+            // implmented to fix it.
+            // TODO: in other words we need to implment BeamApian (yeah, I said I'd initially do a custom solution
+            // but that's just a waste of time.)
             (client as IBeamGameNetClient).OnPlaceClaimed(JsonConvert.DeserializeObject<PlaceClaimReportMsg>(clientMessage.payload), from);
         }
 
