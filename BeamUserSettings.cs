@@ -106,7 +106,7 @@ namespace BeamBackend
                 screenName = "Fred Sanford",
                 p2pConnectionString = "p2predis::newsweasel.com,password=O98nfRVWYYHg7rXpygBCBZWl+znRATaRXTC469SafZU",
                 //p2pConnectionString = "p2predis::192.168.1.195,password=sparky-redis79",
-                ethNodeUrl = "https://rinkeby.infura.io",
+                ethNodeUrl = "https://rinkeby.infura.io/v3/7653fb1ed226443c98ce85d402299735",
                 ethAcct = "0x2b42eBD222B5a1134e85D78613078740eE3Cc93D",
                 localPlayerCtrlType = BikeFactory.AiCtrl,
                 debugLevels = new Dictionary<string, string>() {
