@@ -112,13 +112,17 @@ namespace BeamBackend
             }
         }        
 
-        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore)
+        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long lagMs)
         {
+            // LagMs is how old, in ms, this information is. We need to project it to now.
             // This happens even for an inactive bike. Sets it active, in fact.
 
             // STOOOPID 1st cut - just dump the data in there... no attempt at smoothing
             speed = newSpeed;
             heading = newHeading;
+
+            // Project to now
+            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
             
             score = newScore; // TODO: this might be problematic
 

@@ -179,7 +179,7 @@ namespace BeamBackend
             _RemovePeer(p2pId);                                            
         }
       
-         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId)
+         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
@@ -197,7 +197,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnBikeDataReq(BikeDataReqMsg msg, string srcId)
+        public void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
         {
             logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
             IBike ib = gameData.GetBaseBike(msg.bikeId);
@@ -205,7 +205,7 @@ namespace BeamBackend
                 PostBikeCreateData(ib, srcId);
         }
 
-        public void OnBikeCommand(BikeCommandMsg msg, string srcId)
+        public void OnBikeCommand(BikeCommandMsg msg, string srcId, long msgDelay)
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
@@ -223,7 +223,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnBikeTurnMsg(BikeTurnMsg msg, string srcId)
+        public void OnBikeTurnMsg(BikeTurnMsg msg, string srcId, long msgDelay)
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
@@ -241,7 +241,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId)
+        public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay)
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
             if (ib == null)
@@ -252,7 +252,7 @@ namespace BeamBackend
             else
             {
                 logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
-                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score);
+                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msgDelay);
             }
         }
 
@@ -297,7 +297,7 @@ namespace BeamBackend
         // Messages from the network/consensus layer (external or internal loopback)
         //
 
-        public void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId)
+        public void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId, long msgDelay)
         {
             BaseBike b = gameData.GetBaseBike(msg.bikeId);
             // TODO: This test is implementing the "trusty" consensus 
@@ -329,7 +329,7 @@ namespace BeamBackend
             // TODO: No, don;t have the ground do it.
         }
 
-        public void OnPlaceHit(PlaceHitReportMsg msg, string srcId)
+        public void OnPlaceHit(PlaceHitReportMsg msg, string srcId, long msgDelay)
         {
             // TODO: This test is implementing the "trusty" consensus 
             // "place owner is authority" rule. 
