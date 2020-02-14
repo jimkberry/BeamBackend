@@ -118,12 +118,14 @@ namespace BeamBackend
             // This happens even for an inactive bike. Sets it active, in fact.
 
             // STOOOPID 1st cut - just dump the data in there... no attempt at smoothing
+ 
+            // Project to now first (in case the bike already knows it's turning)
+            // TODO: THis might be just wrong, and should come after speed & heading update
+            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
+            
             speed = newSpeed;
             heading = newHeading;
 
-            // Project to now
-            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
-            
             score = newScore; // TODO: this might be problematic
 
             // Make sure the bike is on a grid line...     
