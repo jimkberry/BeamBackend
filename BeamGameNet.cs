@@ -33,7 +33,7 @@ namespace BeamBackend
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
     {
-        public readonly long kBikeUpdateMs = 300;
+        public readonly long kBikeUpdateMs = 1017;
         protected Dictionary<string, long> _lastBikeUpdatesMs;
 
         protected Dictionary<string, Action<string, string, long, GameNetClientMessage>> _MsgHandlers;
@@ -137,7 +137,7 @@ namespace BeamBackend
             foreach(IBike ib in localBikes)
             {
                 long prevMs;
-                if ( !_lastBikeUpdatesMs.TryGetValue(ib.bikeId, out prevMs) || (nowMs - prevMs > kBikeUpdateMs))
+                if ((!_lastBikeUpdatesMs.TryGetValue(ib.bikeId, out prevMs) || (nowMs - prevMs > kBikeUpdateMs)) && !(ib as BaseBike).CloseToGridPoint())
                     SendBikeUpdate(ib);
             }
       

@@ -272,12 +272,12 @@ namespace BeamBackend
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            gameNet.SendBikeCommandMsg(bike, cmd, (bike as BaseBike).UpcomingGridPoint(Ground.gridSize));
+            gameNet.SendBikeCommandMsg(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
         {
-            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(Ground.gridSize);
+            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint();
 
             float dx = Vector2.Distance(bike.position, nextPt);
             if (dx < BaseBike.length * .5f)

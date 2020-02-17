@@ -22,6 +22,7 @@ namespace BeamBackend
         public Heading heading { get; private set;} = Heading.kNorth;
         public float speed { get; private set;} = 0;
         public BeamGameInstance gameInst = null;
+        //protected Ground ground { get =>gameInst.gameData.Ground;}
 
         public UniLogger logger;
 
@@ -63,14 +64,14 @@ namespace BeamBackend
             if (!isActive)
                 return;
 
-            Vector2 testPt = UpcomingGridPoint(Ground.gridSize);
+            Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
             {
                 logger.Verbose($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
                 // Fix it up...
                 // Go back 1 grid space
                 Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
-                testPt = UpcomingGridPoint(p2, heading, Ground.gridSize);
+                testPt = UpcomingGridPoint(p2, heading);
                 if (testPt.Equals(nextPt))
                 {
                     // We can fix
@@ -95,7 +96,7 @@ namespace BeamBackend
             if (!isActive)
                 return;
 
-            if (!UpcomingGridPoint(Ground.gridSize).Equals(nextPt))
+            if (!UpcomingGridPoint().Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
 
             switch(cmd)
@@ -143,7 +144,7 @@ namespace BeamBackend
             if (!isActive)
                 return;
 
-            Vector2 upcomingPoint = UpcomingGridPoint(Ground.gridSize);
+            Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 
             Vector2 newPos = position;
@@ -198,27 +199,33 @@ namespace BeamBackend
         //
         // Static tools. Potentially useful publicly
         // 
-        public static Vector2 NearestGridPoint(Vector2 pos, float gridSize)
+        public static Vector2 NearestGridPoint(Vector2 pos)
         {
-            float invGridSize = 1.0f / gridSize;
-            return new Vector2(Mathf.Round(pos.x * invGridSize) * gridSize, Mathf.Round(pos.y * invGridSize) * gridSize);
+            float invGridSize = 1.0f / Ground.gridSize;
+            return new Vector2(Mathf.Round(pos.x * invGridSize) * Ground.gridSize, Mathf.Round(pos.y * invGridSize) * Ground.gridSize);
         }
 
-        public static Vector2 UpcomingGridPoint(Vector2 pos, Heading head, float gridSize)
+        public bool CloseToGridPoint()
+        {
+            float dist = Vector2.Distance(position, NearestGridPoint(position));
+            return (dist < length);
+        }
+
+        public static Vector2 UpcomingGridPoint(Vector2 pos, Heading head)
         {
             // it's either the current closest point (if direction to it is the same as heading)
             // or is the closest point + gridSize*unitOffsetForHeading[curHead] if closest point is behind us
-            Vector2 point = NearestGridPoint( pos, gridSize);
+            Vector2 point = NearestGridPoint( pos);
             if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(head), point - pos) < 0)
             {
-                point += GameConstants.UnitOffset2ForHeading(head) * gridSize;
+                point += GameConstants.UnitOffset2ForHeading(head) * Ground.gridSize;
             }            
             return point;
         }    
 
-        public Vector2 UpcomingGridPoint( float gridSize)
+        public Vector2 UpcomingGridPoint( )
         {
-            return UpcomingGridPoint(position, heading, gridSize);
+            return UpcomingGridPoint(position, heading);
         }
 
     }
