@@ -60,6 +60,7 @@ namespace BeamBackend
                         ? Environment.GetEnvironmentVariable("HOME")
                         : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");        
 #endif
+            UniLogger.GetLogger("UserSettings").Info($"User settings path: {homePath + Path.DirectorySeparatorChar + leafFolder}");
             return homePath + Path.DirectorySeparatorChar + leafFolder;
         }
 
@@ -110,6 +111,7 @@ namespace BeamBackend
                 ethAcct = "0x2b42eBD222B5a1134e85D78613078740eE3Cc93D",
                 localPlayerCtrlType = BikeFactory.AiCtrl,
                 debugLevels = new Dictionary<string, string>() {
+                    {"UserSettings", UniLogger.LevelNames[UniLogger.Level.Info]},
                     {"P2pNet", UniLogger.LevelNames[UniLogger.Level.Warn]},
                     {"GameNet", UniLogger.LevelNames[UniLogger.Level.Warn]},
                     {"GameInstance", UniLogger.LevelNames[UniLogger.Level.Warn]},
