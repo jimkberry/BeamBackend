@@ -16,7 +16,7 @@ namespace BeamBackend
 
         void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt);        
         void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt);
-        void SendPlaceClaimObs(string bikeId, float xPos, float zPos);
+        void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx);
         void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);
     }
 
@@ -156,10 +156,10 @@ namespace BeamBackend
       
         }
 
-        public void SendPlaceClaimObs(string bikeId, float xPos, float zPos)
+        public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Info($"ReportPlaceClaim()");            
-            PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xPos, zPos);
+            PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGameId(), msg.msgType, JsonConvert.SerializeObject(msg));            
         }
         

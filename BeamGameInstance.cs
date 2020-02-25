@@ -217,11 +217,10 @@ namespace BeamBackend
         {
             // Apian has said this message is authoritative
             BaseBike b = gameData.GetBaseBike(msg.bikeId);
-            Vector2 pos = new Vector2(msg.xPos, msg.zPos);
-            if (gameData.Ground.PointIsOnMap(pos))
+            if (gameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
                 // Claim it                
-                Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
+                Ground.Place p = gameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx);
                 if (p != null)
                 {
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);

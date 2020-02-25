@@ -172,12 +172,14 @@ namespace BeamBackend
             logger.Debug($"DoAtGridPoint()");
             if (p == null)
             {
+                int xIdx, zIdx;
+                (xIdx, zIdx) = Ground.NearestGridIndices(pos);
                 // is it on the map?
-                if (g.PointIsOnMap(pos))
+                if (g.IndicesAreOnMap(xIdx, zIdx))
                 {
                     // Yes. Since it's empty send a claim report 
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.gameNet.SendPlaceClaimObs(bikeId, pos.x, pos.y);
+                    gameInst.gameNet.SendPlaceClaimObs(bikeId, xIdx, zIdx);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -188,7 +190,8 @@ namespace BeamBackend
 
                     //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);     
                     // This is stupid and temporary (rather than just getting rid of the test)
-                    gameInst.gameNet.SendPlaceClaimObs(bikeId,pos.x, pos.y);               
+                    // TODO: FIX THIS!!!  &&&&&&&
+                    gameInst.gameNet.SendPlaceClaimObs(bikeId, xIdx, zIdx);               
                 }
             } else {
                 // Hit a marker. Report it.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -162,13 +163,13 @@ namespace BeamBackend
     public class PlaceClaimMsg : BeamMessage
     {
         public string bikeId;
-        public float xPos;
-        public float zPos;
-        public PlaceClaimMsg(string _bikeId, float  _xPos, float _zPos) : base(kPlaceClaimMsg) 
+        public int xIdx;
+        public int zIdx;
+        public PlaceClaimMsg(string _bikeId, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg) 
         { 
             bikeId = _bikeId; 
-            xPos = _xPos;
-            zPos = _zPos;
+            xIdx = _xIdx;
+            zIdx = _zIdx;
         }
     }
 
