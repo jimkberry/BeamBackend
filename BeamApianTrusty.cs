@@ -71,13 +71,14 @@ namespace BeamBackend
             }      
         }
 
-        public void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
+
+        public void OnPlaceClaimObs(PlaceClaimIdxMsg msg, string srcId, long msgDelay) 
         {
             BaseBike b = gameData.GetBaseBike(msg.bikeId);
             //  This test is implementing the "trusty" consensus 
             // "bike owner is authority" rule. 
-            // TODO: This is NOT good enough and can result in inconsistency. Even in a trust Apian a "race to a place" like this
-            //   requires some sort of iter-peer protocol. 
+            // TODO: This is NOT good enough and can result in inconsistency. Even in a trusty Apian a "race to a place" like this
+            //   requires some sort of inter-peer protocol. 
             if (b != null && srcId == b.peerId)
             {
                 client.OnPlaceClaim(msg, msgDelay);

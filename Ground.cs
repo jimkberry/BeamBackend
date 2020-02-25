@@ -117,16 +117,17 @@ namespace BeamBackend
             return IndicesAreOnMap(xIdx,zIdx) ? placeArray[xIdx,zIdx] : null;
         }
 
-        public Place ClaimPlace(IBike bike, Vector2 pos)
+        //public Place ClaimPlace(IBike bike,  int xIdx, int zIdx)
+        //{
+        //     // returns place ref if successful. null if already claimed or off map
+        //     Vector2 gridPos = NearestGridPoint(pos); 
+        //     int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
+        //     int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize ); 
+        //     return ClaimPlace(bike, xIdx, zIdx, secsHeld); // This is always claiming a new place        
+        // }
+        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, float secsLeft = -1)
         {
-            // returns place ref if successful. null if already claimed or off map
-            Vector2 gridPos = NearestGridPoint(pos); 
-            int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
-            int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize ); 
-            return ClaimPlace(bike, xIdx, zIdx, secsHeld); // This is always claiming a new place        
-        }
-        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, float secsLeft)
-        {
+            secsLeft = secsLeft < 0 ? secsHeld : secsLeft;
             Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,secsLeft) ) : null;
             // TODO: Should claiming a place already held by team reset the timer?
             return (p?.bike == bike) ? p : null;
@@ -137,6 +138,12 @@ namespace BeamBackend
             float invGridSize = 1.0f / gridSize;
             return new Vector2( Mathf.Round(pos.x * invGridSize) * gridSize, Mathf.Round(pos.y * invGridSize) * gridSize);
         } 
+
+        public static (int,int) NearestGridIndices(Vector2 pos)
+        {
+            Vector2 gridPos  = NearestGridPoint(pos);
+            return ((int)Mathf.Floor((gridPos.x - minX) / gridSize) , (int)Mathf.Floor((gridPos.y - minZ) / gridSize ));
+        }
 
         // Set up a place instance for use or re-use
         protected Place SetupPlace(IBike bike, int xIdx, int zIdx, float secsLeft )

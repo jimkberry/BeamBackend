@@ -16,7 +16,7 @@ namespace BeamBackend
 
         void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt);        
         void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt);
-        void SendPlaceClaimObs(string bikeId, float xPos, float zPos);
+        void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx);
         void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);
     }
 
@@ -27,7 +27,7 @@ namespace BeamBackend
         void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);
         void OnBikeTurnMsg(BikeTurnMsg msg, string srcId, long msgDelay);
         void OnBikeCommand(BikeCommandMsg msg, string srcId, long msgDelay);        
-        void OnPlaceClaimed(PlaceClaimMsg msg, string srcId, long msgDelay);
+        void OnPlaceClaimed(PlaceClaimIdxMsg msg, string srcId, long msgDelay);
         void OnPlaceHit(PlaceHitMsg msg, string srcId, long msgDelay);        
     }    
 
@@ -156,10 +156,10 @@ namespace BeamBackend
       
         }
 
-        public void SendPlaceClaimObs(string bikeId, float xPos, float zPos)
+        public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Info($"ReportPlaceClaim()");            
-            PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xPos, zPos);
+            PlaceClaimIdxMsg msg = new PlaceClaimIdxMsg(bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGameId(), msg.msgType, JsonConvert.SerializeObject(msg));            
         }
         
@@ -220,7 +220,7 @@ namespace BeamBackend
             // implmented to fix it.
             // TODO: in other words we need to implment BeamApian (yeah, I said I'd initially do a custom solution
             // but that's just a waste of time.)
-            apianInstance.OnPlaceClaimObs(JsonConvert.DeserializeObject<PlaceClaimMsg>(clientMessage.payload), from, msSinceSent);
+            apianInstance.OnPlaceClaimObs(JsonConvert.DeserializeObject<PlaceClaimIdxMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandlePlaceHitReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
