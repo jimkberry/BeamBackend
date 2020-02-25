@@ -177,7 +177,7 @@ namespace BeamBackend
                 {
                     // Yes. Since it's empty send a claim report 
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.gameNet.ReportPlaceClaim(bikeId, pos.x, pos.y);
+                    gameInst.gameNet.SendPlaceClaimObs(bikeId, pos.x, pos.y);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -188,11 +188,11 @@ namespace BeamBackend
 
                     //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);     
                     // This is stupid and temporary (rather than just getting rid of the test)
-                    gameInst.gameNet.ReportPlaceClaim(bikeId,pos.x, pos.y);               
+                    gameInst.gameNet.SendPlaceClaimObs(bikeId,pos.x, pos.y);               
                 }
             } else {
                 // Hit a marker. Report it.
-                gameInst.gameNet.ReportPlaceHit(bikeId, p.xIdx, p.zIdx);
+                gameInst.gameNet.SendPlaceHitObs(bikeId, p.xIdx, p.zIdx);
             }            
         }
 

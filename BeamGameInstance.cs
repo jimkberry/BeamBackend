@@ -78,7 +78,7 @@ namespace BeamBackend
         }                 
     }
 
-    public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamGameNetClient
+    public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamApianClient
     {
         public ModeManager modeMgr {get; private set;}
         public  BeamGameData gameData {get; private set;}
@@ -141,7 +141,7 @@ namespace BeamBackend
         }
 
         //
-        // IBeamGameNetClient
+        // IBeamApianClient
         //
 
         public void SetGameNetInstance(IGameNet iGameNet)
@@ -179,82 +179,80 @@ namespace BeamBackend
             _RemovePeer(p2pId);                                            
         }
       
-         public void OnBikeCreateData(BikeCreateDataMsg msg, string srcId, long msgDelay)
+         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
         {
-            if ( gameData.GetBaseBike(msg.bikeId) != null)
-            {
-                logger.Verbose($"OnBikeCreateData() Bike already exists: {msg.bikeId}.");   
-                return;
-            }             
-
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);             
-            _AddBike(ib);
-            foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
+            if (_AddBike(ib))
             {
-                if (gameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
-                    logger.Warn($"OnBikeCreateData() Claimplace() failed");
+                foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
+                {
+                    if (gameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
+                        logger.Warn($"OnBikeCreateData() Claimplace() failed");
+                }
             }
         }
 
-        public void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
-        {
-            logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
-            IBike ib = gameData.GetBaseBike(msg.bikeId);
-            if (ib != null)
-                PostBikeCreateData(ib, srcId);
-        }
-
-        public void OnBikeCommand(BikeCommandMsg msg, string srcId, long msgDelay)
+        public void OnBikeCommand(BikeCommandMsg msg, long msgDelay)
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null)
+            // Caller (Apian) checks the bike and message sourcevalidity
+            // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
+            // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
+            logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
+            bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ));
+        }
+
+        public void OnBikeTurn(BikeTurnMsg msg, long msgDelay)
+        {
+            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            // Code (Apian) checks bike and source validity
+            // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
+            // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
+            logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
+            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ));
+        }
+
+        public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
+        {
+            // Apian has said this message is authoritative
+            BaseBike b = gameData.GetBaseBike(msg.bikeId);
+            Vector2 pos = new Vector2(msg.xPos, msg.zPos);
+            if (gameData.Ground.PointIsOnMap(pos))
             {
-                logger.Debug($"OnBikeCommand() - requesting data fror unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
-            }
-            else
-            {
-                // Code (Apian) SHOULD check the validity
-                // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
-                // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-                logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
-                bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ));
+                // Claim it                
+                Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
+                if (p != null)
+                {
+                    OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
+                    PlaceClaimedEvt?.Invoke(this, p);                                                                      
+                } else {
+                    logger.Warn($"OnPlaceClaimed() failed. Place already claimed.");
+                }
+
+            } else {
+                // Oh oh. It's an "off the map" notification
+                OnScoreEvent(b, ScoreEvent.kOffMap, null);   // _RemoveBike() will raise BikeRemoved event                  
             }
         }
 
-        public void OnBikeTurnMsg(BikeTurnMsg msg, string srcId, long msgDelay)
+        public void OnPlaceHit(PlaceHitMsg msg, long msgDelay)
         {
-            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null)
-            {
-                logger.Debug($"OnBikeTurnCommand() - requesting data fror unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
-            }
-            else
-            {
-                // Code (Apian) SHOULD check the validity
-                // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
-                // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-                logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
-                bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ));
-            }
-        }
+            // Apian has already checked the the place is claimed and the bike exists
+            Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
+            Ground.Place p = gameData.Ground.GetPlace(pos);
+            BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);
+            OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+            PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                  
+        }         
 
         public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay)
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
-            if (ib == null)
-            {
-                logger.Debug($"OnRemoteBikeUpdate() - requesting data fror unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
-            }
-            else
-            {
-                logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
-                gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msgDelay);
-            }
+            logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
+            gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msgDelay);
         }
+
 
         //
         // IBeamBackend (requests from the frontend)
@@ -269,10 +267,20 @@ namespace BeamBackend
            modeMgr.SwitchToMode(newModeId, modeParam);       
         }
      
+        // A couple of these are just acting as intermediaries to commands in GameNet that could potentially be called by the frontend
+        // directly - if the particular FE code had a reference to the GameNet. It's a lot more likely to  have an IBackend ref.
+        // I'm not completely convinced this is the best way to handle it.
+
+        public void PostBikeCreateData(IBike ib, string destId = null)
+        {
+            List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
+            logger.Debug($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
+            gameNet.SendBikeCreateData(ib, places, destId);            
+        }
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            gameNet.SendBikeCommandMsg(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
+            gameNet.SendBikeCommandReq(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
@@ -283,79 +291,14 @@ namespace BeamBackend
             if (dx < BaseBike.length * .5f)
                 logger.Debug($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else
-                gameNet.SendBikeTurnMsg(bike, dir, nextPt);
+                gameNet.SendBikeTurnReq(bike, dir, nextPt);
         }
 
-        public void PostBikeCreateData(IBike ib, string destId = null)
-        {
-            List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
-            logger.Debug($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
-            gameNet.SendBikeCreateData(ib, places, destId);            
-        }
-
-        //
-        // Messages from the network/consensus layer (external or internal loopback)
-        //
-
-        public void OnPlaceClaimed(PlaceClaimReportMsg msg, string srcId, long msgDelay)
-        {
-            BaseBike b = gameData.GetBaseBike(msg.bikeId);
-            // TODO: This test is implementing the "trusty" consensus 
-            // "bike owner is authority" rule. 
-            // &&&& IT SHOULD NOT HAPPEN HERE!!!! Apian should have taken care of it and the
-            // call only made if it passed
-            if (b != null && srcId == b.peerId)
-            {
-                Vector2 pos = new Vector2(msg.xPos, msg.zPos);
-                if (gameData.Ground.PointIsOnMap(pos))
-                {
-                    // Claim it                
-                    Ground.Place p = gameData.Ground.ClaimPlace(b, pos);
-                    if (p != null)
-                    {
-                        OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
-                        PlaceClaimedEvt?.Invoke(this, p);                                                                      
-                    } else {
-                        logger.Warn($"OnPlaceClaimed() failed. Place already claimed.");
-                    }
-
-                } else {
-                    // Oh oh. It's an "off the map" notification
-                    OnScoreEvent(b, ScoreEvent.kOffMap, null);   // _RemoveBike() will raise BikeRemoved event                  
-                }
-            }
-
-            // Ground sends message to FE when place s claimed
-            // TODO: No, don;t have the ground do it.
-        }
-
-        public void OnPlaceHit(PlaceHitReportMsg msg, string srcId, long msgDelay)
-        {
-            // TODO: This test is implementing the "trusty" consensus 
-            // "place owner is authority" rule. 
-            // &&&& IT SHOULD NOT HAPPEN HERE!!!! Apian should have taken care of it and the
-            // call only made if it passed
-            Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
-            Ground.Place p = gameData.Ground.GetPlace(pos);
-            if (p != null && srcId == p.bike.peerId)
-            {
-                BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);
-                // Source of message is place owner (well, owner of the bike that owns the place...)
-                if (hittingBike != null)
-                {
-                    OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
-                    PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));                
-                } else {
-                    logger.Warn($"PlaceHit sent by {srcId} for unknown bike {msg.bikeId}");
-                }
-
-            }
-        } 
-
-        public void OnScoreEvent(BaseBike bike, ScoreEvent evt, Ground.Place place)
+        protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, Ground.Place place)
         {
             // TODO: as with above: This is coming from the backend (BaseBike, mostly) and should
             // be comming from the Net/event/whatever layer
+            // NOTE: I'm not so sure about above comment. It;'s not clear that score changes constitute "events"
             int scoreDelta = GameConstants.eventScores[(int)evt];
             bike.AddScore(scoreDelta);
 
@@ -386,10 +329,6 @@ namespace BeamBackend
                 _RemoveBike(bike);
             }
         }
-
-        //
-        // Hmm. Where do these go?
-        //
 
         // Peer-related
         protected bool _AddPeer(BeamPeer p)
@@ -424,13 +363,7 @@ namespace BeamBackend
             gameData.Peers.Clear();
         }
 
-        // Bike-related
-        // public void NewBike(IBike b)
-        // {
-        //     logger.Debug(string.Format("NewBike(). ID: {0}, Pos: {1}", b.bikeId, b.position));            
-        //     gameData.Bikes[b.bikeId] = b;
-        //     frontend?.OnNewBike(b);
-        // }        
+        // Bike-related      
 
         public BaseBike CreateBaseBike(int ctrlType, string peerId, string name, Team t)
         {
@@ -440,12 +373,12 @@ namespace BeamBackend
             return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading, 0);
         }
 
-        public void _AddBike(IBike ib)
+        public bool _AddBike(IBike ib)
         {
             logger.Debug($"AddBike()");    
             
             if (gameData.GetBaseBike(ib.bikeId) != null)
-                return;
+                return false;
 
             gameData.Bikes[ib.bikeId] = ib;   
 
@@ -453,7 +386,8 @@ namespace BeamBackend
             if (ib.peerId != LocalPeerId)
                 (ib as BaseBike).SetActive(false);
 
-            NewBikeEvt?.Invoke(this, ib);                      
+            NewBikeEvt?.Invoke(this, ib); 
+            return true;                     
         }
 
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)

@@ -4,23 +4,31 @@ using UnityEngine;
 namespace BeamBackend
 {
     public class BeamMessage
-    {
-//        public const string kGameCreated = "100";
-//        public const string kGameJoined = "101";
-//        public const string kPeerJoined = "102";
-//        public const string kPeerLeft = "103";      
+    {   
+        public const string kBeamApianMsg = "101";        
         public const string kBikeCreateData = "104";
         public const string kBikeDataReq = "105";    
         public const string kBikeUpdate = "106";
         public const string kBikeTurnMsg = "107";        
         public const string kBikeCommandMsg = "108";        
-        public const string kPlaceClaimReport = "109";
-        public const string kPlaceHitReport = "110";
+        public const string kPlaceClaimMsg = "109";
+        public const string kPlaceHitMsg = "110";
          
         public string msgType;
         public BeamMessage(string t) => msgType = t;
     }
 
+    //
+    // Apian messages
+    //
+    public class BeamApianMsg : BeamMessage
+    {
+        string payload;
+        public BeamApianMsg(string _payload) : base(kBeamApianMsg) 
+        { 
+            payload = _payload;
+        }
+    }
 
     //
     // GameNet messages
@@ -151,12 +159,12 @@ namespace BeamBackend
         }
     }  
 
-    public class PlaceClaimReportMsg : BeamMessage
+    public class PlaceClaimMsg : BeamMessage
     {
         public string bikeId;
         public float xPos;
         public float zPos;
-        public PlaceClaimReportMsg(string _bikeId, float  _xPos, float _zPos) : base(kPlaceClaimReport) 
+        public PlaceClaimMsg(string _bikeId, float  _xPos, float _zPos) : base(kPlaceClaimMsg) 
         { 
             bikeId = _bikeId; 
             xPos = _xPos;
@@ -164,12 +172,12 @@ namespace BeamBackend
         }
     }
 
-    public class PlaceHitReportMsg : BeamMessage
+    public class PlaceHitMsg : BeamMessage
     {
         public string bikeId;
         public int xIdx;
         public int zIdx;
-        public PlaceHitReportMsg(string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitReport) 
+        public PlaceHitMsg(string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitMsg) 
         { 
             bikeId = _bikeId; 
             xIdx=_xIdx;
