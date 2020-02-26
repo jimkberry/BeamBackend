@@ -121,7 +121,7 @@ namespace BeamBackend
            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
-                logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
+                logger.Debug($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}");
                 _gn.RequestBikeData(msg.bikeId, srcId);
             }              
          
