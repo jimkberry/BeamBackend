@@ -112,17 +112,22 @@ namespace BeamBackend
             }
 
             protected Dictionary<PlaceData, VoteData> voteDict;
+            public UniLogger logger;
 
-            public PlaceClaimVoter() 
+            public PlaceClaimVoter(UniLogger _logger) 
             { 
+                logger = _logger;
                 voteDict = new Dictionary<PlaceData, VoteData>();
             }
 
             public void Cleanup()
             {
-                List<PlaceData> delKeys = voteDict.Keys.Where(k => voteDict[k].expireTs > NowMs).ToList();
+                List<PlaceData> delKeys = voteDict.Keys.Where(k => voteDict[k].expireTs < NowMs).ToList();
                 foreach (PlaceData k in delKeys)
+                {
+                    logger.Debug($"Vote.Cleanup(): removing: ({k.x},{k.z},{k.bikeId}), {voteDict[k].peerIds.Count} votes.");
                     voteDict.Remove(k);
+                }
             }
 
             public bool AddVote(string bikeId, int placeX, int placeZ, string observerPeer, int totalPeers)
@@ -139,11 +144,13 @@ namespace BeamBackend
                         return false;
 
                     vd.peerIds.Add(observerPeer);
+                    logger.Debug($"Vote.Add: +1 for: ({placeX},{placeX},{bikeId}), Votes: {vd.peerIds.Count}");                    
                 } else {
                     int majorityCnt = totalPeers / 2 + 1;                    
                     vd = new VoteData(majorityCnt,PlaceClaimVoter.NowMs);
                     vd.peerIds.Add(observerPeer);
                     voteDict[newPd] = vd;
+                    logger.Debug($"Vote.Add: New: ({placeX},{placeX},{bikeId}), Majority: {majorityCnt}"); 
                 }
 
                 if (vd.peerIds.Count >= vd.neededVotes)
@@ -161,7 +168,7 @@ namespace BeamBackend
         public void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
             if (placeVoter == null) // TODO: should happen in Apian init/ctor
-                placeVoter = new PlaceClaimVoter();
+                placeVoter = new PlaceClaimVoter(logger);
 
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             if (placeVoter.AddVote(msg.bikeId, msg.xIdx, msg.zIdx, srcId, client.gameData.Peers.Count))
