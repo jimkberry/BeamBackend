@@ -108,6 +108,8 @@ namespace BeamBackend
             return activePlaces.Where(p => p.bike.bikeId == ib.bikeId).ToList();
         }        
 
+        public Place GetPlace(int xIdx, int zIdx) => placeArray[xIdx,zIdx];
+  
         public Place GetPlace(Vector2 pos)
         {
             Vector2 gridPos = NearestGridPoint(pos);

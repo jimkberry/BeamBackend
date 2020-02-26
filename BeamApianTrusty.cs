@@ -85,7 +85,12 @@ namespace BeamBackend
                 // or: Never add a bike while it's involved in a vote (keep the data "pending" and check for when it's ok) <- probably bad
                 // or: do nothing. <- probably bad
             } 
-                     
+            if (gameData.Ground.GetPlace(msg.xIdx, msg.zIdx) == null)
+            {
+                logger.Warn($"OnPlaceHitObs() - unclaimed place: msg.xIdx, msg.zIdx");
+                return;
+            }
+       
             logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
             if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
