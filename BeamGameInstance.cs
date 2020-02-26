@@ -374,7 +374,7 @@ namespace BeamBackend
 
         public bool _AddBike(IBike ib)
         {
-            logger.Debug($"AddBike()");    
+            logger.Verbose($"_AddBike(): {ib.bikeId}");    
             
             if (gameData.GetBaseBike(ib.bikeId) != null)
                 return false;
@@ -391,6 +391,7 @@ namespace BeamBackend
 
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
+            logger.Verbose($"_RemoveBike(): {ib.bikeId}");              
             gameData.Ground.RemovePlacesForBike(ib);
             BikeRemovedEvt?.Invoke(this, new BikeRemovedData(ib.bikeId,  shouldBlowUp));  
             gameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.

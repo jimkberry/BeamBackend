@@ -27,13 +27,15 @@ namespace Apian
     {
         public static long NowMs => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
 
-        protected struct VoteData
+        protected class VoteData
         {
             public const long timeoutMs = 300;
             public int neededVotes;
             public long expireTs;
             public bool voteDone;
             public List<string> peerIds;
+
+            public VoteData() {}            
             public VoteData(int voteCnt, long now)
             {
                 neededVotes = voteCnt;

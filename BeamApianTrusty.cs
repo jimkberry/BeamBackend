@@ -8,12 +8,14 @@ namespace BeamBackend
 {
     public class BeamApianTrusty : IBeamApian // , IBeamGameNetClient 
     {
-        public struct PlaceBikeData // for things related to a bike and a place (like claim, hit)
+        public class PlaceBikeData // for things related to a bike and a place (like claim, hit)
         {
             public int x;
             public int z;
             public string bikeId;
             public override string ToString() => $"({x}, {z}, {bikeId})";
+
+            public PlaceBikeData(int _x, int _z, string _bid) { x = _x; z=_z; bikeId=_bid; }
         }
 
 
@@ -77,20 +79,21 @@ namespace BeamBackend
                 logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
                 _gn.RequestBikeData(msg.bikeId, srcId);
                 // TODO: think about what happens if we get the bike data before the vote is done.
-                // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit()
+                // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit() <- doing this now
                 //      while the bike isn't there
                 // or:  Add the ability to create a "poison" vote for this event
                 // or: Never add a bike while it's involved in a vote (keep the data "pending" and check for when it's ok) <- probably bad
                 // or: do nothing. <- probably bad
-            } else {            
-                logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
-                PlaceBikeData newPd = new PlaceBikeData(){x=msg.xIdx, z=msg.zIdx, bikeId=msg.bikeId};
-                if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
-                {
-                    logger.Debug($"OnPlaceHitObs() - Calling OnPlaceHit()");                
-                    client.OnPlaceHit(msg, msgDelay);                
-                }
             } 
+                     
+            logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
+            PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
+            if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
+            {
+                logger.Debug($"OnPlaceHitObs() - Calling OnPlaceHit()");                
+                client.OnPlaceHit(msg, msgDelay);                
+            }
+   
         }
 
         // public void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
@@ -120,15 +123,16 @@ namespace BeamBackend
             {
                 logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
                 _gn.RequestBikeData(msg.bikeId, srcId);
-            } else {              
-                logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
-                PlaceBikeData newPd = new PlaceBikeData(){x=msg.xIdx, z=msg.zIdx, bikeId=msg.bikeId};
-                if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
-                {
-                    logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
-                    client.OnPlaceClaim(msg, msgDelay);                
-                }
+            }              
+         
+            logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
+            PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);            
+            if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
+            {
+                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
+                client.OnPlaceClaim(msg, msgDelay);                
             }
+            
         }
 
    
