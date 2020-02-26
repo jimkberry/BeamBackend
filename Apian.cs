@@ -27,15 +27,14 @@ namespace Apian
     {
         public static long NowMs => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
 
-        protected class VoteData
+        protected struct VoteData
         {
             public const long timeoutMs = 300;
             public int neededVotes;
             public long expireTs;
             public bool voteDone;
             public List<string> peerIds;
-
-            public VoteData() {}            
+          
             public VoteData(int voteCnt, long now)
             {
                 neededVotes = voteCnt;
@@ -66,15 +65,14 @@ namespace Apian
 
         public bool AddVote(T candidate, string observerPeer, int totalPeers)
         {
-            VoteData vd;
-
             Cleanup();
-
-            if (voteDict.TryGetValue(candidate, out vd))
-            {
+            VoteData vd;
+            try {
+                vd = voteDict[candidate];
                 vd.peerIds.Add(observerPeer);
-                logger.Debug($"Vote.Add: +1 for: {candidate.ToString()}, Votes: {vd.peerIds.Count}");                    
-            } else {
+                voteDict[candidate] = vd; // VoteData is a struct (value) so must be re-added
+                logger.Debug($"Vote.Add: +1 for: {candidate.ToString()}, Votes: {vd.peerIds.Count}");                
+            } catch (KeyNotFoundException) {
                 int majorityCnt = totalPeers / 2 + 1;                    
                 vd = new VoteData(majorityCnt, NowMs);
                 vd.peerIds.Add(observerPeer);
@@ -86,6 +84,7 @@ namespace Apian
             {
                 // only call this once
                 vd.voteDone = true;
+                voteDict[candidate] = vd; 
                 return true;
             }
             return false;

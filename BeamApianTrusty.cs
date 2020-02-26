@@ -8,7 +8,7 @@ namespace BeamBackend
 {
     public class BeamApianTrusty : IBeamApian // , IBeamGameNetClient 
     {
-        public class PlaceBikeData // for things related to a bike and a place (like claim, hit)
+        public struct PlaceBikeData // for things related to a bike and a place (like claim, hit)
         {
             public int x;
             public int z;
