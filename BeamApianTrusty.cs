@@ -97,7 +97,7 @@ namespace BeamBackend
 
             protected struct VoteData
             {
-                public const long timeoutMs = 250;
+                public const long timeoutMs = 500;
                 public int neededVotes;
                 public long expireTs;
                 public bool voteDone;
