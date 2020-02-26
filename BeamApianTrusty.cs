@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using GameNet;
 using UniLog;
 using UnityEngine;
@@ -71,19 +74,113 @@ namespace BeamBackend
             }      
         }
 
+        // Place claim logic:
+        //
+        // When a place claim arrives: 
+        //   clear out any "expired" pending claims (housekeeping)
+        //   Is the  x/z/bike hash in the pending dict:
+        //      increment the report counter
+        //      count > half of peers:
+        //         send the claim assertion
+        //
+        // (clean up by letting the entries expire)
+
+        protected class PlaceClaimVoter
+        {
+            public static long NowMs => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
+            protected struct PlaceData 
+            {
+                public int x;
+                public int z;
+                public string bikeId;
+            }
+
+            protected struct VoteData
+            {
+                public const long timeoutMs = 250;
+                public int neededVotes;
+                public long expireTs;
+                public bool voteDone;
+                public List<string> peerIds;
+                public VoteData(int voteCnt, long now)
+                {
+                    neededVotes = voteCnt;
+                    expireTs = now + timeoutMs;
+                    peerIds = new List<string>();
+                    voteDone = false;
+                }
+            }
+
+            protected Dictionary<PlaceData, VoteData> voteDict;
+
+            public PlaceClaimVoter() 
+            { 
+                voteDict = new Dictionary<PlaceData, VoteData>();
+            }
+
+            public void Cleanup()
+            {
+                List<PlaceData> delKeys = voteDict.Keys.Where(k => voteDict[k].expireTs > NowMs).ToList();
+                foreach (PlaceData k in delKeys)
+                    voteDict.Remove(k);
+            }
+
+            public bool AddVote(string bikeId, int placeX, int placeZ, string observerPeer, int totalPeers)
+            {
+                VoteData vd;
+
+                Cleanup();
+                PlaceData newPd = new PlaceData(){x=placeX, z=placeZ, bikeId=bikeId};
+
+                if (voteDict.TryGetValue(newPd, out vd))
+                {
+                    // already had a values
+                    if (vd.voteDone)
+                        return false;
+
+                    vd.peerIds.Add(observerPeer);
+                } else {
+                    int majorityCnt = totalPeers / 2 + 1;                    
+                    vd = new VoteData(majorityCnt,PlaceClaimVoter.NowMs);
+                    vd.peerIds.Add(observerPeer);
+                }
+
+                if (vd.peerIds.Count >= vd.neededVotes)
+                {
+                    vd.voteDone = true;
+                    return true;
+                }
+                return false;
+
+            }
+        }
+
+        protected PlaceClaimVoter placeVoter;
 
         public void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
-            BaseBike b = gameData.GetBaseBike(msg.bikeId);
-            //  This test is implementing the "trusty" consensus 
-            // "bike owner is authority" rule. 
-            // TODO: This is NOT good enough and can result in inconsistency. Even in a trusty Apian a "race to a place" like this
-            //   requires some sort of inter-peer protocol. 
-            if (b != null && srcId == b.peerId)
+            if (placeVoter == null) // TODO: should happen in Apian init/ctor
+                placeVoter = new PlaceClaimVoter();
+
+            if (placeVoter.AddVote(msg.bikeId, msg.xIdx, msg.zIdx, srcId, client.gameData.Peers.Count))
             {
-                client.OnPlaceClaim(msg, msgDelay);
-            }      
+                client.OnPlaceClaim(msg, msgDelay);                
+            }
+
         }
+
+        // public void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
+        // {
+        //     BaseBike b = gameData.GetBaseBike(msg.bikeId);
+        //     //  This test is implementing the "trusty" consensus 
+        //     // "bike owner is authority" rule. 
+        //     // TODO: This is NOT good enough and can result in inconsistency. Even in a trusty Apian a "race to a place" like this
+        //     //   requires some sort of inter-peer protocol. 
+        //     if (b != null && srcId == b.peerId)
+        //     {
+        //         client.OnPlaceClaim(msg, msgDelay);
+        //     }      
+        // }
         public void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
