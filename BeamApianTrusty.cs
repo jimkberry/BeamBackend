@@ -143,6 +143,7 @@ namespace BeamBackend
                     int majorityCnt = totalPeers / 2 + 1;                    
                     vd = new VoteData(majorityCnt,PlaceClaimVoter.NowMs);
                     vd.peerIds.Add(observerPeer);
+                    voteDict[newPd] = vd;
                 }
 
                 if (vd.peerIds.Count >= vd.neededVotes)
@@ -162,8 +163,10 @@ namespace BeamBackend
             if (placeVoter == null) // TODO: should happen in Apian init/ctor
                 placeVoter = new PlaceClaimVoter();
 
+            logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             if (placeVoter.AddVote(msg.bikeId, msg.xIdx, msg.zIdx, srcId, client.gameData.Peers.Count))
             {
+                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
                 client.OnPlaceClaim(msg, msgDelay);                
             }
 
