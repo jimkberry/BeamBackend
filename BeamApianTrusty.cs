@@ -85,7 +85,7 @@ namespace BeamBackend
             } else {            
                 logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
                 PlaceBikeData newPd = new PlaceBikeData(){x=msg.xIdx, z=msg.zIdx, bikeId=msg.bikeId};
-                if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count))
+                if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
                 {
                     logger.Debug($"OnPlaceHitObs() - Calling OnPlaceHit()");                
                     client.OnPlaceHit(msg, msgDelay);                
@@ -123,7 +123,7 @@ namespace BeamBackend
             } else {              
                 logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
                 PlaceBikeData newPd = new PlaceBikeData(){x=msg.xIdx, z=msg.zIdx, bikeId=msg.bikeId};
-                if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count))
+                if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
                 {
                     logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
                     client.OnPlaceClaim(msg, msgDelay);                
