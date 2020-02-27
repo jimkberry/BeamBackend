@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class BeamApianTrusty : IBeamApian // , IBeamGameNetClient 
+    public class BeamApianTrusty : BeamApian 
     {
         public struct PlaceBikeData // for things related to a bike and a place (like claim, hit)
         {
@@ -19,39 +19,21 @@ namespace BeamBackend
         }
 
 
-        protected BeamGameInstance client;
-        protected BeamGameData gameData; // can read it - Apian writing to it is not allowed
-        protected IBeamGameNet _gn;
-        public UniLogger logger;
 
         protected ApianVoteMachine<PlaceBikeData> placeClaimVoteMachine;
         protected ApianVoteMachine<PlaceBikeData> placeHitVoteMachine;        
 
-        public BeamApianTrusty(IBeamApianClient _client) 
+        public BeamApianTrusty(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
         {
-            client = _client as BeamGameInstance;
-            gameData = client.gameData;
-            logger = UniLogger.GetLogger("Apian");
-
             placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);
             placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);            
         }
 
-        //
-        // IApian
-        //
-        public void SetGameNetInstance(IGameNet gn) => _gn = gn as IBeamGameNet;
-        public void OnGameCreated(string gameP2pChannel) => client.OnGameCreated(gameP2pChannel);
-        public void OnGameJoined(string gameId, string localP2pId) => client.OnGameJoined(gameId, localP2pId);
-        public void OnPeerJoined(string p2pId, string peerHelloData) => client.OnPeerJoined(p2pId, peerHelloData);
-        public void OnPeerLeft(string p2pId) => client.OnPeerLeft(p2pId);
-        public string LocalPeerData() => client.LocalPeerData();              
-        public void OnApianMessage(ApianMessage msg) {}   
-
+ 
         //
         // IBeamApian  
         //
-        public void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
+        public override void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
@@ -63,7 +45,7 @@ namespace BeamBackend
                 client.OnCreateBike(msg, msgDelay);
         }
 
-        public void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
+        public override void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
         {
             logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
             IBike ib = client.gameData.GetBaseBike(msg.bikeId);
@@ -71,13 +53,13 @@ namespace BeamBackend
                 client.PostBikeCreateData(ib, srcId); 
         }        
 
-        public void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
+        public override void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
                 logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
-                _gn.RequestBikeData(msg.bikeId, srcId);
+                gameNet.RequestBikeData(msg.bikeId, srcId);
                 // TODO: think about what happens if we get the bike data before the vote is done.
                 // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit() <- doing this now
                 //      while the bike isn't there
@@ -95,7 +77,7 @@ namespace BeamBackend
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
             if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
             {
-                logger.Debug($"OnPlaceHitObs() - Calling OnPlaceHit()");                
+                logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");                
                 client.OnPlaceHit(msg, msgDelay);                
             }
    
@@ -121,13 +103,13 @@ namespace BeamBackend
         // }
 
 
-        public void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
+        public override void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
                 logger.Debug($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}");
-                _gn.RequestBikeData(msg.bikeId, srcId);
+                gameNet.RequestBikeData(msg.bikeId, srcId);
             }              
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
@@ -139,34 +121,34 @@ namespace BeamBackend
             }
             
         }
-
    
-        public void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
+        public override void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
                 logger.Debug($"OnBikeCommandReq() - unknown bike: {msg.bikeId}");
-                _gn.RequestBikeData(msg.bikeId, srcId);
+                gameNet.RequestBikeData(msg.bikeId, srcId);
             } else {
                 if (bb.peerId == srcId)
                     client.OnBikeCommand(msg, msgDelay);
             }
         }
-        public void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay)
+
+        public override void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay)
         {
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
                 logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}");
-                _gn.RequestBikeData(msg.bikeId, srcId);
+                gameNet.RequestBikeData(msg.bikeId, srcId);
             } else {            
                 if ( bb.peerId == srcId)
                     client.OnBikeTurn(msg, msgDelay);
             }
         }    
 
-        public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay) 
+        public override void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay) 
         {
             BaseBike b = gameData.GetBaseBike(msg.bikeId);            
             if (b != null && srcId == b.peerId)

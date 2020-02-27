@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Apian;
 
 namespace BeamBackend
 {
-    public class BeamMessage
+    public class BeamMessage : ApianMessage
     {   
         public const string kBeamApianMsg = "101";        
         public const string kBikeCreateData = "104";
@@ -14,22 +15,10 @@ namespace BeamBackend
         public const string kBikeCommandMsg = "108";        
         public const string kPlaceClaimMsg = "109";
         public const string kPlaceHitMsg = "110";
-         
-        public string msgType;
-        public BeamMessage(string t) => msgType = t;
+
+        public BeamMessage(string t) : base(t) {}
     }
 
-    //
-    // Apian messages
-    //
-    public class BeamApianMsg : BeamMessage
-    {
-        string payload;
-        public BeamApianMsg(string _payload) : base(kBeamApianMsg) 
-        { 
-            payload = _payload;
-        }
-    }
 
     //
     // GameNet messages

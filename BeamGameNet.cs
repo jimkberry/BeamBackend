@@ -22,13 +22,13 @@ namespace BeamBackend
 
     public interface IBeamGameNetClient : IGameNetClient
     {       
-        void OnBikeCreateData(BikeCreateDataMsg msg, string srcId, long msgDelay);
         void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay);
-        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);
-        void OnBikeTurnMsg(BikeTurnMsg msg, string srcId, long msgDelay);
-        void OnBikeCommand(BikeCommandMsg msg, string srcId, long msgDelay);        
-        void OnPlaceClaimed(PlaceClaimMsg msg, string srcId, long msgDelay);
-        void OnPlaceHit(PlaceHitMsg msg, string srcId, long msgDelay);        
+        void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);        
+        void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay);
+        void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay);        
+        void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay);
+        void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay);       
+        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);         
     }    
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
@@ -37,8 +37,6 @@ namespace BeamBackend
         protected Dictionary<string, long> _lastBikeUpdatesMs;
 
         protected Dictionary<string, Action<string, string, long, GameNetClientMessage>> _MsgHandlers;
-
-        protected IBeamApian apianInstance;
 
         public class GameCreationData {}
 
@@ -60,12 +58,7 @@ namespace BeamBackend
         public override void Init(IGameNetClient client)
         {
             base.Init(client);
-            apianInstance = new BeamApianTrusty(client as IBeamApianClient);
-            apianInstance.SetGameNetInstance(this); // TODO: This is only here because an Apian implmentation
-            // turns out to really *be* an IGameNetClient - and this is how a non-apian Gamenet client gets connected to
-            // its gamenet. I suspect I ran into some issues at some point trying to inject it in the client's ctor (it is, 
-            // after all, usually the game instance itself, and so is creted separately.)
-            // Anyway, SetGameNetInstance() is awkward and probably not a good way to be doing it. 
+            // apianInstance = new BeamApianTrusty(this, client as IBeamApianClient);
         }
 
         protected override IP2pNet P2pNetFactory(string p2pConnectionString)
@@ -185,30 +178,30 @@ namespace BeamBackend
         protected void _HandleBikeCreateData(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
             logger.Info($"_HandleBikeCreateData()");              
-            apianInstance.OnCreateBikeReq(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnCreateBikeReq(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeDataReq(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
             logger.Info($"_HandleBikeDataReq()");             
-            apianInstance.OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeCommandMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
-            apianInstance.OnBikeCommandReq(JsonConvert.DeserializeObject<BikeCommandMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnBikeCommandReq(JsonConvert.DeserializeObject<BikeCommandMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeTurnMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
-            apianInstance.OnBikeTurnReq(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnBikeTurnReq(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from, msSinceSent);
         }
         protected void _HandleBikeUpdate(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
             // NOTE: Do NOT act on loopbacked bike update messages. These are NOT state chage events, just "helpers"
             // We could filter this in Apian - and maybe should, but then all the deseriaizaltion and object creation would happen
             if (from != LocalP2pId())
-                apianInstance.OnRemoteBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), from, msSinceSent);
+                (client as IBeamGameNetClient).OnRemoteBikeUpdate(JsonConvert.DeserializeObject<BikeUpdateMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandlePlaceClaimReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
@@ -220,14 +213,14 @@ namespace BeamBackend
             // implmented to fix it.
             // TODO: in other words we need to implment BeamApian (yeah, I said I'd initially do a custom solution
             // but that's just a waste of time.)
-            apianInstance.OnPlaceClaimObs(JsonConvert.DeserializeObject<PlaceClaimMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnPlaceClaimObs(JsonConvert.DeserializeObject<PlaceClaimMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandlePlaceHitReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
             logger.Info($"_HandlePlaceHitReport()");              
             // See above. In trustyworld, place owner is authoritative
-            apianInstance.OnPlaceHitObs(JsonConvert.DeserializeObject<PlaceHitMsg>(clientMessage.payload), from, msSinceSent);
+            (client as IBeamGameNetClient).OnPlaceHitObs(JsonConvert.DeserializeObject<PlaceHitMsg>(clientMessage.payload), from, msSinceSent);
         }
     }
 

@@ -3,25 +3,37 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using UniLog;
-using GameNet;
 
 namespace Apian
 {
-    public class ApianMessage
-    {
-        // These should be opaque to anything other than Apian
-        public string Payload { get; private set; }
+    public abstract class ApianMessage
+    {   
+        public string msgType;
+        public ApianMessage(string t) => msgType = t;
     }
 
-    public interface IApian : IGameNetClient {}
-    // The IApian interface IS an IGameNetClient
-    // It's be nicer if the method names had "obs" and "req" in them to signify
-    // they are observations and requests, but it really IS at this level IGameNet.
+    public abstract class ApianAssertion 
+    {
+        public long sequenceNumber;
+        public ApianMessage message;
 
-    public interface IApianClient : IGameNetClient {}
-    // But the Apian client (the Business Logic/State instance) is *also* an IGamenetClient. 
-    // That's kinda the point: Apian currently looks kinda like a passthru
+        public ApianAssertion(ApianMessage msg, long seq)
+        {
+            message = msg;
+            sequenceNumber = seq;
+        }
+    }
 
+    public interface IApianClient 
+    {
+        void OnApianAssertion(ApianAssertion aa);
+    }
+
+
+    public abstract class ApianBase
+    {
+
+    }
   
     public class ApianVoteMachine<T>
     {

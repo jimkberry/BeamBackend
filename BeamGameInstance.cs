@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using GameModeMgr;
 using UnityEngine;
 using GameNet;
+using Apian;
 using UniLog;
 
 namespace BeamBackend
@@ -104,13 +105,28 @@ namespace BeamBackend
         public event EventHandler ReadyToPlayEvt;
         public event EventHandler RespawnPlayerEvt;        
 
+        protected Dictionary<string, Action<BeamMessage, long>> assertionHandlers;
+
         public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
         {
             logger = UniLogger.GetLogger("GameInstance");
             modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
             gameNet = bgn;
-            gameData = new BeamGameData(frontend);            
+            gameData = new BeamGameData(frontend); 
+
+            assertionHandlers = new  Dictionary<string, Action<BeamMessage, long>>() 
+            {
+                [BeamMessage.kBikeCreateData] = (msg,dly) => this.OnCreateBike(msg as BikeCreateDataMsg, dly),
+                [BeamMessage.kBikeTurnMsg] = (msg,dly) => this.OnBikeTurn(msg as BikeTurnMsg, dly),              
+                [BeamMessage.kBikeCommandMsg] =(msg,dly) => this.OnBikeCommand(msg as BikeCommandMsg, dly),                   
+                [BeamMessage.kPlaceClaimMsg] = (msg,dly) => this.OnPlaceClaim(msg as PlaceClaimMsg, dly),
+                [BeamMessage.kPlaceHitMsg] = (msg,dly) => this.OnPlaceHit(msg as PlaceHitMsg, dly),                
+
+                // [BeamMessage.kBikeDataReq] = (f,t,s,m) => this._HandleBikeDataReq(f,t,s,m),   
+                // [BeamMessage.kBikeUpdate] = (f,t,s,m) => this._HandleBikeUpdate(f,t,s,m),
+                               
+            };                            
         }
 
         public void AddLocalPeer(BeamPeer p)
@@ -144,11 +160,6 @@ namespace BeamBackend
         // IBeamApianClient
         //
 
-        public void SetGameNetInstance(IGameNet iGameNet)
-        {
-            gameNet = (IBeamGameNet)iGameNet;
-        }  
-
         public string LocalPeerData()
         {
             if (LocalPeer == null)
@@ -178,8 +189,15 @@ namespace BeamBackend
             logger.Info($"OnPeerLeft({p2pId})"); 
             _RemovePeer(p2pId);                                            
         }
-      
-         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
+
+        // Apian Assertions
+        public void OnApianAssertion(ApianAssertion aa)
+        {
+            BeamMessage msg = aa.message as BeamMessage;
+            assertionHandlers[msg.msgType](msg, (aa as BeamApianAssertion).messageDelay);            
+        }      
+
+        public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
         {
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);             
