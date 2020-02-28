@@ -193,8 +193,8 @@ namespace BeamBackend
         // Apian Assertions
         public void OnApianAssertion(ApianAssertion aa)
         {
-            BeamMessage msg = aa.message as BeamMessage;
-            assertionHandlers[msg.msgType](msg, (aa as BeamApianAssertion).messageDelay);            
+            BeamMessage msg = aa.Message as BeamMessage;
+            assertionHandlers[msg.MsgType](msg, (aa as BeamApianAssertion).messageDelay);            
         }      
 
         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)

@@ -26,7 +26,7 @@ namespace BeamBackend
     //
     public class BikeCreateDataMsg : BeamMessage
     {
-        public class PlaceCreateData // Don;t need bikeId since this is part of a bike data msg
+        public class PlaceCreateData // Don't need bikeId since this is part of a bike data msg
         {
             public int xIdx;
             public int zIdx;

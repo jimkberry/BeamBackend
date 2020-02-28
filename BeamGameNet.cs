@@ -104,26 +104,26 @@ namespace BeamBackend
             // Info to create a bike.
             // Broadcast this to send it to everyone
             BikeCreateDataMsg msg = new BikeCreateDataMsg(ib, ownedPlaces);
-            _SendClientMessage( destId ?? CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
+            _SendClientMessage( destId ?? CurrentGameId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
         public void RequestBikeData(string bikeId, string destId)
         {
             logger.Info($"RequestBikeData()");              
             BikeDataReqMsg msg = new BikeDataReqMsg(bikeId);
-            _SendClientMessage( destId, msg.msgType.ToString(), JsonConvert.SerializeObject(msg));
+            _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
         public void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
             BikeTurnMsg msg = new BikeTurnMsg(bike.bikeId, dir, nextPt);
-            _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));            
+            _SendClientMessage(CurrentGameId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
         public void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
             BikeCommandMsg msg = new BikeCommandMsg(bike.bikeId, cmd, nextPt);
-            _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));            
+            _SendClientMessage(CurrentGameId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }        
 
         public void SendBikeUpdate(IBike bike)
@@ -133,7 +133,7 @@ namespace BeamBackend
             _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
             logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
             BikeUpdateMsg msg = new BikeUpdateMsg(bike);
-            _SendClientMessage(CurrentGameId(), msg.msgType.ToString(), JsonConvert.SerializeObject(msg));            
+            _SendClientMessage(CurrentGameId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
 
         public void SendBikeUpdates(List<IBike> localBikes)
@@ -153,14 +153,14 @@ namespace BeamBackend
         {
             logger.Info($"ReportPlaceClaim()");            
             PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xIdx, zIdx);
-            _SendClientMessage( CurrentGameId(), msg.msgType, JsonConvert.SerializeObject(msg));            
+            _SendClientMessage( CurrentGameId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
         
         public void SendPlaceHitObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Info($"ReportPlaceHit()");                
             PlaceHitMsg msg = new PlaceHitMsg(bikeId, xIdx, zIdx);
-            _SendClientMessage( CurrentGameId(), msg.msgType, JsonConvert.SerializeObject(msg));            
+            _SendClientMessage( CurrentGameId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
 
         //
