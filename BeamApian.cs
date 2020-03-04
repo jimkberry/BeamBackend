@@ -1,7 +1,9 @@
 
+using System;
 using System.Collections.Generic;
 using GameNet;
 using Apian;
+using Newtonsoft.Json;
 using UniLog;
 
 namespace BeamBackend
@@ -14,20 +16,21 @@ namespace BeamBackend
         void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay); // delay since the claim was originally made
         void OnBikeCommand(BikeCommandMsg msg, long msgDelay);
         void OnBikeTurn(BikeTurnMsg msg, long msgDelay);
-
         void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);   // TODO: where does this (or stuff like it) go?      
     }
 
     public class BeamApianAssertion : ApianAssertion
     {
         public long messageDelay;
-        public BeamApianAssertion(BeamMessage msg, long seq, long msgdly) : base(msg, seq) 
+        public BeamMessage Message {get; private set;}        
+        public BeamApianAssertion(BeamMessage msg, long seq, long msgdly) : base( seq) 
         {
+            Message = msg;
             messageDelay = msgdly;
         }      
     }
 
-    public class BeamApianPeer : ApianPeer
+    public class BeamApianPeer : ApianMember
     {
         public string AppHelloData {get; private set;} // TODO - currently this is app-level - it should be apian data
         public BeamApianPeer(string _p2pId, string _appHelloData) : base(_p2pId)
@@ -39,44 +42,70 @@ namespace BeamBackend
 
     public abstract class BeamApian : ApianBase, IBeamGameNetClient
     {   
-        public Dictionary<string, BeamApianPeer> apianPeers;         
-        protected IBeamGameNet gameNet;
+        public Dictionary<string, BeamApianPeer> apianPeers;  
+        
+        public IBeamGameNet BeamGameNet {get; private set;}
+
+        public ApianBasicGroup apianGroup;
+               
         protected BeamGameInstance client;
-        protected BeamGameData gameData; // can read it - Apian writing to it is not allowed
-        public UniLogger logger;        
+        protected BeamGameData gameData; // TODO: should be a read-only API. Apian writing to it is not allowed      
         protected long NextAssertionSequenceNumber {get; private set;}
 
-        public BeamApian(IBeamGameNet _gn, IBeamApianClient _client)
+        public void SetGameNetInstance(IGameNet gn) {} // IGameNetClient API call not used byt Apian (happens in ctor)
+
+        public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn)
         {
             apianPeers = new Dictionary<string, BeamApianPeer>();
-            gameNet = _gn;     
-            client = _client as BeamGameInstance;
+            BeamGameNet = _gn;   
+            client = _client as BeamGameInstance; 
             gameData = client.gameData;
-            logger = UniLogger.GetLogger("Apian");  
-            NextAssertionSequenceNumber = 0;              
+            NextAssertionSequenceNumber = 0;    
+
+            // Add BeamApian-level ApianMsg handlers here
+            // ApMsgHandlers[BeamMessage.kBikeCreateData] = (f,t,l,m) => this.HandleBikeCreateData(f,t,l,m),                      
         }
 
-        public void SetGameNetInstance(IGameNet iGameNet) =>  gameNet = (IBeamGameNet)iGameNet;
+        public override void SendApianMessage(string toChannel, ApianMessage msg)
+        {
+            //string json = JsonConvert.SerializeObject(msg);
+           //json = "foo";
+            //BeamGameNet.SendApianMessage(toChannel, msg.MsgType, json);
+           BeamGameNet.SendApianMessage(toChannel, msg);            
+        }    
 
-        public void OnGameCreated(string gameP2pChannel) => client.OnGameCreated(gameP2pChannel);
+        public override void OnApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs)   
+        {          
+            logger.Debug(msgJson);
+            ApMsgHandlers[msgType](msgJson, fromId, toId, lagMs);        
+        }
+        public override void Update()
+        {
+            apianGroup?.Update();
+        }
+        public void OnGameCreated(string gameP2pChannel) => client.OnGameCreated(gameP2pChannel); // Awkward. Not needed for Apian, but part of GNClient
 
-        public void OnGameJoined(string gameId, string localP2pId) => client.OnGameJoined(gameId, localP2pId);
+        public void OnGameJoined(string gameId, string localP2pId)
+        {
+            apianGroup = new ApianBasicGroup(this, gameId, localP2pId);
+
+        }
 
         public string LocalPeerData() => client.LocalPeerData();  
 
         public void OnPeerJoined(string p2pId, string peerHelloData) 
         {
             BeamApianPeer p = new BeamApianPeer(p2pId, peerHelloData);
-            p.status = ApianPeer.Status.kJoining;
+            p.status = ApianMember.Status.kJoining;
             apianPeers[p2pId] = p; 
         }
 
         public void OnPeerSync(string p2pId, long clockOffsetMs, long netLagMs)
         {
             BeamApianPeer p = apianPeers[p2pId];
-            if (p.status == ApianPeer.Status.kJoining)
+            if (p.status == ApianMember.Status.kJoining)
             {
-                p.status = ApianPeer.Status.kActive;
+                p.status = ApianMember.Status.kActive;
                 client.OnPeerJoined(p2pId, p.AppHelloData);
             }
         }

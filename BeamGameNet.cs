@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using GameNet;
 using P2pNet;
+using Apian;
 
 namespace BeamBackend
 {
@@ -13,11 +14,11 @@ namespace BeamBackend
         void SendBikeUpdate(IBike localBike);        
         void RequestBikeData(string bikeId, string destId);
         void SendBikeUpdates(List<IBike> localBikes);
-
         void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt);        
         void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt);
         void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx);
-        void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);
+        void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);     
+        void SendApianMessage(string toChannel, ApianMessage apianMsg);        
     }
 
     public interface IBeamGameNetClient : IGameNetClient
@@ -28,7 +29,9 @@ namespace BeamBackend
         void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay);        
         void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay);
         void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay);       
-        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);         
+        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);  
+
+        void OnApianMessage(string apMsgType, string apMsgJson, string fromId, string toId, long lagMs);                          
     }    
 
     public class BeamGameNet : GameNetBase, IBeamGameNet
@@ -45,6 +48,7 @@ namespace BeamBackend
             _lastBikeUpdatesMs = new Dictionary<string, long>();
             _MsgHandlers = new  Dictionary<string, Action<string, string, long, GameNetClientMessage>>() 
             {
+                [BeamMessage.kApianMsg] = (f,t,s,m) => this._HandleApianMessage(f,t,s,m),                
                 [BeamMessage.kBikeCreateData] = (f,t,s,m) => this._HandleBikeCreateData(f,t,s,m),
                 [BeamMessage.kBikeDataReq] = (f,t,s,m) => this._HandleBikeDataReq(f,t,s,m),   
                 [BeamMessage.kBikeUpdate] = (f,t,s,m) => this._HandleBikeUpdate(f,t,s,m),
@@ -59,6 +63,12 @@ namespace BeamBackend
         {
             base.Init(client);
             // apianInstance = new BeamApianTrusty(this, client as IBeamApianClient);
+        }
+
+        public override void Loop()
+        {
+            base.Loop();
+            (client as ApianBase).Update(); // TODO: this is ugly, I think
         }
 
         protected override IP2pNet P2pNetFactory(string p2pConnectionString)
@@ -163,6 +173,20 @@ namespace BeamBackend
             _SendClientMessage( CurrentGameId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
 
+        // public void SendApianMessage(string toChannel, string apianMsgType, string apianMsgJson)  
+        // {
+        //     logger.Info($"SendApianMessage()");        
+        //     BeamApianMessage msg = new BeamApianMessage(apianMsgType, apianMsgJson);     
+        //     _SendClientMessage( toChannel, msg.MsgType, JsonConvert.SerializeObject(msg));             
+        // }
+
+        public void SendApianMessage(string toChannel, ApianMessage apianMsg)  
+        {
+            logger.Info($"SendApianMessage()");        
+            BeamApianMessage msg = new BeamApianMessage(apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
+            _SendClientMessage( toChannel, msg.MsgType, JsonConvert.SerializeObject(msg));             
+        }
+
         //
         // Beam message handlers
         //
@@ -174,6 +198,14 @@ namespace BeamBackend
 //                logger.Warn($"Unknown client message type: {msg.clientMsgType}");
 //            }
         }
+
+        protected void _HandleApianMessage(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
+        {
+            logger.Info($"_HandleApianMessage()");    
+            BeamApianMessage bam = JsonConvert.DeserializeObject<BeamApianMessage>(clientMessage.payload);
+            (client as IBeamGameNetClient).OnApianMessage(bam.apianMsgType, bam.apianMsgJson, from, to, msSinceSent);
+        }
+
 
         protected void _HandleBikeCreateData(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {

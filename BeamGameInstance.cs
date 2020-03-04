@@ -193,7 +193,8 @@ namespace BeamBackend
         // Apian Assertions
         public void OnApianAssertion(ApianAssertion aa)
         {
-            BeamMessage msg = aa.Message as BeamMessage;
+            BeamApianAssertion baa = aa as BeamApianAssertion;
+            BeamMessage msg = baa.Message as BeamMessage;
             assertionHandlers[msg.MsgType](msg, (aa as BeamApianAssertion).messageDelay);            
         }      
 

@@ -5,18 +5,19 @@ using Apian;
 
 namespace BeamBackend
 {
-    public class BeamMessage : ApianMessage
-    {   
-        public const string kBeamApianMsg = "101";        
-        public const string kBikeCreateData = "104";
-        public const string kBikeDataReq = "105";    
-        public const string kBikeUpdate = "106";
-        public const string kBikeTurnMsg = "107";        
-        public const string kBikeCommandMsg = "108";        
-        public const string kPlaceClaimMsg = "109";
-        public const string kPlaceHitMsg = "110";
+    public class BeamMessage
+    {     
+        public const string kApianMsg = "B101"; // An Apian-defined message 
+        public const string kBikeCreateData = "B104";
+        public const string kBikeDataReq = "B105";    
+        public const string kBikeUpdate = "B106";
+        public const string kBikeTurnMsg = "B107";        
+        public const string kBikeCommandMsg = "B108";        
+        public const string kPlaceClaimMsg = "B109";
+        public const string kPlaceHitMsg = "B110";
 
-        public BeamMessage(string t) : base(t) {}
+        public string MsgType {get; private set;}
+        public BeamMessage(string t) => MsgType = t;
     }
 
 
@@ -24,6 +25,21 @@ namespace BeamBackend
     // GameNet messages
     //
     //
+
+
+    public class BeamApianMessage : BeamMessage 
+    {
+        public string apianMsgType;
+        public string apianMsgJson;
+
+        public BeamApianMessage() : base(kApianMsg) {}      
+        public BeamApianMessage( string apMsgType, string msgJson) : base(kApianMsg)
+        {
+            apianMsgType = apMsgType;
+            apianMsgJson = msgJson;        
+        }
+    }
+
     public class BikeCreateDataMsg : BeamMessage
     {
         public class PlaceCreateData // Don't need bikeId since this is part of a bike data msg

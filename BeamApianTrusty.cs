@@ -1,4 +1,4 @@
-
+using Newtonsoft.Json;
 using GameNet;
 using Apian;
 using UniLog;
@@ -26,10 +26,39 @@ namespace BeamBackend
         public BeamApianTrusty(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
         {
             placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);
-            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);            
+            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);   
+
+            // Trusty messagees json/from/to/lagMs
+            ApMsgHandlers[ApianMessage.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
+            ApMsgHandlers[ApianMessage.kGroupAnnounce] = (j, f,t,l) => OnGroupAnnounceMsg(j, f,t,l);
+            ApMsgHandlers[ApianMessage.kGroupJoinReq] = (j, f,t,l) => OnGroupJoinReq(j, f,t,l);            
+            ApMsgHandlers[ApianMessage.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);             
         }
 
- 
+        // Apian Message Handlers
+        public void OnRequestGroupsMsg(string msgJson, string fromId, string toId, long lagMs)
+        {
+            RequestGroupsMsg msg = JsonConvert.DeserializeObject<RequestGroupsMsg>(msgJson);
+            apianGroup.OnApianMsg(msg, fromId, toId);
+        }        
+        public void OnGroupAnnounceMsg(string msgJson, string fromId, string toId, long lagMs)
+        {
+            GroupAnnounceMsg msg = JsonConvert.DeserializeObject<GroupAnnounceMsg>(msgJson);
+            apianGroup.OnApianMsg(msg, fromId, toId);
+        }
+
+        public void OnGroupJoinReq(string msgJson, string fromId, string toId, long lagMs)
+        {
+            GroupJoinRequestMsg msg = JsonConvert.DeserializeObject<GroupJoinRequestMsg>(msgJson);
+            apianGroup.OnApianMsg(msg, fromId, toId);
+        }
+
+        public void OnGroupJoinVote(string msgJson, string fromId, string toId, long lagMs)
+        {
+            GroupJoinVoteMsg msg = JsonConvert.DeserializeObject<GroupJoinVoteMsg>(msgJson);
+            apianGroup.OnApianMsg(msg, fromId, toId);
+        }
+
         //
         // IBeamApian  
         //
@@ -59,7 +88,7 @@ namespace BeamBackend
             if (bb == null)
             {
                 logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
+                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
                 // TODO: think about what happens if we get the bike data before the vote is done.
                 // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit() <- doing this now
                 //      while the bike isn't there
@@ -109,7 +138,7 @@ namespace BeamBackend
             if (bb == null)
             {
                 logger.Debug($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
+                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
             }              
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
@@ -128,7 +157,7 @@ namespace BeamBackend
             if (bb == null)
             {
                 logger.Debug($"OnBikeCommandReq() - unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
+                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
             } else {
                 if (bb.peerId == srcId)
                     client.OnBikeCommand(msg, msgDelay);
@@ -141,7 +170,7 @@ namespace BeamBackend
             if (bb == null)
             {
                 logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}");
-                gameNet.RequestBikeData(msg.bikeId, srcId);
+                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
             } else {            
                 if ( bb.peerId == srcId)
                     client.OnBikeTurn(msg, msgDelay);
