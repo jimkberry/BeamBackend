@@ -36,6 +36,12 @@ namespace Apian
     {
         protected abstract class LocalState
         {
+            protected struct JoinVoteKey // for ApianVoteMachine
+            {
+                public string peerId;
+                public JoinVoteKey(string _pid) => peerId=_pid;
+            }
+
             public const int kGroupAnnouceTimeoutMs = 1000;
             public const int kGroupAnnouceSendTimeoutMs = 250;            
             public const int kGroupVoteTimeoutMs = 2000;
@@ -135,49 +141,102 @@ namespace Apian
             }            
         }
 
+        // protected class StateJoiningGroup : LocalState
+        // {
+        //     long voteTimeoutMs;
+        //     string newGroupId;
+        //     int peerCnt;
+        //     int neededVotes;
+        //     int votesRcvd;
+        //     int yesVotes;
+
+        //     public StateJoiningGroup(ApianBasicGroup group, string _groupId, int _peerCnt) : base(group) 
+        //     {
+        //         newGroupId = _groupId;
+        //         peerCnt = _peerCnt;
+        //         neededVotes = peerCnt/2 + 1;
+        //         votesRcvd = 0;
+        //         yesVotes = 0;
+        //         voteTimeoutMs = Group.SysMs + kGroupVoteTimeoutMs;                
+        //     }               
+        //     public override void Start() 
+        //     {
+        //         Group.RequestToJoinGroup(newGroupId);
+        //         voteTimeoutMs = Group.SysMs + kGroupVoteTimeoutMs;  
+        //         Group.logger.Info($"{this.GetType().Name} - Requested join group: {newGroupId}. Waiting for votes.");              
+        //     }
+        //     public override LocalState Update()
+        //     {
+        //         LocalState retVal = this;
+
+        //         int votesLeft = peerCnt - votesRcvd;
+        //         if (yesVotes >= neededVotes)
+        //         {
+        //             Group.logger.Info($"{this.GetType().Name} - Got enough yes votes.");                    
+        //             retVal = new StateInGroup(Group, newGroupId);
+        //         }
+        //         else if ( yesVotes + votesLeft < neededVotes)
+        //         {
+        //             Group.logger.Error("Error joining basic group: lost vote!");
+        //             retVal = new StateListeningForGroup(Group);
+        //         }
+        //         else if (Group.SysMs > voteTimeoutMs) // Bail
+        //         {
+        //             Group.logger.Error("Error joining group: timeout!");
+        //             retVal = new StateListeningForGroup(Group);                   
+        //         }
+        //         return retVal;
+        //     }
+
+        //     public override void OnApianMsg(ApianMessage msg, string msgSrc, string msgChannel)
+        //     {
+        //         switch (msg.msgType)
+        //         {
+        //         case ApianMessage.kGroupJoinVote:               
+        //             GroupJoinVoteMsg vmsg = msg as GroupJoinVoteMsg;
+        //             Group.logger.Info($"{this.GetType().Name} - Got a vote. Group: {vmsg.groupId}");                     
+        //             if (vmsg.groupId == newGroupId && vmsg.peerId == Group.LocalP2pId)
+        //             {
+        //                 Group.logger.Info($"{this.GetType().Name} - Got a {(vmsg.approve ? "yes" : "no")} vote.");                         
+        //                 votesRcvd++;
+        //                 yesVotes += (vmsg.approve ? 1 : 0);
+        //             }
+        //             break;
+        //         }
+        //     }
+        // }        
+
         protected class StateJoiningGroup : LocalState
         {
-            long voteTimeoutMs;
+            protected ApianVoteMachine<JoinVoteKey> joinVoteMachine;            
             string newGroupId;
-            int peerCnt;
-            int neededVotes;
-            int votesRcvd;
-            int yesVotes;
+            int peerCnt;            
+            bool voteWon = false;
+            protected JoinVoteKey voteKey; // only care about one
 
             public StateJoiningGroup(ApianBasicGroup group, string _groupId, int _peerCnt) : base(group) 
             {
                 newGroupId = _groupId;
                 peerCnt = _peerCnt;
-                neededVotes = peerCnt/2 + 1;
-                votesRcvd = 0;
-                yesVotes = 0;
-                voteTimeoutMs = Group.SysMs + kGroupVoteTimeoutMs;                
+                joinVoteMachine = new ApianVoteMachine<JoinVoteKey>(Group.logger);
+                voteKey =  new JoinVoteKey(Group.LocalP2pId);
             }               
             public override void Start() 
             {
                 Group.RequestToJoinGroup(newGroupId);
-                voteTimeoutMs = Group.SysMs + kGroupVoteTimeoutMs;  
                 Group.logger.Info($"{this.GetType().Name} - Requested join group: {newGroupId}. Waiting for votes.");              
             }
             public override LocalState Update()
             {
                 LocalState retVal = this;
 
-                int votesLeft = peerCnt - votesRcvd;
-                if (yesVotes >= neededVotes)
+                if (voteWon)
                 {
                     Group.logger.Info($"{this.GetType().Name} - Got enough yes votes.");                    
-                    retVal = new StateInGroup(Group, newGroupId);
-                }
-                else if ( yesVotes + votesLeft < neededVotes)
-                {
-                    Group.logger.Error("Error joining basic group: lost vote!");
-                    retVal = new StateListeningForGroup(Group);
-                }
-                else if (Group.SysMs > voteTimeoutMs) // Bail
-                {
-                    Group.logger.Error("Error joining group: timeout!");
-                    retVal = new StateListeningForGroup(Group);                   
+                    retVal = new StateInGroup(Group, newGroupId);                    
+                } else if (joinVoteMachine.VoteIsGone(voteKey)) {
+                   // Group.logger.Error("Error joining basic group: lost vote!");
+                    //retVal = new StateListeningForGroup(Group);
                 }
                 return retVal;
             }
@@ -186,30 +245,22 @@ namespace Apian
             {
                 switch (msg.msgType)
                 {
-                case ApianMessage.kGroupJoinVote:               
-                    GroupJoinVoteMsg vmsg = msg as GroupJoinVoteMsg;
-                    Group.logger.Info($"{this.GetType().Name} - Got a vote. Group: {vmsg.groupId}");                     
-                    if (vmsg.groupId == newGroupId && vmsg.peerId == Group.LocalP2pId)
+                case ApianMessage.kGroupJoinVote: // our own is in here as well
+                    GroupJoinVoteMsg gv = (msg as GroupJoinVoteMsg);
+                    if (gv.groupId == newGroupId && gv.peerId == Group.LocalP2pId)
                     {
-                        Group.logger.Info($"{this.GetType().Name} - Got a {(vmsg.approve ? "yes" : "no")} vote.");                         
-                        votesRcvd++;
-                        yesVotes += (vmsg.approve ? 1 : 0);
+                        Group.logger.Info($"{this.GetType().Name} - Got a {(gv.approve ? "yes" : "no")} join vote.");                        
+                        if (joinVoteMachine.AddVote(voteKey, msgSrc, peerCnt))
+                            voteWon = true;
                     }
                     break;
                 }
             }
-        }        
+        }    
 
         protected class StateInGroup : LocalState
         {
-            protected struct JoinVoteKey
-            {
-                public string peerId;
-                public JoinVoteKey(string _pid) => peerId=_pid;
-            }
-
             protected ApianVoteMachine<JoinVoteKey> joinVoteMachine;
-
             protected string groupId; 
             protected long groupAnnounceTimeoutMs;
             public StateInGroup(ApianBasicGroup group, string newGroupId) : base(group) 
