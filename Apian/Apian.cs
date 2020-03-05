@@ -152,8 +152,9 @@ namespace Apian
             return false;
         }
 
-        public bool CheckVote(T candidate)
+        public bool VoteWon(T candidate)
         {
+            // Have to get to it before it expires - better to use the reult of AddVote()
             Cleanup();
             Boolean success = false;
             try {
@@ -162,6 +163,17 @@ namespace Apian
             } catch (KeyNotFoundException) { }
             return success;
         }        
+
+        public bool VoteIsGone(T candidate)
+        {
+            Cleanup();
+            Boolean itsGone = true;
+            try {
+                VoteData vd = voteDict[candidate];  
+                itsGone = false;              
+            } catch (KeyNotFoundException) { }
+            return itsGone;
+        }          
     }    
 
 
