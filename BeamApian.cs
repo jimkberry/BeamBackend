@@ -46,7 +46,7 @@ namespace BeamBackend
         
         public IBeamGameNet BeamGameNet {get; private set;}
 
-        public ApianBasicGroup apianGroup;
+        public ApianBasicGroupManager apianGroup;
                
         protected BeamGameInstance client;
         protected BeamGameData gameData; // TODO: should be a read-only API. Apian writing to it is not allowed      
@@ -87,7 +87,7 @@ namespace BeamBackend
 
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            apianGroup = new ApianBasicGroup(this, gameId, localP2pId);
+            apianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
 
         }
 

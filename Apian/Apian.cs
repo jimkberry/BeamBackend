@@ -84,96 +84,117 @@ namespace Apian
         public abstract void OnApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs);   
     }
   
+    public enum VoteStatus
+        {
+        kVoting,
+        kWon,
+        kLost,  // timed out
+        kNoVotes  // Vote not found
+    }
+
     public class ApianVoteMachine<T>
     {
+        public const long kDefaultTimeoutMs = 300;        
         public static long SysMs => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
 
         protected struct VoteData
         {
-            public const long kTimeoutMs = 300;
             public int NeededVotes {get; private set;}
             public long ExpireTs {get; private set;}
-            public bool voteIsDone;
+            public VoteStatus Status {get; private set;}
             public List<string> peerIds;
           
-            public VoteData(int voteCnt, long now)
+            public void UpdateStatus(long nowMs) 
+            { 
+                if (Status == VoteStatus.kVoting)
+                {
+                    if (nowMs > ExpireTs)
+                        Status = VoteStatus.kLost;
+                    else if (peerIds.Count >= NeededVotes)
+                        Status = VoteStatus.kWon;
+                }
+            }
+
+            public VoteData(int voteCnt, long expireTimeMs)
             {
                 NeededVotes = voteCnt;
-                ExpireTs = now + kTimeoutMs;
-                peerIds = new List<string>();
-                voteIsDone = false;
+                ExpireTs = expireTimeMs;
+                Status = VoteStatus.kVoting;
+                peerIds = new List<string>();   
             }
         }
 
-        protected virtual int NeededVotes(int peerCount) => peerCount / 2 + 1;
+        protected virtual int MajorityVotes(int peerCount) => peerCount / 2 + 1;
         protected Dictionary<T, VoteData> voteDict;
+        protected long TimeoutMs {get; private set;}
         public UniLogger logger;
 
-        public ApianVoteMachine(UniLogger _logger) 
+        public ApianVoteMachine(long timeoutMs=kDefaultTimeoutMs, UniLogger _logger=null) 
         { 
-            logger = _logger;
+            TimeoutMs = timeoutMs;
+            logger = _logger ?? UniLogger.GetLogger("ApianVoteMachine");
             voteDict = new Dictionary<T, VoteData>();
         }
 
-        public void Cleanup()
+        protected void UpdateAllStatus()
         {
-            List<T> delKeys = voteDict.Keys.Where(k => voteDict[k].ExpireTs < SysMs).ToList();
-            foreach (T k in delKeys)
-            {
-                logger.Debug($"Vote.Cleanup(): removing: {k.ToString()}, {voteDict[k].peerIds.Count} votes.");
-                voteDict.Remove(k);
-            }
+            // if timed out set status to Lost
+            foreach (VoteData vote in voteDict.Values)
+                vote.UpdateStatus(SysMs);
         }
 
-        public bool AddVote(T candidate, string votingPeer, int totalPeers)
+        public VoteStatus AddVote(T candidate, string votingPeer, int totalPeers, bool removeIfDone=false)
         {
-            Cleanup();
+            UpdateAllStatus();
             VoteData vd;
             try {
                 vd = voteDict[candidate];
-                vd.peerIds.Add(votingPeer);
-                voteDict[candidate] = vd; // VoteData is a struct (value) so must be re-added
-                logger.Debug($"Vote.Add: +1 for: {candidate.ToString()}, Votes: {vd.peerIds.Count}");                
+                if (vd.Status == VoteStatus.kVoting)
+                {
+                    vd.peerIds.Add(votingPeer);
+                    vd.UpdateStatus(SysMs);
+                    voteDict[candidate] = vd; // VoteData is a struct (value) so must be re-added
+                    logger.Debug($"Vote.Add: +1 for: {candidate.ToString()}, Votes: {vd.peerIds.Count}");
+                }
             } catch (KeyNotFoundException) {
-                int majorityCnt = NeededVotes(totalPeers);                   
-                vd = new VoteData(majorityCnt, SysMs);
+                int majorityCnt = MajorityVotes(totalPeers);                   
+                vd = new VoteData(majorityCnt, SysMs+TimeoutMs);
                 vd.peerIds.Add(votingPeer);
+                vd.UpdateStatus(SysMs);                
                 voteDict[candidate] = vd;
                 logger.Debug($"Vote.Add: New: {candidate.ToString()}, Majority: {majorityCnt}"); 
             }
 
-            if ((vd.peerIds.Count >= vd.NeededVotes) && (vd.voteIsDone == false))
-            {
-                // only call this once
-                vd.voteIsDone = true;
-                voteDict[candidate] = vd; 
-                return true;
-            }
-            return false;
+            VoteStatus retVal = vd.Status;
+            if (removeIfDone && retVal != VoteStatus.kVoting)
+                DoneWithVote(candidate);
+            return retVal;
         }
 
-        public bool VoteWon(T candidate)
+        public void DoneWithVote(T candidate)
+        {
+            try {
+                voteDict.Remove(candidate);  
+            } catch (KeyNotFoundException) {}                   
+        }
+
+        public VoteStatus GetStatus(T candidate, bool removeIfDone=false)
         {
             // Have to get to it before it expires - better to use the reult of AddVote()
-            Cleanup();
-            Boolean success = false;
+            UpdateAllStatus();
+            VoteStatus status = VoteStatus.kNoVotes;
             try {
                 VoteData vd = voteDict[candidate];  
-                success = vd.voteIsDone;              
-            } catch (KeyNotFoundException) { }
-            return success;
+                status = vd.Status;        
+                if (removeIfDone && status != VoteStatus.kVoting)
+                    DoneWithVote(candidate); 
+            } catch (KeyNotFoundException) 
+            { 
+                //logger.Warn($"GetStatus: Vote not found");
+            }
+            return status;
         }        
-
-        public bool VoteIsGone(T candidate)
-        {
-            Cleanup();
-            Boolean itsGone = true;
-            try {
-                VoteData vd = voteDict[candidate];  
-                itsGone = false;              
-            } catch (KeyNotFoundException) { }
-            return itsGone;
-        }          
+        
     }    
 
 

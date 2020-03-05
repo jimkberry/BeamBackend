@@ -18,15 +18,15 @@ namespace BeamBackend
             public PlaceBikeData(int _x, int _z, string _bid) { x = _x; z=_z; bikeId=_bid; }
         }
 
-
+        protected const long kDefaultVoteTimeoutMs = 300;
 
         protected ApianVoteMachine<PlaceBikeData> placeClaimVoteMachine;
         protected ApianVoteMachine<PlaceBikeData> placeHitVoteMachine;        
 
         public BeamApianTrusty(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
         {
-            placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);
-            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(logger);   
+            placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, logger);
+            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, logger);   
 
             // Trusty messagees json/from/to/lagMs
             ApMsgHandlers[ApianMessage.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
@@ -104,7 +104,7 @@ namespace BeamBackend
        
             logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
-            if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
+            if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count, true) == VoteStatus.kWon && bb != null)
             {
                 logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");                
                 client.OnPlaceHit(msg, msgDelay);                
@@ -143,7 +143,7 @@ namespace BeamBackend
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);            
-            if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count) && bb != null)
+            if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count, true) == VoteStatus.kWon && bb != null)
             {
                 logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
                 client.OnPlaceClaim(msg, msgDelay);                
