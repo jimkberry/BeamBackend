@@ -1,4 +1,5 @@
 
+using System.Reflection.Emit;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -7,55 +8,6 @@ using UniLog;
 
 namespace Apian
 {
-    public class ApianMessage
-    {   
-        public const string kRequestGroups = "APrg";        
-        public const string kGroupAnnounce = "APga";
-        public const string kGroupJoinReq = "APgjr";        
-        public const string kGroupJoinVote = "APgjv";         
-
-        public string msgType;
-        public ApianMessage(string t) => msgType = t;
-    }
-
-    public class RequestGroupsMsg : ApianMessage // Send on main channel
-    {
-        public RequestGroupsMsg() : base(kRequestGroups) {}  
-    } 
-    public class GroupAnnounceMsg : ApianMessage // Send on main channel
-    {
-        public string groupId;
-        public int peerCnt;
-        public GroupAnnounceMsg(string id, int cnt) : base(kGroupAnnounce) {groupId = id; peerCnt=cnt;}  
-    }  
-
-    public class GroupJoinRequestMsg : ApianMessage // Send on main channel
-    {
-        public string groupId;
-        public string peerId;
-        public GroupJoinRequestMsg(string id, string pid) : base(kGroupJoinReq) {groupId = id; peerId=pid;}  
-    }    
-
-    public class GroupJoinVoteMsg : ApianMessage // Send on main channel
-    {
-        public string groupId;
-        public string peerId;
-        public bool approve;
-        public GroupJoinVoteMsg(string gid, string pid, bool doIt) : base(kGroupJoinVote) {groupId = gid; peerId=pid; approve=doIt;}  
-    }
-
-    public abstract class ApianAssertion 
-    {
-        // TODO: WHile it looked good written down, it may be that "ApianAssertion" is a really bad name,
-        // given what "assertion" usually means in the world of programming.
-        public long SequenceNumber {get; private set;}
-
-        public ApianAssertion( long seq)
-        {
-            SequenceNumber = seq;
-        }
-    }
-
     public interface IApianClient 
     {
         void OnApianAssertion(ApianAssertion aa);
@@ -66,22 +18,29 @@ namespace Apian
         protected Dictionary<string, Action<string, string, string, long>> ApMsgHandlers;
         public UniLogger logger; 
 
-        protected IGameNet GameNet {get; private set;}
+        public IApianGroupManager ApianGroup  {get; protected set;}    
+        public IApianClock ApianClock {get; protected set;}  
+        protected IGameNet GameNet {get; private set;}      
         protected long SysMs { get => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;}
 
         public ApianBase(IGameNet gn) {
-            GameNet = gn;
+            GameNet = gn;          
             logger = UniLogger.GetLogger("Apian");             
             ApMsgHandlers = new Dictionary<string, Action<string, string, string, long>>(); 
             // Add any truly generic handlers here          
         }
 
         public abstract void Update();
-
+        
+        // Apian Messages
+        public abstract void OnApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs);         
         public abstract void SendApianMessage(string toChannel, ApianMessage msg);
-        public  void AddGroupChannel(string channel) => GameNet.AddChannel(channel);
-        public  void RemoveGroupChannel(string channel) => GameNet.RemoveChannel(channel);
-        public abstract void OnApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs);   
+
+        // Group-related
+        public void AddGroupChannel(string channel) => GameNet.AddChannel(channel); // IApianGroupManager uses this. Maybe it should use GameNet directly?
+        public void RemoveGroupChannel(string channel) => GameNet.RemoveChannel(channel);
+        public abstract void OnMemberJoinedGroup(string peerId); // Any peer, including local. On getting this check with ApianGroup for details.
+  
     }
   
     public enum VoteStatus

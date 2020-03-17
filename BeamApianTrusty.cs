@@ -1,3 +1,5 @@
+using System.Reflection.Emit;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using GameNet;
 using Apian;
@@ -33,30 +35,53 @@ namespace BeamBackend
             ApMsgHandlers[ApianMessage.kGroupAnnounce] = (j, f,t,l) => OnGroupAnnounceMsg(j, f,t,l);
             ApMsgHandlers[ApianMessage.kGroupJoinReq] = (j, f,t,l) => OnGroupJoinReq(j, f,t,l);            
             ApMsgHandlers[ApianMessage.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);             
+            ApMsgHandlers[ApianMessage.kApianClockOffset] = (j, f,t,l) => OnApianClockOffsetMsg(j, f,t,l);            
         }
 
         // Apian Message Handlers
         public void OnRequestGroupsMsg(string msgJson, string fromId, string toId, long lagMs)
         {
             RequestGroupsMsg msg = JsonConvert.DeserializeObject<RequestGroupsMsg>(msgJson);
-            apianGroup.OnApianMsg(msg, fromId, toId);
+            ApianGroup.OnApianMsg(msg, fromId, toId);
         }        
         public void OnGroupAnnounceMsg(string msgJson, string fromId, string toId, long lagMs)
         {
             GroupAnnounceMsg msg = JsonConvert.DeserializeObject<GroupAnnounceMsg>(msgJson);
-            apianGroup.OnApianMsg(msg, fromId, toId);
+            ApianGroup.OnApianMsg(msg, fromId, toId);
         }
 
         public void OnGroupJoinReq(string msgJson, string fromId, string toId, long lagMs)
         {
             GroupJoinRequestMsg msg = JsonConvert.DeserializeObject<GroupJoinRequestMsg>(msgJson);
-            apianGroup.OnApianMsg(msg, fromId, toId);
+            ApianGroup.OnApianMsg(msg, fromId, toId);
         }
 
         public void OnGroupJoinVote(string msgJson, string fromId, string toId, long lagMs)
         {
             GroupJoinVoteMsg msg = JsonConvert.DeserializeObject<GroupJoinVoteMsg>(msgJson);
-            apianGroup.OnApianMsg(msg, fromId, toId);
+            ApianGroup.OnApianMsg(msg, fromId, toId);
+        }
+
+        public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
+        {
+            ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
+            ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
+        }
+
+        public override void OnMemberJoinedGroup(string peerId)
+        {
+            logger.Info($"OnMemberJoinedGroup(): {peerId}");
+            if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
+            {
+                if (peerId == ApianGroup.LocalP2pId)
+                    ApianClock.Set(0); // we joined. Set the clock
+                else
+                {
+                    // someone else joined - broadcast the clock offset
+                    if (!ApianClock.IsIdle)
+                        ApianClock.SendApianClockOffset();
+                }
+            }
         }
 
         //

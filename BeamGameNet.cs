@@ -103,14 +103,14 @@ namespace BeamBackend
 
         public override void  CreateGame<GameCreationData>(GameCreationData data)
         {
-            logger.Info($"CreateGame()");
+            logger.Verbose($"CreateGame()");
             _SyncTrivialNewGame(); // Creates/sets an ID and enqueues OnGameCreated()
         }        
 
         // IBeamGameNet
         public void SendBikeCreateData(IBike ib, List<Ground.Place> ownedPlaces, string destId = null)
         {
-            logger.Info($"SendBikeCreateData()");            
+            logger.Verbose($"SendBikeCreateData()");            
             // Info to create a bike.
             // Broadcast this to send it to everyone
             BikeCreateDataMsg msg = new BikeCreateDataMsg(ib, ownedPlaces);
@@ -118,7 +118,7 @@ namespace BeamBackend
         }
         public void RequestBikeData(string bikeId, string destId)
         {
-            logger.Info($"RequestBikeData()");              
+            logger.Verbose($"RequestBikeData()");              
             BikeDataReqMsg msg = new BikeDataReqMsg(bikeId);
             _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
@@ -161,28 +161,28 @@ namespace BeamBackend
 
         public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
         {
-            logger.Info($"ReportPlaceClaim()");            
+            logger.Verbose($"ReportPlaceClaim()");            
             PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGameId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
         
         public void SendPlaceHitObs(string bikeId, int xIdx, int zIdx)
         {
-            logger.Info($"ReportPlaceHit()");                
+            logger.Verbose($"ReportPlaceHit()");                
             PlaceHitMsg msg = new PlaceHitMsg(bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGameId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
 
         // public void SendApianMessage(string toChannel, string apianMsgType, string apianMsgJson)  
         // {
-        //     logger.Info($"SendApianMessage()");        
+        //     logger.Verbose($"SendApianMessage()");        
         //     BeamApianMessage msg = new BeamApianMessage(apianMsgType, apianMsgJson);     
         //     _SendClientMessage( toChannel, msg.MsgType, JsonConvert.SerializeObject(msg));             
         // }
 
         public void SendApianMessage(string toChannel, ApianMessage apianMsg)  
         {
-            logger.Info($"SendApianMessage()");        
+            logger.Verbose($"SendApianMessage() -  type: {apianMsg.msgType}, To: {toChannel}");        
             BeamApianMessage msg = new BeamApianMessage(apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
             _SendClientMessage( toChannel, msg.MsgType, JsonConvert.SerializeObject(msg));             
         }
@@ -201,21 +201,21 @@ namespace BeamBackend
 
         protected void _HandleApianMessage(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Info($"_HandleApianMessage()");    
             BeamApianMessage bam = JsonConvert.DeserializeObject<BeamApianMessage>(clientMessage.payload);
+            logger.Verbose($"_HandleApianMessage() - Type: {bam.apianMsgType}");                
             (client as IBeamGameNetClient).OnApianMessage(bam.apianMsgType, bam.apianMsgJson, from, to, msSinceSent);
         }
 
 
         protected void _HandleBikeCreateData(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Info($"_HandleBikeCreateData()");              
+            logger.Verbose($"_HandleBikeCreateData()");              
             (client as IBeamGameNetClient).OnCreateBikeReq(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeDataReq(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Info($"_HandleBikeDataReq()");             
+            logger.Verbose($"_HandleBikeDataReq()");             
             (client as IBeamGameNetClient).OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), from, msSinceSent);
         }
 
@@ -238,7 +238,7 @@ namespace BeamBackend
 
         protected void _HandlePlaceClaimReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Info($"_HandlePlaceClaimReport()");             
+            logger.Verbose($"_HandlePlaceClaimReport()");             
             // TRUSTY rule: There isn;t one. No peer can be authoritative.
             // For now we'll just pass it to the game inst, which will accept the bike owner's message as authoritative.
             // NOTE: This WILL lead to inconsistency between peers unles some sort of multi-peer protocol is
@@ -250,7 +250,7 @@ namespace BeamBackend
 
         protected void _HandlePlaceHitReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Info($"_HandlePlaceHitReport()");              
+            logger.Verbose($"_HandlePlaceHitReport()");              
             // See above. In trustyworld, place owner is authoritative
             (client as IBeamGameNetClient).OnPlaceHitObs(JsonConvert.DeserializeObject<PlaceHitMsg>(clientMessage.payload), from, msSinceSent);
         }

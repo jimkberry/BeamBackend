@@ -45,8 +45,6 @@ namespace BeamBackend
         public Dictionary<string, BeamApianPeer> apianPeers;  
         
         public IBeamGameNet BeamGameNet {get; private set;}
-
-        public ApianBasicGroupManager apianGroup;
                
         protected BeamGameInstance client;
         protected BeamGameData gameData; // TODO: should be a read-only API. Apian writing to it is not allowed      
@@ -57,6 +55,7 @@ namespace BeamBackend
         public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn)
         {
             apianPeers = new Dictionary<string, BeamApianPeer>();
+            ApianClock = new DefaultApianClock(this);              
             BeamGameNet = _gn;   
             client = _client as BeamGameInstance; 
             gameData = client.gameData;
@@ -81,14 +80,14 @@ namespace BeamBackend
         }
         public override void Update()
         {
-            apianGroup?.Update();
+            ApianGroup?.Update();
+            ApianClock?.Update();
         }
         public void OnGameCreated(string gameP2pChannel) => client.OnGameCreated(gameP2pChannel); // Awkward. Not needed for Apian, but part of GNClient
 
         public void OnGameJoined(string gameId, string localP2pId)
         {
-            apianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
-
+            ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
         }
 
         public string LocalPeerData() => client.LocalPeerData();  
@@ -103,10 +102,17 @@ namespace BeamBackend
         public void OnPeerSync(string p2pId, long clockOffsetMs, long netLagMs)
         {
             BeamApianPeer p = apianPeers[p2pId];
-            if (p.status == ApianMember.Status.kJoining)
+
+            ApianClock?.OnPeerSync(p2pId, clockOffsetMs, netLagMs); // TODO: should this be in ApianBase?
+
+            switch (p.status)
             {
+            case ApianMember.Status.kJoining:
                 p.status = ApianMember.Status.kActive;
                 client.OnPeerJoined(p2pId, p.AppHelloData);
+                break;
+            case ApianMember.Status.kActive:
+                break;
             }
         }
         public void OnPeerLeft(string p2pId) // => client.OnPeerLeft(p2pId)
