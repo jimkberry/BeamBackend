@@ -128,26 +128,26 @@ namespace BeamBackend
             logger.Verbose($"SendBikeCreateData() - dest: {(destId??"bcast")}");            
             // Info to create a bike.
             // Broadcast this to send it to everyone
-            BikeCreateDataMsg msg = new BikeCreateDataMsg(ib, ownedPlaces);
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(CurrentGroupTime(), ib, ownedPlaces);
             _SendClientMessage( destId ?? CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
         public void RequestBikeData(string bikeId, string destId)
         {
             logger.Verbose($"RequestBikeData()");              
-            BikeDataReqMsg msg = new BikeDataReqMsg(bikeId);
+            BikeDataReqMsg msg = new BikeDataReqMsg(CurrentGroupTime(), bikeId);
             _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
         public void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeTurnMsg msg = new BikeTurnMsg(bike.bikeId, dir, nextPt);
+            BikeTurnMsg msg = new BikeTurnMsg(CurrentGroupTime(), bike.bikeId, dir, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
         public void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeCommandMsg msg = new BikeCommandMsg(bike.bikeId, cmd, nextPt);
+            BikeCommandMsg msg = new BikeCommandMsg(CurrentGroupTime(), bike.bikeId, cmd, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }        
 
@@ -157,7 +157,7 @@ namespace BeamBackend
             long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
             _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
             logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
-            BikeUpdateMsg msg = new BikeUpdateMsg(bike);
+            BikeUpdateMsg msg = new BikeUpdateMsg(CurrentGroupTime(), bike);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
 
@@ -177,23 +177,21 @@ namespace BeamBackend
         public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceClaim()");            
-            PlaceClaimMsg msg = new PlaceClaimMsg(bikeId, xIdx, zIdx);
+            PlaceClaimMsg msg = new PlaceClaimMsg(CurrentGroupTime(), bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
         
         public void SendPlaceHitObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceHit()");                
-            PlaceHitMsg msg = new PlaceHitMsg(bikeId, xIdx, zIdx);
+            PlaceHitMsg msg = new PlaceHitMsg(CurrentGroupTime(), bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
-
-
 
         public void SendApianMessage(string toChannel, ApianMessage apianMsg)  
         {
             logger.Verbose($"SendApianMessage() -  type: {apianMsg.msgType}, To: {toChannel}");        
-            BeamApianMessage msg = new BeamApianMessage(apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
+            BeamApianMessage msg = new BeamApianMessage(CurrentGroupTime(), apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
             _SendClientMessage( toChannel ?? CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));             
         }
 
@@ -202,7 +200,8 @@ namespace BeamBackend
         //
         protected override void _HandleClientMessage(string from, string to, long msSinceSent, GameNetClientMessage msg)
         {
- //           try {
+// Turns out we're better off letting it throw
+//           try {
                 _MsgHandlers[msg.clientMsgType](from, to, msSinceSent, msg);
 //            } catch(KeyNotFoundException) {
 //                logger.Warn($"Unknown client message type: {msg.clientMsgType}");

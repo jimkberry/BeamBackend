@@ -17,7 +17,8 @@ namespace BeamBackend
         public const string kPlaceHitMsg = "B110";
 
         public string MsgType {get; private set;}
-        public BeamMessage(string t) => MsgType = t;
+        public long TimeStamp {get; private set;}
+        public BeamMessage(string t, long ts) {MsgType = t; TimeStamp = ts;}
     }
 
 
@@ -32,8 +33,8 @@ namespace BeamBackend
         public string apianMsgType;
         public string apianMsgJson;
 
-        public BeamApianMessage() : base(kApianMsg) {}      
-        public BeamApianMessage( string apMsgType, string msgJson) : base(kApianMsg)
+        public BeamApianMessage() : base(kApianMsg, 0) {}      
+        public BeamApianMessage(long ts, string apMsgType, string msgJson) : base(kApianMsg, ts)
         {
             apianMsgType = apMsgType;
             apianMsgJson = msgJson;        
@@ -70,7 +71,7 @@ namespace BeamBackend
 
         public List<PlaceCreateData> ownedPlaces;
 
-        public BikeCreateDataMsg(IBike ib, List<Ground.Place> places = null) : base(kBikeCreateData) 
+        public BikeCreateDataMsg(long ts, IBike ib, List<Ground.Place> places = null) : base(kBikeCreateData, ts) 
         {
             bikeId = ib.bikeId;
             peerId = ib.peerId;
@@ -88,9 +89,7 @@ namespace BeamBackend
                     ownedPlaces.Add(new PlaceCreateData(p));
         }
 
-        public BikeCreateDataMsg() : base(kBikeCreateData) 
-        {
-        }        
+        public BikeCreateDataMsg() : base(kBikeCreateData, 0) {}        
 
         public IBike ToBike(BeamGameInstance gi)
         {
@@ -102,7 +101,7 @@ namespace BeamBackend
     public class BikeDataReqMsg : BeamMessage
     {
         public string bikeId;
-        public BikeDataReqMsg(string _id) : base(kBikeDataReq) => bikeId = _id;        
+        public BikeDataReqMsg(long ts, string _id) : base(kBikeDataReq, ts) => bikeId = _id;        
     }
 
     public class BikeUpdateMsg : BeamMessage
@@ -114,9 +113,9 @@ namespace BeamBackend
         public Heading heading;   
         public float speed;  
 
-        public BikeUpdateMsg() : base(kBikeUpdate)  {}
+        public BikeUpdateMsg() : base(kBikeUpdate, 0)  {}
 
-        public BikeUpdateMsg(IBike ib) : base(kBikeUpdate) 
+        public BikeUpdateMsg(long ts, IBike ib) : base(kBikeUpdate, ts) 
         {
             bikeId = ib.bikeId;
             score = ib.score;
@@ -135,9 +134,9 @@ namespace BeamBackend
         public float nextPtX;
         public float nextPtZ;  
 
-        public BikeTurnMsg() : base(kBikeTurnMsg)  {}
+        public BikeTurnMsg() : base(kBikeTurnMsg, 0)  {}
 
-        public BikeTurnMsg(string _bikeId, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg) 
+        public BikeTurnMsg(long ts, string _bikeId, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
         {
             bikeId = _bikeId;
             dir = _dir;
@@ -154,9 +153,9 @@ namespace BeamBackend
         public float nextPtX;
         public float nextPtZ;  
 
-        public BikeCommandMsg() : base(kBikeCommandMsg)  {}
+        public BikeCommandMsg() : base(kBikeCommandMsg, 0)  {}
 
-        public BikeCommandMsg(string _bikeId, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg) 
+        public BikeCommandMsg(long ts, string _bikeId, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg, ts) 
         {
             bikeId = _bikeId;
             cmd = _cmd;
@@ -170,7 +169,7 @@ namespace BeamBackend
         public string bikeId;
         public int xIdx;
         public int zIdx;
-        public PlaceClaimMsg(string _bikeId, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg) 
+        public PlaceClaimMsg(long ts, string _bikeId, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg, ts) 
         { 
             bikeId = _bikeId; 
             xIdx = _xIdx;
@@ -183,7 +182,7 @@ namespace BeamBackend
         public string bikeId;
         public int xIdx;
         public int zIdx;
-        public PlaceHitMsg(string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitMsg) 
+        public PlaceHitMsg(long ts, string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitMsg, ts) 
         { 
             bikeId = _bikeId; 
             xIdx=_xIdx;
