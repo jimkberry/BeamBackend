@@ -67,9 +67,6 @@ namespace BeamBackend
 
         public override void SendApianMessage(string toChannel, ApianMessage msg)
         {
-            //string json = JsonConvert.SerializeObject(msg);
-           //json = "foo";
-            //BeamGameNet.SendApianMessage(toChannel, msg.MsgType, json);
            BeamGameNet.SendApianMessage(toChannel, msg);            
         }    
 
@@ -88,6 +85,7 @@ namespace BeamBackend
         public void OnGameJoined(string gameId, string localP2pId)
         {
             ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
+            client.OnGameJoined(gameId, localP2pId);
         }
 
         public string LocalPeerData() => client.LocalPeerData();  
