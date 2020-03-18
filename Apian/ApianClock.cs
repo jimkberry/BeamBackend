@@ -88,7 +88,7 @@ namespace Apian
         // Set the time
         public void Set(long desiredTimeMs, float rate=1.0f )
         {
-            logger.Info($"Set()");
+            logger.Verbose($"Set()");
             SysMsBase = SystemTime;
             CurrentRate = rate;
             CurrentOffset = desiredTimeMs;
@@ -96,7 +96,7 @@ namespace Apian
 
         public void OnPeerSync(string remotePeerId, long clockOffsetMs, long netLagMs) // sys + offset = apian
         {
-            logger.Info($"OnPeerSync() from {remotePeerId}.");
+            logger.Verbose($"OnPeerSync() from {remotePeerId}.");
             // save this
             sysOffsetsByPeer[remotePeerId] = clockOffsetMs;
         }
@@ -110,7 +110,7 @@ namespace Apian
             // and by "infer" I mean "kinda guess sorta"
             // remoteAppClk = sysMs + peerOffSet + peerAppOffset
             //
-            logger.Info($"OnApianClockOffset()");   
+            logger.Verbose($"OnApianClockOffset()");   
 
             apianOffsetsByPeer[p2pId] = remoteApianOffset;
 
@@ -120,7 +120,7 @@ namespace Apian
                 {
                     // CurrentTime = sysMs + peerOffset + peerAppOffset;
                     Set( SystemTime + sysOffsetsByPeer[p2pId] + remoteApianOffset );
-                     logger.Info($"OnApianClockOffset() - Set clock to match {p2pId}");   
+                     logger.Verbose($"OnApianClockOffset() - Set clock to match {p2pId}");   
                 }
             }
 
@@ -135,7 +135,7 @@ namespace Apian
         {
             if (apian.ApianGroup != null) 
             {
-                logger.Info($"SendApianClockOffset() - Current Time: {CurrentTime}");                
+                logger.Verbose($"SendApianClockOffset() - Current Time: {CurrentTime}");                
                 apian.SendApianMessage(apian.ApianGroup.GroupId, new ApianClockOffsetMsg( apian.ApianGroup.LocalP2pId, SysClockOffset));
             }
             nextOffsetAnnounceTime = NewNextOffsetAnnounceTime;
@@ -166,7 +166,7 @@ namespace Apian
                 // Try to correct half of the error in kOffsetAnnounceBaseMs 
                 float newRate = 1.0f + (.5f * (float)localErrMs / kOffsetAnnounceBaseMs);
                 Set(CurrentTime, newRate);
-                logger.Info($"Update: local error: {localErrMs}, New Rate: {newRate}");                
+                logger.Verbose($"Update: local error: {localErrMs}, New Rate: {newRate}");                
             }            
         }
 
