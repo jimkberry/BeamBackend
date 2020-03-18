@@ -118,7 +118,7 @@ namespace Apian
             public StateCreatingGroup(ApianBasicGroupManager group) : base(group) {}               
             public override void  Start() 
             {
-                newGroupId = System.Guid.NewGuid().ToString(); // TODO: do this better (details are all hidden in here)
+                newGroupId = "ApianGrp" + System.Guid.NewGuid().ToString(); // TODO: do this better (details are all hidden in here)
                 Group.AnnounceGroup(newGroupId, Group.LocalP2pId, new List<string>(){Group.LocalP2pId});
                 Group.RequestGroups();
                 listenTimeoutMs = Group.SysMs + 3*kGroupAnnouceTimeoutMs/2 + new Random().Next(kGroupAnnouceTimeoutMs/2);

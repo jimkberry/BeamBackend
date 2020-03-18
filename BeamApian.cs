@@ -85,7 +85,6 @@ namespace BeamBackend
         public void OnGameJoined(string gameId, string localP2pId)
         {
             ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
-            client.OnGameJoined(gameId, localP2pId);
         }
 
         public string LocalPeerData() => client.LocalPeerData();  
@@ -116,6 +115,23 @@ namespace BeamBackend
         public void OnPeerLeft(string p2pId) // => client.OnPeerLeft(p2pId)
         {
            client.OnPeerLeft(p2pId);
+        }
+
+        public override void OnMemberJoinedGroup(string peerId)
+        {
+            logger.Info($"OnMemberJoinedGroup(): {peerId}");
+            if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
+            {
+                if (peerId == ApianGroup.LocalP2pId)
+                {
+                    ApianClock.Set(0); // we joined. Set the clock
+                    client.OnGameJoined(ApianGroup.GroupId, peerId);
+                } else {
+                    // someone else joined - broadcast the clock offset
+                    if (!ApianClock.IsIdle)
+                        ApianClock.SendApianClockOffset();
+                }
+            }
         }
 
         public abstract void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);

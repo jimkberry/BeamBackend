@@ -68,27 +68,13 @@ namespace BeamBackend
             ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
         }
 
-        public override void OnMemberJoinedGroup(string peerId)
-        {
-            logger.Info($"OnMemberJoinedGroup(): {peerId}");
-            if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
-            {
-                if (peerId == ApianGroup.LocalP2pId)
-                    ApianClock.Set(0); // we joined. Set the clock
-                else
-                {
-                    // someone else joined - broadcast the clock offset
-                    if (!ApianClock.IsIdle)
-                        ApianClock.SendApianClockOffset();
-                }
-            }
-        }
 
         //
         // IBeamApian  
         //
         public override void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
+            logger.Info($"OnCreateBikeReqData() - got req from {srcId}"); // &&&&&&&
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
                 logger.Verbose($"OnCreateBikeReqData() Bike already exists: {msg.bikeId}.");   
@@ -136,26 +122,6 @@ namespace BeamBackend
             }
    
         }
-
-        // public void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
-        // {
-        //     // TODO: This test is implementing the "trusty" consensus 
-        //     // "place owner is authority" rule. 
-        //     Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
-        //     Ground.Place p = gameData.Ground.GetPlace(pos); 
-        //     BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);                        
-        //     if (p == null)
-        //     {
-        //         logger.Verbose($"OnPlaceHitObs(). PlaceHitObs for unclaimed place: ({msg.xIdx}, {msg.zIdx})");                
-        //     } else if (hittingBike == null) { 
-        //         logger.Verbose($"OnPlaceHitObs(). PlaceHitObs for unknown bike:  msg.bikeId)"); 
-        //     } else {          
-        //         // It's OK (expected, even) for ther peers to observe it. We just ignore them in Trusty
-        //         if (srcId == p.bike.peerId)      
-        //             client.OnPlaceHit(msg,  msgDelay);
-        //     }      
-        // }
-
 
         public override void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
