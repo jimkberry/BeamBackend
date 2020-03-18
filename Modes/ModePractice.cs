@@ -16,13 +16,19 @@ namespace BeamBackend
         protected const float kRespawnCheckInterval = 1.3f;
 
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval; 
+        protected bool gameJoined = false;
+        protected bool bikesCreated = false;        
 
 		public override void Start(object param = null)	
         {
             base.Start();
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
+            game.GameJoinedEvt += OnGameJoinedEvt;            
             game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
+
+            gameJoined = false;
+            bikesCreated = false;
 
             game.ClearPeers();
             game.ClearBikes();    
@@ -34,30 +40,35 @@ namespace BeamBackend
             string p2pId = game.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null, true);
             game.AddLocalPeer(localPeer);
-            game.gameNet.JoinGame("localgame");    
-
-            // Create player bike
-            string playerBikeId = SpawnPlayerBike();
-
-            for( int i=0;i<kMaxAiBikes; i++) 
-            {
-                // TODO: create a list of names/teams and respawn them when the blow up?
-                // ...or do it when respawn gets called
-                SpawnAIBike(); 
-            }
-
-            game.frontend?.OnStartMode(BeamModeFactory.kPractice, new TargetIdParams{targetId = playerBikeId} );             
+            game.gameNet.JoinGame("localgame");                 
         }
 
 		public override void Loop(float frameSecs) 
         {
-            _secsToNextRespawnCheck -= frameSecs;
-            if (_secsToNextRespawnCheck <= 0)
+            if (gameJoined && !bikesCreated)
             {
-                // TODO: respawn with prev names/teams?
-                if (game.gameData.Bikes.Count < kMaxAiBikes)
-                    SpawnAIBike();
-                _secsToNextRespawnCheck = kRespawnCheckInterval;
+                // Create player bike
+                string playerBikeId = SpawnPlayerBike();
+                for( int i=0;i<kMaxAiBikes; i++) 
+                {
+                    // TODO: create a list of names/teams and respawn them when the blow up?
+                    // ...or do it when respawn gets called
+                    SpawnAIBike(); 
+                }
+                game.frontend?.OnStartMode(BeamModeFactory.kPractice, new TargetIdParams{targetId = playerBikeId} );
+                bikesCreated = true;
+            }
+
+            if (bikesCreated)
+            {
+                _secsToNextRespawnCheck -= frameSecs;
+                if (_secsToNextRespawnCheck <= 0)
+                {
+                    // TODO: respawn with prev names/teams?
+                    if (game.gameData.Bikes.Count < kMaxAiBikes)
+                        SpawnAIBike();
+                    _secsToNextRespawnCheck = kRespawnCheckInterval;
+                }
             }
         }
 
@@ -104,5 +115,11 @@ namespace BeamBackend
             // Note that this will eventually result in a NewBikeEvt which the frontend 
             // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.            
         }   
+
+        public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
+        {     
+            logger.Info("Practice game joined");
+            gameJoined = true;            
+        }        
     }
 }

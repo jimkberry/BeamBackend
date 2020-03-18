@@ -69,6 +69,12 @@ namespace BeamBackend
             ApianInst = client as BeamApian;
         }
 
+        // public override void JoinGame(string gameP2pChannel)
+        // {
+        //     p2p.Join(gameP2pChannel);
+        //     callbacksForNextPoll.Enqueue( () => client.OnGameJoined(gameP2pChannel, LocalP2pId()));
+        // }
+
         public override void Loop()
         {
             base.Loop();

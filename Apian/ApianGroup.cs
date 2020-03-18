@@ -33,6 +33,7 @@ namespace Apian
         Dictionary<string, ApianMember> Members {get;}
         void Update();
         void OnApianMsg(ApianMessage msg, string msgSrc, string msgChan);    
+        void StartLocalOnlyGroup();
     }
 
     public class ApianBasicGroupManager : IApianGroupManager
@@ -340,6 +341,15 @@ namespace Apian
         {
             currentState = new StateListeningForGroup(this);
             currentState.Start(); // dont want to xcall state methods in group ctor   
+        }
+
+        public void StartLocalOnlyGroup()
+        {
+            // Skip the whole startup process. We're the only peer, period.
+            LocalState.GroupData newGroup = new LocalState.GroupData("LocalGroup", LocalP2pId,  new List<string>{LocalP2pId});
+            currentState = new StateInGroup(this, newGroup);
+            currentState.Start();
+            
         }
 
         public void Update()

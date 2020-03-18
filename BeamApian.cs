@@ -85,6 +85,8 @@ namespace BeamBackend
         public void OnGameJoined(string gameId, string localP2pId)
         {
             ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
+            if (gameId == "localgame") // TODO: YUUUK!!! Make this be a param
+                ApianGroup.StartLocalOnlyGroup();
         }
 
         public string LocalPeerData() => client.LocalPeerData();  
