@@ -136,19 +136,24 @@ namespace BeamBackend
 
         public override void OnMemberJoinedGroup(string peerId)
         {
-            logger.Info($"OnMemberJoinedGroup(): {peerId}");
-            if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
+            logger.Info($"OnMemberJoinedGroup(): {peerId}");            
+            if (peerId == ApianGroup.LocalP2pId)
             {
-                if (peerId == ApianGroup.LocalP2pId)
+                // It's us that joined.
+                if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
                 {
+                    // ...and we are the group creator (and so the original source for the clock)
                     ApianClock.Set(0); // we joined. Set the clock
-                    client.OnGameJoined(ApianGroup.GroupId, peerId);
-                } else {
-                    // someone else joined - broadcast the clock offset
-                    if (!ApianClock.IsIdle)
-                        ApianClock.SendApianClockOffset();
-                }
+                }               
+            
+            } else {
+                // someone else joined - broadcast the clock offset if we have one
+                if (!ApianClock.IsIdle)
+                    ApianClock.SendApianClockOffset();
             }
+
+            client.OnGameJoined(ApianGroup.GroupId, peerId);  // Inform the client app
+            
         }
 
         public abstract void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);
