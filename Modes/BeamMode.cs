@@ -23,7 +23,7 @@ namespace BeamBackend
         }
 
 		public virtual void Start( object param = null)	{
-        
+            logger.Info($"Starting {(ModeName())}");        
         }
 
 		public virtual void Loop(float frameSecs) {}

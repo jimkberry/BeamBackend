@@ -24,7 +24,6 @@ namespace BeamBackend
 
 		public override void Start(object param = null)	
         {
-            logger.Info("Starting Connect");
             base.Start();
 
             game = (BeamGameInstance)gameInst;
@@ -69,33 +68,34 @@ namespace BeamBackend
         protected void _SetState(int newState, object startParam = null)
         {
             _curStateSecs = 0;
+            _curState = newState;            
             _loopFunc = _DoNothingLoop; // default
             switch (newState)
             {
             case kCreatingGame:
-                logger.Info("Creating game");                     
+                logger.Info($"{(ModeName())}: SetState: kCreatingGame");                     
                 game.gameNet.CreateGame(startParam);  
                 break;            
             case kJoiningGame:      
-                logger.Info($"Joining Game {(string)startParam}");            
+                logger.Info($"{(ModeName())}: SetState: kJoiningGame");            
                 game.gameNet.JoinGame((string)startParam);
                 break;                      
             case kWaitingForPlayers:
-                logger.Info($"Waiting for players");
+                logger.Info($"{(ModeName())}: SetState: kJoiningGame");    
                 _loopFunc = _WaitForPlayersLoop;
                 break;
             case kCreatingBike:
-                logger.Info($"Creating local bike");  
+                logger.Info($"{(ModeName())}: SetState: kCreatingBike");     
                 _CreateLocalBike(settings.localPlayerCtrlType);  
                 _CreateADemoBike();  
                 _CreateADemoBike();               
                 break;
             case kWaitingForRemoteBike:
-                logger.Info($"Waiting for a remote bike.");
+                logger.Info($"{(ModeName())}: SetState: kWaitingForRemoteBike");    
                 _loopFunc = _WaitForRemoteBikeLoop;
                 break;                
             case kReadyToPlay:
-                logger.Info($"Ready to play."); 
+                logger.Info($"{(ModeName())}: SetState: kReadyToPlay");    
                 game.RaiseReadyToPlay();
                 break;
             default:
@@ -117,8 +117,6 @@ namespace BeamBackend
                 _SetState(kReadyToPlay);
         }
 
-
-        // Event handlers
 		// Event handlers
         public void OnGameCreatedEvt(object sender, string newGameId)
         {
@@ -147,10 +145,9 @@ namespace BeamBackend
         {
             string lr = ib.peerId == game.LocalPeerId ? "local" : "remote";
             logger.Info($"New {lr} bike: {ib.bikeId}");             
-            if (ib.peerId == game.LocalPeerId)
+            if (_curState == kCreatingBike && ib.peerId == game.LocalPeerId)
                 _SetState(kWaitingForRemoteBike, null);                         
         }
-
 
         //
         // utils
