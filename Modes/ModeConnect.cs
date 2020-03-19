@@ -81,7 +81,7 @@ namespace BeamBackend
                 game.gameNet.JoinGame((string)startParam);
                 break;                      
             case kWaitingForPlayers:
-                logger.Info($"{(ModeName())}: SetState: kJoiningGame");    
+                logger.Info($"{(ModeName())}: SetState: kWaitingForPlayers");    
                 _loopFunc = _WaitForPlayersLoop;
                 break;
             case kCreatingBike:
@@ -120,7 +120,7 @@ namespace BeamBackend
 		// Event handlers
         public void OnGameCreatedEvt(object sender, string newGameId)
         {
-            Console.WriteLine($"Created game: {newGameId}");
+            logger.Info($"Created game: {newGameId}");
             _SetState(kJoiningGame, newGameId);                   
         }
 

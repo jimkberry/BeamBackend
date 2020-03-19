@@ -94,7 +94,7 @@ namespace BeamBackend
         }
         public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
         {     
-            logger.Info("Practice game joined");
+            logger.Info("Splash game joined");
             gameJoined = true;            
         } 
 
