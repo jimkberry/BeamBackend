@@ -53,16 +53,22 @@ namespace BeamBackend
         public void SetGameNetInstance(IGameNet gn) {} // IGameNetClient API call not used byt Apian (happens in ctor)
 
         public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn)
-        {
-            apianPeers = new Dictionary<string, BeamApianPeer>();
-            ApianClock = new DefaultApianClock(this);              
+        {           
             BeamGameNet = _gn;   
             client = _client as BeamGameInstance; 
-            gameData = client.gameData;
-            NextAssertionSequenceNumber = 0;    
+            gameData = client.gameData;   
 
             // Add BeamApian-level ApianMsg handlers here
-            // ApMsgHandlers[BeamMessage.kBikeCreateData] = (f,t,l,m) => this.HandleBikeCreateData(f,t,l,m),                      
+            // ApMsgHandlers[BeamMessage.kBikeCreateData] = (f,t,l,m) => this.HandleBikeCreateData(f,t,l,m), 
+            InitApianVars();
+        }
+
+        public void InitApianVars()
+        {
+            apianPeers = new Dictionary<string, BeamApianPeer>();
+            ApianClock = new DefaultApianClock(this);  
+            NextAssertionSequenceNumber = 0;     
+            ApianGroup = null;         
         }
 
         public override void SendApianMessage(string toChannel, ApianMessage msg)
@@ -86,7 +92,16 @@ namespace BeamBackend
         {
             ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
             if (gameId == "localgame") // TODO: YUUUK!!! Make this be a param
+            {
+                logger.Info($"OnGameJoined(): Local-only group");                
                 ApianGroup.StartLocalOnlyGroup();
+            }
+        }
+
+        public void OnGameLeft()
+        {
+            //client.OnGameLeft();
+            InitApianVars();
         }
 
         public string LocalPeerData() => client.LocalPeerData();  

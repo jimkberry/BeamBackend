@@ -74,6 +74,7 @@ namespace BeamBackend
 
 		public override object End() {            
             game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
+            game.gameNet.LeaveGame();           
             game.ClearPeers();
             game.ClearBikes();    
             game.ClearPlaces();              
