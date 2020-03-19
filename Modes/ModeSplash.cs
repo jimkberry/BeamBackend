@@ -16,12 +16,21 @@ namespace BeamBackend
         protected const float kRespawnCheckInterval = .33f;
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;         
         public BeamGameInstance game = null;      
+        protected bool gameJoined;
+        protected bool bikesCreated;        
+
 
 		public override void Start(object param = null)	
         {
             logger.Info("Starting Splash");
             base.Start();
                 
+            game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
+            game.GameJoinedEvt += OnGameJoinedEvt;    
+
+            gameJoined = false;
+            bikesCreated = false;
+
             game = (BeamGameInstance)gameInst;
             game.ClearPeers();
             game.ClearBikes();    
@@ -33,26 +42,33 @@ namespace BeamBackend
             string p2pId = game.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null, true);
             game.AddLocalPeer(localPeer);
-            game.gameNet.JoinGame("localgame");            
-
-            string cameraTargetBikeId = CreateADemoBike();
-            for( int i=1;i<kSplashBikeCount; i++) 
-                CreateADemoBike(); 
-
-            // Note that the target bike is probably NOT created yet at this point.
-            // This robably needs to happen differently
-            game.frontend?.OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );             
+            game.gameNet.JoinGame("localgame");                     
         }
 
 		public override void Loop(float frameSecs) 
         {
-            _secsToNextRespawnCheck -= frameSecs;
-            if (_secsToNextRespawnCheck <= 0)
+            if (gameJoined && !bikesCreated)
             {
-                // TODO: respawn with prev names/teams?
-                if (game.gameData.Bikes.Count() < kSplashBikeCount)
-                    CreateADemoBike();
-                _secsToNextRespawnCheck = kRespawnCheckInterval;
+                string cameraTargetBikeId = CreateADemoBike();
+                for( int i=1;i<kSplashBikeCount; i++) 
+                    CreateADemoBike(); 
+
+                // Note that the target bike is probably NOT created yet at this point.
+                // This robably needs to happen differently
+                game.frontend?.OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );
+                bikesCreated = true;                
+            }
+
+            if (bikesCreated)
+            {                            
+                _secsToNextRespawnCheck -= frameSecs;
+                if (_secsToNextRespawnCheck <= 0)
+                {
+                    // TODO: respawn with prev names/teams?
+                    if (game.gameData.Bikes.Count() < kSplashBikeCount)
+                        CreateADemoBike();
+                    _secsToNextRespawnCheck = kRespawnCheckInterval;
+                }
             }
         }
 
@@ -75,7 +91,11 @@ namespace BeamBackend
             logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
         }
-
+        public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
+        {     
+            logger.Info("Practice game joined");
+            gameJoined = true;            
+        } 
 
     }
 }

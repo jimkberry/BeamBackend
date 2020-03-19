@@ -16,8 +16,8 @@ namespace BeamBackend
         protected const float kRespawnCheckInterval = 1.3f;
 
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval; 
-        protected bool gameJoined = false;
-        protected bool bikesCreated = false;        
+        protected bool gameJoined;
+        protected bool bikesCreated;        
 
 		public override void Start(object param = null)	
         {
