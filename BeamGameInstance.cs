@@ -90,6 +90,8 @@ namespace BeamBackend
         public string LocalPeerId => LocalPeer?.PeerId;
         public string CurrentGameId  { get; private set; }
 
+        public long GameTime {get => gameNet.CurrentGroupTime(); }
+
         // IBeamBackend events
         public event EventHandler<string> GameCreatedEvt; // game channel
         public event EventHandler<GameJoinedArgs> GameJoinedEvt;     
@@ -219,7 +221,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
-            bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ));
+            bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), msg.TimeStamp);
         }
 
         public void OnBikeTurn(BikeTurnMsg msg, long msgDelay)
@@ -229,7 +231,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
-            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ));
+            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), msg.TimeStamp);
         }
 
         public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
@@ -268,7 +270,7 @@ namespace BeamBackend
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
             logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
-            gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msgDelay);
+            gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msg.TimeStamp);
         }
 
 

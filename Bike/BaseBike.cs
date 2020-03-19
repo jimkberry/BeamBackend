@@ -56,7 +56,7 @@ namespace BeamBackend
 
         public void AddScore(int val) => score += val;
 
-        public void ApplyTurn(TurnDir dir, Vector2 nextPt)
+        public void ApplyTurn(TurnDir dir, Vector2 nextPt, long msgTime)
         {
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
@@ -88,7 +88,7 @@ namespace BeamBackend
             pendingTurn = dir;
         }
 
-        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt)
+        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long msgTime)
         {
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
@@ -113,16 +113,17 @@ namespace BeamBackend
             }
         }        
 
-        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long lagMs)
+        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
         {
             // This happens even for an inactive bike. Sets it active, in fact.
 
-            // STOOOPID 1st cut - just dump the data in there... no attempt at smoothing
+            // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
             
             speed = newSpeed;
             heading = newHeading;
 
-            // LagMs is how old, in ms, this information is. We need to project it to now.
+            // project reported pos to now.
+            long lagMs = gameInst.GameTime - msgTime;
             newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
 
             score = newScore; // TODO: this might be problematic
