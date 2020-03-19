@@ -72,7 +72,8 @@ namespace BeamBackend
             }
         }
 
-		public override object End() {            
+		public override object End() {   
+            game.GameJoinedEvt -= OnGameJoinedEvt;                       
             game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
             game.gameNet.LeaveGame();           
             game.ClearPeers();
