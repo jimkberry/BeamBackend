@@ -1,4 +1,5 @@
 
+using System.Text.RegularExpressions;
 using System.Reflection.Emit;
 using System;
 using System.Linq;
@@ -44,7 +45,7 @@ namespace Apian
         // Internal vars
         protected ApianBase apian;
         protected long SysMsBase {get; private set;}  // the system time last time the rate was set
-        protected long CurrentOffset {get; private set;}  // this is NOT SysClockOffset (the offset from the current ApianTime and the system clock)
+        protected long ApianTimeBase {get; private set;}  // this is the ApianTime when the clock wa last set
         protected float CurrentRate {get; private set;} = 0.0f;
 
 
@@ -65,10 +66,9 @@ namespace Apian
         protected Dictionary<string, long> apianOffsetsByPeer;    
 
         // IApianClock public stuff                   
-        public bool IsIdle { get => (CurrentRate == 0.0f && CurrentOffset == 0);}  // hasn't been set yet
+        public bool IsIdle { get => (CurrentRate == 0.0f && ApianTimeBase == 0);}  // hasn't been set yet
         public long SystemTime { get => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;}  // system clock        
-        public long CurrentTime { get => (long)((SystemTime - SysMsBase) * CurrentRate) + CurrentOffset;} // This is the ApianTime
-
+        public long CurrentTime { get => (long)((SystemTime - SysMsBase) * CurrentRate) + ApianTimeBase;} // This is the ApianTime
         public long SysClockOffset {get => CurrentTime - SystemTime; } // The current effective offset.  
 
         public void Update()
@@ -84,14 +84,13 @@ namespace Apian
 
         }
 
-
         // Set the time
         public void Set(long desiredTimeMs, float rate=1.0f )
         {
             logger.Verbose($"Set()");
+            ApianTimeBase = desiredTimeMs;
             SysMsBase = SystemTime;
             CurrentRate = rate;
-            CurrentOffset = desiredTimeMs;
         }
 
         public void OnPeerSync(string remotePeerId, long clockOffsetMs, long netLagMs) // sys + offset = apian
@@ -110,7 +109,12 @@ namespace Apian
             // and by "infer" I mean "kinda guess sorta"
             // remoteAppClk = sysMs + peerOffSet + peerAppOffset
             //
-            logger.Verbose($"OnApianClockOffset()");   
+            logger.Verbose($"OnApianClockOffset() from peer {p2pId}");   
+            if (p2pId == apian.ApianGroup.LocalP2pId)
+            {
+                logger.Verbose($"OnApianClockOffset(). Oops. It's me. Bailing"); 
+                return;
+            }
 
             apianOffsetsByPeer[p2pId] = remoteApianOffset;
 
