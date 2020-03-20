@@ -60,7 +60,12 @@ namespace BeamBackend
             _curStateSecs += frameSecs;
         }
 
-		public override object End() {            
+		public override object End() {         
+            game.GameCreatedEvt -= OnGameCreatedEvt;
+            game.GameJoinedEvt -= OnGameJoinedEvt;
+            game.PeerJoinedEvt -= OnPeerJoinedEvt;
+            game.PeerLeftEvt -= OnPeerLeftEvt;
+            game.NewBikeEvt -= OnNewBikeEvt;               
             game.frontend?.OnEndMode(ModeId());            
             return null;
         }         
