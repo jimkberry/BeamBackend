@@ -124,8 +124,10 @@ namespace BeamBackend
 
             // project reported pos to now.
             long lagMs = gameInst.GameTime - msgTime;
-            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
+            logger.Info($"ApplyUpdate(): msgTime: {msgTime}");            
+            logger.Info($"ApplyUpdate(): lagMs: {lagMs}");
 
+            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
             score = newScore; // TODO: this might be problematic
 
             // Make sure the bike is on a grid line...     

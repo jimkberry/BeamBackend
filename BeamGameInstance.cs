@@ -269,7 +269,7 @@ namespace BeamBackend
         public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay)
         {
             IBike ib = gameData.GetBaseBike(msg.bikeId);
-            logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}");
+            logger.Info($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}. TS: {msg.TimeStamp}");
             gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msg.TimeStamp);
         }
 

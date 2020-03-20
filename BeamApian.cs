@@ -136,7 +136,8 @@ namespace BeamBackend
 
         public override void OnMemberJoinedGroup(string peerId)
         {
-            logger.Info($"OnMemberJoinedGroup(): {peerId}");            
+            logger.Info($"OnMemberJoinedGroup(): {peerId}");    
+        
             if (peerId == ApianGroup.LocalP2pId)
             {
                 // It's us that joined.

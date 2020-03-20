@@ -162,8 +162,10 @@ namespace BeamBackend
             // Always sent
             long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
             _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
+            long ts = CurrentGroupTime();
+            //logger.Info($"BeamGameNet.SendBikeUpdate() - TS: {ts}");
             logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
-            BikeUpdateMsg msg = new BikeUpdateMsg(CurrentGroupTime(), bike);
+            BikeUpdateMsg msg = new BikeUpdateMsg(ts, bike);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
 
