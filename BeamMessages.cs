@@ -16,8 +16,8 @@ namespace BeamBackend
         public const string kPlaceClaimMsg = "B109";
         public const string kPlaceHitMsg = "B110";
 
-        public string MsgType {get; private set;}
-        public long TimeStamp {get; private set;}
+        public string MsgType;
+        public long TimeStamp;
         public BeamMessage(string t, long ts) {MsgType = t; TimeStamp = ts;}
     }
 
