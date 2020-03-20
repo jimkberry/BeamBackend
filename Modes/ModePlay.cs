@@ -19,8 +19,7 @@ namespace BeamBackend
 
 		public override void Start(object param = null)	
         {
-            base.Start();
-            logger.Info("Starting ModePlay");            
+            base.Start();          
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode 
             game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
 

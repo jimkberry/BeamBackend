@@ -124,8 +124,8 @@ namespace BeamBackend
 
             // project reported pos to now.
             long lagMs = gameInst.GameTime - msgTime;
-            logger.Info($"ApplyUpdate(): msgTime: {msgTime}");            
-            logger.Info($"ApplyUpdate(): lagMs: {lagMs}");
+            //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");            
+            logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
 
             newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
             score = newScore; // TODO: this might be problematic

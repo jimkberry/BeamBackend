@@ -9,8 +9,9 @@ namespace Apian
     {
         public enum Status
         {
-            kNew,  // just created
-            kJoining, // In the process of synching and getting up-to-date
+            kNew,  // just created         
+            kSyncing, // In the process of P2pNet syncing and getting up-to-date
+            kJoining, // In the process of joining a group
             kActive, // part of the gang
             kMissing, // not currently present, but only newly so
         }

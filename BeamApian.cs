@@ -1,4 +1,5 @@
 
+using System.Reflection.Emit;
 using System;
 using System.Collections.Generic;
 using GameNet;
@@ -60,6 +61,8 @@ namespace BeamBackend
 
             // Add BeamApian-level ApianMsg handlers here
             // ApMsgHandlers[BeamMessage.kBikeCreateData] = (f,t,l,m) => this.HandleBikeCreateData(f,t,l,m), 
+
+            ApMsgHandlers[ApianMessage.kApianClockOffset] = (j, f,t,l) => OnApianClockOffsetMsg(j, f,t,l);             
             InitApianVars();
         }
 
@@ -109,7 +112,7 @@ namespace BeamBackend
         public void OnPeerJoined(string p2pId, string peerHelloData) 
         {
             BeamApianPeer p = new BeamApianPeer(p2pId, peerHelloData);
-            p.status = ApianMember.Status.kJoining;
+            p.status = ApianMember.Status.kSyncing;
             apianPeers[p2pId] = p; 
         }
 
@@ -121,17 +124,36 @@ namespace BeamBackend
 
             switch (p.status)
             {
-            case ApianMember.Status.kJoining:
-                p.status = ApianMember.Status.kActive;
+            case ApianMember.Status.kSyncing:
+                p.status = ApianMember.Status.kJoining;
                 client.OnPeerJoined(p2pId, p.AppHelloData);
                 break;
-            case ApianMember.Status.kActive:
+            case ApianMember.Status.kJoining:
+            case ApianMember.Status.kActive:            
                 break;
             }
         }
         public void OnPeerLeft(string p2pId) // => client.OnPeerLeft(p2pId)
         {
            client.OnPeerLeft(p2pId);
+        }
+
+        public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
+        {
+            // TODO: local peer is currently not in ApianPeers list. Should it be?
+            if (fromId == GameNet.LocalP2pId())
+                return;
+
+            BeamApianPeer p = apianPeers[fromId];            
+            ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
+            ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
+
+            if (p.status == ApianMember.Status.kJoining)
+            {
+                p.status = ApianMember.Status.kActive;
+                logger.Info($"OnApianClockOffsetMsg(): Reporting {fromId} as ready to play.");                 
+                client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
+            } 
         }
 
         public override void OnMemberJoinedGroup(string peerId)
@@ -145,6 +167,8 @@ namespace BeamBackend
                 {
                     // ...and we are the group creator (and so the original source for the clock)
                     ApianClock.Set(0); // we joined. Set the clock
+                    logger.Info($"OnApianClockOffsetMsg(): Reporting local peer as ready to play.");                 
+                    client.OnGameJoined(ApianGroup.GroupId, peerId);  // Inform the client app                    
                 }               
             
             } else {
@@ -152,8 +176,6 @@ namespace BeamBackend
                 if (!ApianClock.IsIdle)
                     ApianClock.SendApianClockOffset();
             }
-
-            client.OnGameJoined(ApianGroup.GroupId, peerId);  // Inform the client app
             
         }
 

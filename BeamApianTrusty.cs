@@ -34,8 +34,7 @@ namespace BeamBackend
             ApMsgHandlers[ApianMessage.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
             ApMsgHandlers[ApianMessage.kGroupAnnounce] = (j, f,t,l) => OnGroupAnnounceMsg(j, f,t,l);
             ApMsgHandlers[ApianMessage.kGroupJoinReq] = (j, f,t,l) => OnGroupJoinReq(j, f,t,l);            
-            ApMsgHandlers[ApianMessage.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);             
-            ApMsgHandlers[ApianMessage.kApianClockOffset] = (j, f,t,l) => OnApianClockOffsetMsg(j, f,t,l);            
+            ApMsgHandlers[ApianMessage.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);                        
         }
 
         // Apian Message Handlers
@@ -62,18 +61,14 @@ namespace BeamBackend
             ApianGroup.OnApianMsg(msg, fromId, toId);
         }
 
-        public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
-        {
-            ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
-            ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
-        }
-
-
         //
         // IBeamApian  
         //
         public override void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;
+
             logger.Info($"OnCreateBikeReqData() - got req from {srcId}"); // &&&&&&&
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
@@ -87,6 +82,8 @@ namespace BeamBackend
 
         public override void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
             logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
             IBike ib = client.gameData.GetBaseBike(msg.bikeId);
             if (ib != null)
@@ -95,6 +92,8 @@ namespace BeamBackend
 
         public override void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
@@ -125,6 +124,8 @@ namespace BeamBackend
 
         public override void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
@@ -144,6 +145,8 @@ namespace BeamBackend
    
         public override void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
@@ -157,6 +160,8 @@ namespace BeamBackend
 
         public override void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay)
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
@@ -170,6 +175,8 @@ namespace BeamBackend
 
         public override void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay) 
         {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
             BaseBike b = gameData.GetBaseBike(msg.bikeId);            
             if (b != null && srcId == b.peerId)
                 client.OnRemoteBikeUpdate(msg, srcId,  msgDelay);

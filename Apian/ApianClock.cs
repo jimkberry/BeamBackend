@@ -95,6 +95,7 @@ namespace Apian
 
         public void OnPeerSync(string remotePeerId, long clockOffsetMs, long netLagMs) // sys + offset = apian
         {
+            // This is a P2pNet sync ( lag and sys clock offset determination )
             logger.Verbose($"OnPeerSync() from {remotePeerId}.");
             // save this
             sysOffsetsByPeer[remotePeerId] = clockOffsetMs;
@@ -126,10 +127,9 @@ namespace Apian
                     Set( SystemTime + sysOffsetsByPeer[p2pId] + remoteApianOffset );
                      logger.Verbose($"OnApianClockOffset() - Set clock to match {p2pId}");   
                 }
-            }
-
-            if (!IsIdle) // Only do this if we are running
+            } else {
                 UpdateForOtherPeers();
+            }
         }        
 
         // Internals
