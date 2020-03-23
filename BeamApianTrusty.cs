@@ -69,10 +69,10 @@ namespace BeamBackend
             if (ApianClock.IsIdle) // this is fugly
                 return;
 
-            logger.Info($"OnCreateBikeReqData() - got req from {srcId}"); // &&&&&&&
+            logger.Info($"OnCreateBikeReq() - got req from {srcId}"); // &&&&&&&
             if ( gameData.GetBaseBike(msg.bikeId) != null)
             {
-                logger.Verbose($"OnCreateBikeReqData() Bike already exists: {msg.bikeId}.");   
+                logger.Verbose($"OnCreateBikeReq() Bike already exists: {msg.bikeId}.");   
                 return;
             }    
 
@@ -80,12 +80,12 @@ namespace BeamBackend
                 client.OnCreateBike(msg, msgDelay);
         }
 
-        public override void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay)
+        public override void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay)
         {
             if (ApianClock.IsIdle) // this is fugly
-                return;            
-            logger.Debug($"OnBikeDataReq() - sending data for bike: {msg.bikeId}");            
+                return;                       
             IBike ib = client.gameData.GetBaseBike(msg.bikeId);
+            logger.Info($"OnBikeDataQuery() - bike: {msg.bikeId} {(ib==null?"is GONE! Ignoring.":"Sending")}");             
             if (ib != null)
                 client.PostBikeCreateData(ib, srcId); 
         }        

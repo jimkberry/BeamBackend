@@ -25,7 +25,7 @@ namespace BeamBackend
 
     public interface IBeamGameNetClient : IGameNetClient
     {       
-        void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay);
+        void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay);
         void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);        
         void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay);
         void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay);        
@@ -54,7 +54,7 @@ namespace BeamBackend
             {
                 [BeamMessage.kApianMsg] = (f,t,s,m) => this._HandleApianMessage(f,t,s,m),                
                 [BeamMessage.kBikeCreateData] = (f,t,s,m) => this._HandleBikeCreateData(f,t,s,m),
-                [BeamMessage.kBikeDataReq] = (f,t,s,m) => this._HandleBikeDataReq(f,t,s,m),   
+                [BeamMessage.kBikeDataQuery] = (f,t,s,m) => this._HandleBikeDataQuery(f,t,s,m),   
                 [BeamMessage.kBikeUpdate] = (f,t,s,m) => this._HandleBikeUpdate(f,t,s,m),
                 [BeamMessage.kBikeTurnMsg] = (f,t,s,m) => this._HandleBikeTurnMsg(f,t,s,m),                
                 [BeamMessage.kBikeCommandMsg] = (f,t,s,m) => this._HandleBikeCommandMsg(f,t,s,m),                     
@@ -140,7 +140,7 @@ namespace BeamBackend
         public void RequestBikeData(string bikeId, string destId)
         {
             logger.Verbose($"RequestBikeData()");              
-            BikeDataReqMsg msg = new BikeDataReqMsg(CurrentGroupTime(), bikeId);
+            BikeDataQueryMsg msg = new BikeDataQueryMsg(CurrentGroupTime(), bikeId);
             _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
@@ -230,10 +230,10 @@ namespace BeamBackend
             (client as IBeamGameNetClient).OnCreateBikeReq(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), from, msSinceSent);
         }
 
-        protected void _HandleBikeDataReq(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
+        protected void _HandleBikeDataQuery(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandleBikeDataReq()");             
-            (client as IBeamGameNetClient).OnBikeDataReq(JsonConvert.DeserializeObject<BikeDataReqMsg>(clientMessage.payload), from, msSinceSent);
+            logger.Verbose($"_HandleBikeDataQuery()");             
+            (client as IBeamGameNetClient).OnBikeDataQuery(JsonConvert.DeserializeObject<BikeDataQueryMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeCommandMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)

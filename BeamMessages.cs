@@ -9,7 +9,7 @@ namespace BeamBackend
     {     
         public const string kApianMsg = "B101"; // An Apian-defined message 
         public const string kBikeCreateData = "B104";
-        public const string kBikeDataReq = "B105";    
+        public const string kBikeDataQuery = "B105";    
         public const string kBikeUpdate = "B106";
         public const string kBikeTurnMsg = "B107";        
         public const string kBikeCommandMsg = "B108";        
@@ -98,10 +98,10 @@ namespace BeamBackend
         }
     }
 
-    public class BikeDataReqMsg : BeamMessage
+    public class BikeDataQueryMsg : BeamMessage
     {
         public string bikeId;
-        public BikeDataReqMsg(long ts, string _id) : base(kBikeDataReq, ts) => bikeId = _id;        
+        public BikeDataQueryMsg(long ts, string _id) : base(kBikeDataQuery, ts) => bikeId = _id;        
     }
 
     public class BikeUpdateMsg : BeamMessage

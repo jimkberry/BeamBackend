@@ -124,9 +124,6 @@ namespace BeamBackend
                 [BeamMessage.kBikeCommandMsg] =(msg,dly) => this.OnBikeCommand(msg as BikeCommandMsg, dly),                   
                 [BeamMessage.kPlaceClaimMsg] = (msg,dly) => this.OnPlaceClaim(msg as PlaceClaimMsg, dly),
                 [BeamMessage.kPlaceHitMsg] = (msg,dly) => this.OnPlaceHit(msg as PlaceHitMsg, dly),                
-
-                // [BeamMessage.kBikeDataReq] = (f,t,s,m) => this._HandleBikeDataReq(f,t,s,m),   
-                // [BeamMessage.kBikeUpdate] = (f,t,s,m) => this._HandleBikeUpdate(f,t,s,m),
                                
             };                            
         }
@@ -294,7 +291,7 @@ namespace BeamBackend
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
             List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
-            logger.Debug($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
+            logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
             gameNet.SendBikeCreateData(ib, places, destId);            
         }
 

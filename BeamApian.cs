@@ -182,7 +182,7 @@ namespace BeamBackend
         }
 
         public abstract void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);
-        public abstract void OnBikeDataReq(BikeDataReqMsg msg, string srcId, long msgDelay);      
+        public abstract void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay);      
         public abstract void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay); // delay since the msg was sent
         public abstract void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay); 
         public abstract void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay); 
