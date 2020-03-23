@@ -266,6 +266,7 @@ namespace Apian
 
             public override void OnApianMsg(ApianMessage msg, string msgSrc, string msgChannel)
             {
+                // TODO: get rid of switch
                 switch (msg.msgType)
                 {
                 case ApianMessage.kRequestGroups:
@@ -305,7 +306,16 @@ namespace Apian
                             }                                                       
                         }
                     }
-                    break;                  
+                    break;     
+                case ApianMessage.kGroupMemberLeft:
+                    GroupMemberLefttMsg gml = msg as GroupMemberLefttMsg;  
+                    Group.logger.Info($"{this.GetType().Name} - Member {gml.peerId} left group {gml.groupId}");                     
+                    if (gml.groupId == Group.GroupId)
+                    {
+                        Group.logger.Info($"{this.GetType().Name} - Member {gml.peerId} left group {gml.groupId}");                          
+                        Group.Members.Remove(gml.peerId);
+                    }
+                    break;           
                 }
             }  
 

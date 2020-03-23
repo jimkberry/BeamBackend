@@ -13,6 +13,7 @@ namespace Apian
         public const string kGroupAnnounce = "APga";
         public const string kGroupJoinReq = "APgjr";        
         public const string kGroupJoinVote = "APgjv";       
+        public const string kGroupMemberLeft = "APgml";
         public const string kApianClockOffset = "APclk";  
 
         public string msgType;
@@ -46,6 +47,13 @@ namespace Apian
         public bool approve;
         public GroupJoinVoteMsg(string gid, string pid, bool doIt) : base(kGroupJoinVote) {groupId = gid; peerId=pid; approve=doIt;}  
     }
+
+    public class GroupMemberLefttMsg : ApianMessage // Send on main channel
+    {
+        public string groupId;
+        public string peerId;
+        public GroupMemberLefttMsg(string gid, string pid) : base(kGroupMemberLeft) {groupId = gid; peerId=pid;}  
+    }  
 
     public class ApianClockOffsetMsg : ApianMessage // Send on main channel
     {

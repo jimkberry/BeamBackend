@@ -133,9 +133,11 @@ namespace BeamBackend
                 break;
             }
         }
-        public void OnPeerLeft(string p2pId) // => client.OnPeerLeft(p2pId)
+        public void OnPeerLeft(string p2pId)
         {
-           client.OnPeerLeft(p2pId);
+            logger.Info($"OnPeerLeft() - Peer: {p2pId}");           
+            client.OnPeerLeft(p2pId);
+            ApianGroup?.OnApianMsg( new GroupMemberLefttMsg(ApianGroup?.GroupId, p2pId), GameNet.LocalP2pId(), ApianGroup?.GroupId);
         }
 
         public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
