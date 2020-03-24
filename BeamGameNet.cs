@@ -19,7 +19,7 @@ namespace BeamBackend
         void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx);
         void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);     
         void SendApianMessage(string toChannel, ApianMessage apianMsg);      
-        long CurrentGroupTime();  
+        long CurrentApianTime();  
         string CurrentGroupId();  
     }
 
@@ -81,7 +81,7 @@ namespace BeamBackend
             ApianInst.Update(); 
         }
 
-        public long CurrentGroupTime()
+        public long CurrentApianTime()
         {
             return ApianInst.ApianClock.CurrentTime;
         }
@@ -134,26 +134,26 @@ namespace BeamBackend
             logger.Verbose($"SendBikeCreateData() - dest: {(destId??"bcast")}");            
             // Info to create a bike.
             // Broadcast this to send it to everyone
-            BikeCreateDataMsg msg = new BikeCreateDataMsg(CurrentGroupTime(), ib, ownedPlaces);
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(CurrentApianTime(), ib, ownedPlaces);
             _SendClientMessage( destId ?? CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
         public void RequestBikeData(string bikeId, string destId)
         {
             logger.Verbose($"RequestBikeData()");              
-            BikeDataQueryMsg msg = new BikeDataQueryMsg(CurrentGroupTime(), bikeId);
+            BikeDataQueryMsg msg = new BikeDataQueryMsg(CurrentApianTime(), bikeId);
             _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
         public void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeTurnMsg msg = new BikeTurnMsg(CurrentGroupTime(), bike.bikeId, dir, nextPt);
+            BikeTurnMsg msg = new BikeTurnMsg(CurrentApianTime(), bike.bikeId, dir, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
         public void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeCommandMsg msg = new BikeCommandMsg(CurrentGroupTime(), bike.bikeId, cmd, nextPt);
+            BikeCommandMsg msg = new BikeCommandMsg(CurrentApianTime(), bike.bikeId, cmd, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }        
 
@@ -162,7 +162,7 @@ namespace BeamBackend
             // Always sent
             long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
             _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
-            long ts = CurrentGroupTime();
+            long ts = CurrentApianTime();
             //logger.Info($"BeamGameNet.SendBikeUpdate() - TS: {ts}");
             logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
             BikeUpdateMsg msg = new BikeUpdateMsg(ts, bike);
@@ -185,21 +185,21 @@ namespace BeamBackend
         public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceClaim()");            
-            PlaceClaimMsg msg = new PlaceClaimMsg(CurrentGroupTime(), bikeId, xIdx, zIdx);
+            PlaceClaimMsg msg = new PlaceClaimMsg(CurrentApianTime(), bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
         
         public void SendPlaceHitObs(string bikeId, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceHit()");                
-            PlaceHitMsg msg = new PlaceHitMsg(CurrentGroupTime(), bikeId, xIdx, zIdx);
+            PlaceHitMsg msg = new PlaceHitMsg(CurrentApianTime(), bikeId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
 
         public void SendApianMessage(string toChannel, ApianMessage apianMsg)  
         {
             logger.Verbose($"SendApianMessage() -  type: {apianMsg.msgType}, To: {toChannel}");        
-            BeamApianMessage msg = new BeamApianMessage(CurrentGroupTime(), apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
+            BeamApianMessage msg = new BeamApianMessage(CurrentApianTime(), apianMsg.msgType, JsonConvert.SerializeObject(apianMsg));     
             _SendClientMessage( toChannel ?? CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));             
         }
 

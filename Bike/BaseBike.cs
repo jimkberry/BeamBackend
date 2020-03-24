@@ -123,7 +123,7 @@ namespace BeamBackend
             heading = newHeading;
 
             // project reported pos to now.
-            long lagMs = gameInst.GameTime - msgTime;
+            long lagMs = gameInst.CurGameTime - msgTime;
             //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");            
             logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
 

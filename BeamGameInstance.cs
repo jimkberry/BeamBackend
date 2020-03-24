@@ -90,7 +90,13 @@ namespace BeamBackend
         public string LocalPeerId => LocalPeer?.PeerId;
         public string CurrentGameId  { get; private set; }
 
-        public long GameTime {get => gameNet.CurrentGroupTime(); }
+        public long CurGameTime {get => gameNet.CurrentApianTime(); }
+
+        // Not sure where this oughta be. The Loop() methd gets passed a "frameSecs" float that is based on
+        // Whatever clck the driver is using. We want everything in the GameInstance to be based on the shared "ApianClock"
+        // So - when Loop() is called we are going to read GameNet.CurrentApianTime() and stash that value to use "next fraem"
+        // to determine the ApianClock time between frames.
+        public long FrameApianTime {get; private set;} = -1;
 
         // IBeamBackend events
         public event EventHandler<string> GameCreatedEvt; // game channel
@@ -145,14 +151,25 @@ namespace BeamBackend
 
         public bool Loop(float frameSecs)
         {
+            // Ignore passed in framesecs. 
+            long prevFrameApianTime = FrameApianTime;
+            FrameApianTime = gameNet.CurrentApianTime();            
+            if (prevFrameApianTime < 0)
+            {
+                // skip first frame
+                return true;
+            }
+
+            float apianFrameSecs = (FrameApianTime - prevFrameApianTime) / 1000f;
+
             //logger.Debug("Loop()");
-            gameData.Loop(frameSecs);
+            gameData.Loop(apianFrameSecs);
             // TODO: gets throttled per-bike by gamenet, but we should probably
             // have it time-based here as well rather than going though
             // the whole thing every frame
             gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
             
-            return modeMgr.Loop(frameSecs);
+            return modeMgr.Loop(frameSecs); // TODO: I THINK this is OK. manager code can't change instance state
         }
 
         //
