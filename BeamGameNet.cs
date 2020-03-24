@@ -159,11 +159,8 @@ namespace BeamBackend
 
         public void SendBikeUpdate(IBike bike)
         {
-            // Always sent
-            long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
-            _lastBikeUpdatesMs[bike.bikeId] = nowMs;  
-            long ts = CurrentApianTime();
-            //logger.Info($"BeamGameNet.SendBikeUpdate() - TS: {ts}");
+            long ts = CurrentApianTime();         
+            _lastBikeUpdatesMs[bike.bikeId] = ts;  
             logger.Debug($"BeamGameNet.SendBikeUpdate() Bike: {bike.bikeId}");                    
             BikeUpdateMsg msg = new BikeUpdateMsg(ts, bike);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
@@ -172,7 +169,7 @@ namespace BeamBackend
         public void SendBikeUpdates(List<IBike> localBikes)
         {
             // Not sent if too recent
-            long nowMs = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            long nowMs = CurrentApianTime();
             foreach(IBike ib in localBikes)
             {
                 long prevMs;
