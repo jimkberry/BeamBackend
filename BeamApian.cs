@@ -154,7 +154,7 @@ namespace BeamBackend
             {
                 p.status = ApianMember.Status.kActive;
                 logger.Info($"OnApianClockOffsetMsg(): Reporting {fromId} as ready to play.");                 
-                client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
+               // client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
             } 
         }
 
