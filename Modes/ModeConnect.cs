@@ -158,11 +158,15 @@ namespace BeamBackend
 
         public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
         {     
-            logger.Info($"Joined game: {ga.gameChannel} as ID: {ga.localP2pId}");
-            if (_curState == kJoiningGame)
-                _SetState(kWaitingForRemoteBikes, null);             
-            else
-                logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");            
+            // TODO: do something about "GameJoined" is it local? Or anyone?
+            if (ga.localP2pId == game.LocalPeerId)
+            {
+                logger.Info($"Joined game: {ga.gameChannel} as ID: {ga.localP2pId}");
+                if (_curState == kJoiningGame)
+                    _SetState(kWaitingForRemoteBikes, null);             
+                else
+                    logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");            
+            }
         }
 
         public void OnPeerJoinedEvt(object sender, BeamPeer p)
