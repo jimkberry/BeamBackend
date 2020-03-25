@@ -1,4 +1,5 @@
 
+using System.Xml.Linq;
 using System.Reflection.Emit;
 using System;
 using System.Linq;
@@ -53,13 +54,15 @@ namespace Apian
 
     public class ApianVoteMachine<T>
     {
-        public const long kDefaultTimeoutMs = 300;        
+        public const long kDefaultExpireMs = 300;        
+        public const long kDefaultCleanupMs = 900;         
         public static long SysMs => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;            
 
         protected struct VoteData
         {
             public int NeededVotes {get; private set;}
-            public long ExpireTs {get; private set;}
+            public long ExpireTs {get; private set;} // vote defaults to "no" after this
+            public long CleanupTs {get; private set;} // VoteData gets removed after this
             public VoteStatus Status {get; private set;}
             public List<string> peerIds;
           
@@ -74,10 +77,11 @@ namespace Apian
                 }
             }
 
-            public VoteData(int voteCnt, long expireTimeMs)
+            public VoteData(int voteCnt, long expireTimeMs, long cleanupTimeMs)
             {
                 NeededVotes = voteCnt;
                 ExpireTs = expireTimeMs;
+                CleanupTs = cleanupTimeMs;
                 Status = VoteStatus.kVoting;
                 peerIds = new List<string>();   
             }
@@ -86,20 +90,27 @@ namespace Apian
         protected virtual int MajorityVotes(int peerCount) => peerCount / 2 + 1;
         protected Dictionary<T, VoteData> voteDict;
         protected long TimeoutMs {get; private set;}
+        protected long CleanupMs {get; private set;}        
         public UniLogger logger;
 
-        public ApianVoteMachine(long timeoutMs=kDefaultTimeoutMs, UniLogger _logger=null) 
+        public ApianVoteMachine(long timeoutMs, long cleanupMs, UniLogger _logger=null) 
         { 
             TimeoutMs = timeoutMs;
+            CleanupMs = cleanupMs;
             logger = _logger ?? UniLogger.GetLogger("ApianVoteMachine");
             voteDict = new Dictionary<T, VoteData>();
         }
 
         protected void UpdateAllStatus()
         {
+            // remove old and forgotten ones
+            voteDict = voteDict.Where(pair => pair.Value.CleanupTs >= SysMs)
+                                 .ToDictionary(pair => pair.Key, pair => pair.Value);          
+
             // if timed out set status to Lost
             foreach (VoteData vote in voteDict.Values)
                 vote.UpdateStatus(SysMs);
+
         }
 
         public VoteStatus AddVote(T candidate, string votingPeer, int totalPeers, bool removeIfDone=false)
@@ -117,7 +128,7 @@ namespace Apian
                 }
             } catch (KeyNotFoundException) {
                 int majorityCnt = MajorityVotes(totalPeers);                   
-                vd = new VoteData(majorityCnt, SysMs+TimeoutMs);
+                vd = new VoteData(majorityCnt, SysMs+TimeoutMs, SysMs+CleanupMs);
                 vd.peerIds.Add(votingPeer);
                 vd.UpdateStatus(SysMs);                
                 voteDict[candidate] = vd;

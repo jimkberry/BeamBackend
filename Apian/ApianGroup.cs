@@ -166,7 +166,7 @@ namespace Apian
             public StateJoiningGroup(ApianBasicGroupManager group, GroupData _groupToJoin) : base(group) 
             {
                 newGroup = _groupToJoin;
-                joinVoteMachine = new ApianVoteMachine<JoinVoteKey>(kGroupVoteTimeoutMs, Group.logger);
+                joinVoteMachine = new ApianVoteMachine<JoinVoteKey>(kGroupVoteTimeoutMs, kGroupVoteTimeoutMs*2, Group.logger);
                 voteKey =  new JoinVoteKey(Group.LocalP2pId);
                 responseTimeout = Group.SysMs + kGroupVoteTimeoutMs; // if no votes by this time give up
             }               
@@ -225,7 +225,7 @@ namespace Apian
             public StateInGroup(ApianBasicGroupManager group, GroupData _groupData) : base(group) 
             {
                 groupData = _groupData;
-                joinVoteMachine = new ApianVoteMachine<JoinVoteKey>(kGroupVoteTimeoutMs, Group.logger);
+                joinVoteMachine = new ApianVoteMachine<JoinVoteKey>(kGroupVoteTimeoutMs, kGroupVoteTimeoutMs*2, Group.logger);
             }               
             public override void Start() 
             {
