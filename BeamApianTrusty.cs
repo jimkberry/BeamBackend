@@ -27,8 +27,8 @@ namespace BeamBackend
 
         public BeamApianTrusty(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
         {
-            placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, logger);
-            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, logger);   
+            placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, kDefaultVoteTimeoutMs*2, logger);
+            placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, kDefaultVoteTimeoutMs*2, logger);   
 
             // Trusty messagees json/from/to/lagMs
             ApMsgHandlers[ApianMessage.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
