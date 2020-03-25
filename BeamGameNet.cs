@@ -240,6 +240,7 @@ namespace BeamBackend
 
         protected void _HandleBikeTurnMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
+           
             (client as IBeamGameNetClient).OnBikeTurnReq(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from, msSinceSent);
         }
         protected void _HandleBikeUpdate(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
@@ -252,7 +253,7 @@ namespace BeamBackend
 
         protected void _HandlePlaceClaimReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandlePlaceClaimReport()");             
+            logger.Verbose($"_HandlePlaceClaimReport() src: {(from==LocalP2pId()?"Local":from)}");             
             // TRUSTY rule: There isn;t one. No peer can be authoritative.
             // For now we'll just pass it to the game inst, which will accept the bike owner's message as authoritative.
             // NOTE: This WILL lead to inconsistency between peers unles some sort of multi-peer protocol is
@@ -264,7 +265,7 @@ namespace BeamBackend
 
         protected void _HandlePlaceHitReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandlePlaceHitReport()");              
+            logger.Verbose($"_HandlePlaceHitReport() from {from}");              
             // See above. In trustyworld, place owner is authoritative
             (client as IBeamGameNetClient).OnPlaceHitObs(JsonConvert.DeserializeObject<PlaceHitMsg>(clientMessage.payload), from, msSinceSent);
         }
