@@ -10,8 +10,7 @@ namespace BeamBackend
         string bikeId {get;}  
         string peerId {get;}
         string name {get;}
-        Team team { get;}   
-        bool isActive { get;}         
+        Team team { get;}        
         string ctrlType {get;}        
         Vector2 position {get;}   
         Heading heading { get;} 

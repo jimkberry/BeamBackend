@@ -205,42 +205,38 @@ namespace BeamBackend
         //
         protected override void _HandleClientMessage(string from, string to, long msSinceSent, GameNetClientMessage msg)
         {
-// Turns out we're better off letting it throw
-//           try {
+                // Turns out we're best-off letting it throw rather than handling exceptions
                 _MsgHandlers[msg.clientMsgType](from, to, msSinceSent, msg);
-//            } catch(KeyNotFoundException) {
-//                logger.Warn($"Unknown client message type: {msg.clientMsgType}");
-//            }
         }
 
         protected void _HandleApianMessage(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
             BeamApianMessage bam = JsonConvert.DeserializeObject<BeamApianMessage>(clientMessage.payload);
-            logger.Verbose($"_HandleApianMessage() - Type: {bam.apianMsgType}");                
+            logger.Verbose($"_HandleApianMessage() Type: {bam.apianMsgType}, src: {(from==LocalP2pId()?"Local":from)}");                
             (client as IBeamGameNetClient).OnApianMessage(bam.apianMsgType, bam.apianMsgJson, from, to, msSinceSent);
         }
 
-
         protected void _HandleBikeCreateData(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandleBikeCreateData()");              
+            logger.Verbose($"_HandleBikeCreateData() src: {(from==LocalP2pId()?"Local":from)}");         
             (client as IBeamGameNetClient).OnCreateBikeReq(JsonConvert.DeserializeObject<BikeCreateDataMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeDataQuery(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandleBikeDataQuery()");             
+            logger.Verbose($"_HandleBikeDataQuery() src: {(from==LocalP2pId()?"Local":from)}");            
             (client as IBeamGameNetClient).OnBikeDataQuery(JsonConvert.DeserializeObject<BikeDataQueryMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeCommandMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
+            logger.Verbose($"_HandleBikeCommandMsg() src: {(from==LocalP2pId()?"Local":from)}");              
             (client as IBeamGameNetClient).OnBikeCommandReq(JsonConvert.DeserializeObject<BikeCommandMsg>(clientMessage.payload), from, msSinceSent);
         }
 
         protected void _HandleBikeTurnMsg(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {             
-           
+            logger.Verbose($"_HandleBikeTurnMsg() src: {(from==LocalP2pId()?"Local":from)}");           
             (client as IBeamGameNetClient).OnBikeTurnReq(JsonConvert.DeserializeObject<BikeTurnMsg>(clientMessage.payload), from, msSinceSent);
         }
         protected void _HandleBikeUpdate(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
@@ -265,7 +261,7 @@ namespace BeamBackend
 
         protected void _HandlePlaceHitReport(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
-            logger.Verbose($"_HandlePlaceHitReport() from {from}");              
+            logger.Verbose($"_HandlePlaceHitReport() src: {(from==LocalP2pId()?"Local":from)}");          
             // See above. In trustyworld, place owner is authoritative
             (client as IBeamGameNetClient).OnPlaceHitObs(JsonConvert.DeserializeObject<PlaceHitMsg>(clientMessage.payload), from, msSinceSent);
         }

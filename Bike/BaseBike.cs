@@ -14,7 +14,6 @@ namespace BeamBackend
         public string peerId {get; private set;}
         public string name {get; private set;}
         public Team team {get; private set;}
-        public bool isActive {get; private set;} // Set when bike is fully ready. TYpically first Update()?
         public int score {get; set;}        
         public string ctrlType {get; private set;}
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
@@ -30,7 +29,6 @@ namespace BeamBackend
 
         public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed)
         { 
-            isActive = true; // remote bikes will be set NOT active when added. Activated on first udpate
             gameInst = gi;
             bikeId = _id;
             peerId = _peerId;
@@ -45,8 +43,7 @@ namespace BeamBackend
         }
 
         // Commands from outside
-        public void SetActive(bool isIt) => isActive = isIt;
-        //
+
   
         public void Loop(float secs)
         {
@@ -61,9 +58,6 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
-            if (!isActive)
-                return;
-
             Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
             {
@@ -93,9 +87,6 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
-            if (!isActive)
-                return;
-
             if (!UpcomingGridPoint().Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
 
@@ -139,14 +130,10 @@ namespace BeamBackend
                 newPos.x = ptPos.x;
             }
             position = newPos;
-            isActive = true;
         }
 
         private void _updatePosition(float secs)
         {
-            if (!isActive)
-                return;
-
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 

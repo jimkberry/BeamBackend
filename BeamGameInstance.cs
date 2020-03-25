@@ -416,10 +416,6 @@ namespace BeamBackend
 
             gameData.Bikes[ib.bikeId] = ib;   
 
-            // Need to set remote bikes as InActive on creation
-            if (ib.peerId != LocalPeerId)
-                (ib as BaseBike).SetActive(false);
-
             NewBikeEvt?.Invoke(this, ib); 
             return true;                     
         }
