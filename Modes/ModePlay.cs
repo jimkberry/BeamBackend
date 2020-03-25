@@ -24,7 +24,9 @@ namespace BeamBackend
             game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
 
             game.ClearPlaces();     
-            IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();
+            IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
+            if (playerBike == null) 
+                playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();                   
             _startLocalBikes();
             game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );             
         }

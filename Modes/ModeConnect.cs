@@ -114,10 +114,10 @@ namespace BeamBackend
                 _loopFunc = _WaitForRemoteBikesLoop;
                 break;
             case kCreatingBikes:
-                logger.Info($"{(ModeName())}: SetState: kCreatingBike");     
-                for (int i=0; i<settings.aiBikeCount; i++)
-                    _CreateADemoBike();                   
+                logger.Info($"{(ModeName())}: SetState: kCreatingBike");                       
                 _CreateLocalBike(settings.localPlayerCtrlType);   
+                for (int i=0; i<settings.aiBikeCount; i++)
+                    _CreateADemoBike();                 
                 _loopFunc = _WaitForLocalBikesLoop;                            
                 break;           
             case kReadyToPlay:
