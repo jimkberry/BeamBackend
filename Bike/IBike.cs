@@ -12,7 +12,7 @@ namespace BeamBackend
         string name {get;}
         Team team { get;}   
         bool isActive { get;}         
-        int ctrlType {get;}        
+        string ctrlType {get;}        
         Vector2 position {get;}   
         Heading heading { get;} 
         float speed { get; }

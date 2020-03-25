@@ -167,7 +167,7 @@ namespace BeamBackend
             // TODO: gets throttled per-bike by gamenet, but we should probably
             // have it time-based here as well rather than going though
             // the whole thing every frame
-            gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
+            //gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
             
             return modeMgr.Loop(frameSecs); // TODO: I THINK this is OK. manager code can't change instance state
         }
@@ -399,7 +399,7 @@ namespace BeamBackend
 
         // Bike-related      
 
-        public BaseBike CreateBaseBike(int ctrlType, string peerId, string name, Team t)
+        public BaseBike CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( this.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  

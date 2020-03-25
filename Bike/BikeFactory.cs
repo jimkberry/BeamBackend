@@ -7,15 +7,10 @@ using BeamBackend;
 public static class BikeFactory
 {
 	// Types are pretty lame, but don't mean much to the backend
-	public const int RemoteCtrl = 0;
-	public const int AiCtrl = 1;
-	public const int LocalPlayerCtrl = 2;
-
-    // public static IBike CreateBike(BeamGameInstance gi, string bikeId, string peerId, string name, Team team, int ctrl, Vector2 initialPos, Heading head)
-	// { 
-    //     IBike ib = new BaseBike(gi, bikeId, peerId, name, team, ctrl, initialPos, head);
-    //     return ib;
-    // }	
+	public const string NoCtrl = "none";	
+	public const string RemoteCtrl = "remote";
+	public const string AiCtrl = "ai";
+	public const string LocalPlayerCtrl = "player";
 
     //
     // Utility

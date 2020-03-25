@@ -82,7 +82,7 @@ namespace BeamBackend
             return null;
         } 
   
-        protected string CreateBaseBike(int ctrlType, string peerId, string name, Team t)
+        protected string CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  

@@ -16,7 +16,7 @@ namespace BeamBackend
         public Team team {get; private set;}
         public bool isActive {get; private set;} // Set when bike is fully ready. TYpically first Update()?
         public int score {get; set;}        
-        public int ctrlType {get; private set;}
+        public string ctrlType {get; private set;}
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public Heading heading { get; private set;} = Heading.kNorth;
@@ -28,7 +28,7 @@ namespace BeamBackend
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, int ctrl, Vector2 initialPos, Heading head, float _speed)
+        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed)
         { 
             isActive = true; // remote bikes will be set NOT active when added. Activated on first udpate
             gameInst = gi;

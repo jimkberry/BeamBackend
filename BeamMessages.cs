@@ -63,7 +63,7 @@ namespace BeamBackend
         public string name;
         public Team team;
         public int score;     
-        public int ctrlType;
+        public string ctrlType;
         public float xPos;
         public float yPos;
         public Heading heading;     
