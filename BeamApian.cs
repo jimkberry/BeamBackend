@@ -146,6 +146,7 @@ namespace BeamBackend
 
         public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
         {
+            logger.Info($"OnApianClockOffsetMsg() - From: {fromId}");             
             BeamApianPeer p = apianPeers[fromId];            
             ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
             ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
