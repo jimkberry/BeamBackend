@@ -170,7 +170,7 @@ namespace BeamBackend
                 {
                     // ...and we are the group creator (and so the original source for the clock)
                     ApianClock.Set(0); // we joined. Set the clock
-                    logger.Info($"OnApianClockOffsetMsg(): Reporting local peer as ready to play.");                 
+                    logger.Info($"OnMemberJoinedGroup(): Reporting local peer as ready to play.");                 
                     client.OnGameJoined(ApianGroup.GroupId, peerId);  // Inform the client app                    
                 }               
             
