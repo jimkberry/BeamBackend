@@ -125,7 +125,7 @@ namespace Apian
                 {
                     // CurrentTime = sysMs + peerOffset + peerAppOffset;
                     Set( SystemTime + sysOffsetsByPeer[p2pId] + remoteApianOffset );
-                     logger.Verbose($"OnApianClockOffset() - Set clock to match {p2pId}");   
+                    logger.Verbose($"OnApianClockOffset() - Set clock to match {p2pId}");   
                 }
             } else {
                 UpdateForOtherPeers();

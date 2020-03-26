@@ -91,8 +91,15 @@ namespace BeamBackend
         }
         public void OnGameCreated(string gameP2pChannel) => client.OnGameCreated(gameP2pChannel); // Awkward. Not needed for Apian, but part of GNClient
 
-        public void OnGameJoined(string gameId, string localP2pId)
+        protected void AddApianPeer(string p2pId, string peerHelloData)
         {
+            BeamApianPeer p = new BeamApianPeer(p2pId, peerHelloData);
+            p.status = ApianMember.Status.kSyncing;
+            apianPeers[p2pId] = p; 
+        }
+
+        public void OnGameJoined(string gameId, string localP2pId)
+        {           
             ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
             if (gameId == "localgame") // TODO: YUUUK!!! Make this be a param
             {
@@ -111,17 +118,14 @@ namespace BeamBackend
 
         public void OnPeerJoined(string p2pId, string peerHelloData) 
         {
-            BeamApianPeer p = new BeamApianPeer(p2pId, peerHelloData);
-            p.status = ApianMember.Status.kSyncing;
-            apianPeers[p2pId] = p; 
+            logger.Info($"OnPeerJoined() - {(p2pId==GameNet.LocalP2pId()?"Local":"Remote")} Peer: {p2pId}");            
+            AddApianPeer( p2pId, peerHelloData);
         }
 
         public void OnPeerSync(string p2pId, long clockOffsetMs, long netLagMs)
         {
             BeamApianPeer p = apianPeers[p2pId];
-
             ApianClock?.OnPeerSync(p2pId, clockOffsetMs, netLagMs); // TODO: should this be in ApianBase?
-
             switch (p.status)
             {
             case ApianMember.Status.kSyncing:
@@ -142,10 +146,6 @@ namespace BeamBackend
 
         public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
         {
-            // TODO: local peer is currently not in ApianPeers list. Should it be?
-            if (fromId == GameNet.LocalP2pId())
-                return;
-
             BeamApianPeer p = apianPeers[fromId];            
             ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
             ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
@@ -154,7 +154,7 @@ namespace BeamBackend
             {
                 p.status = ApianMember.Status.kActive;
                 logger.Info($"OnApianClockOffsetMsg(): Reporting {fromId} as ready to play.");                 
-               // client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
+                client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
             } 
         }
 
