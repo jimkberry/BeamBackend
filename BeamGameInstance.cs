@@ -179,7 +179,7 @@ namespace BeamBackend
         public string LocalPeerData()
         {
             if (LocalPeer == null)
-                logger.Error("LocalPeerData() - no local peer");
+                logger.Warn("LocalPeerData() - no local peer");
             return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
         }         
 
