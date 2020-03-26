@@ -145,8 +145,13 @@ namespace BeamBackend
         }
 
         public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
-        {
-            logger.Info($"OnApianClockOffsetMsg() - From: {fromId}");             
+        { 
+            if (fromId == ApianGroup.LocalP2pId)
+            {
+                logger.Verbose($"OnApianClockOffsetMsg(). Oops. It's me. Bailing"); 
+                return;
+            }            
+            logger.Info($"OnApianClockOffsetMsg() - From: {fromId}");  
             BeamApianPeer p = apianPeers[fromId];            
             ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
             ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
