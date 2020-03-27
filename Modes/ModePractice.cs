@@ -24,7 +24,7 @@ namespace BeamBackend
             base.Start();
 
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.GameJoinedEvt += OnGameJoinedEvt;            
+            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;            
             game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
 
             gameJoined = false;
@@ -38,7 +38,7 @@ namespace BeamBackend
             BeamUserSettings settings = game.frontend.GetUserSettings();
             game.gameNet.Connect("p2ploopback");
             string p2pId = game.gameNet.LocalP2pId();
-            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null, true);
+            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null);
             game.AddLocalPeer(localPeer);
             game.gameNet.JoinGame("localgame");                 
         }
@@ -73,7 +73,7 @@ namespace BeamBackend
         }
 
 		public override object End() {            
-            game.GameJoinedEvt -= OnGameJoinedEvt;            
+            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;            
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;             
             game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
@@ -118,10 +118,14 @@ namespace BeamBackend
             // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.            
         }   
 
-        public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
+        public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {     
-            logger.Info("Practice game joined");
-            gameJoined = true;            
+            bool isLocal = ga.peer.PeerId == game.LocalPeerId;            
+            if (isLocal)
+            {
+                logger.Info("Practice game joined");
+                gameJoined = true;            
+            }
         }        
     }
 }

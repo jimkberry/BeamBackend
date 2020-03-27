@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -99,10 +98,9 @@ namespace BeamBackend
         public long FrameApianTime {get; private set;} = -1;
 
         // IBeamBackend events
-        public event EventHandler<string> GameCreatedEvt; // game channel
-        public event EventHandler<GameJoinedArgs> GameJoinedEvt;     
-        public event EventHandler<BeamPeer> PeerJoinedEvt;    
-        public event EventHandler<string> PeerLeftEvt; // peer p2pId
+        public event EventHandler<string> GameCreatedEvt; // game channel   
+        public event EventHandler<PeerJoinedGameArgs> PeerJoinedGameEvt;    
+        public event EventHandler<PeerLeftGameArgs> PeerLeftGameEvt; 
         public event EventHandler PeersClearedEvt;
         public event EventHandler<IBike> NewBikeEvt;   
         public event EventHandler<BikeRemovedData> BikeRemovedEvt; 
@@ -188,21 +186,23 @@ namespace BeamBackend
             logger.Info($"OnGameCreated({gameP2pChannel}"); 
             GameCreatedEvt?.Invoke(this, gameP2pChannel);
         }
-        public void OnGameJoined(string gameId, string localP2pId)
-        {
-            logger.Info($"OnGameJoined({gameId}, {localP2pId})");  
-            CurrentGameId = gameId;
-            GameJoinedEvt?.Invoke(this, new GameJoinedArgs(gameId, localP2pId));                  
-        }
-        public void OnPeerJoined(string p2pId, string helloData)
+
+        public void OnPeerJoinedGame(string p2pId, string gameId, string helloData)
         {  
-            NetPeerData remoteData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
-            logger.Info($"OnPeerJoined(name: {remoteData.peer.Name})");   
-            _AddPeer(remoteData.peer);                             
+            NetPeerData peerData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
+            logger.Info($"OnPeerJoinedGame(name: {peerData.peer.Name})");          
+            if (p2pId == LocalPeerId)
+            {
+                CurrentGameId = gameId;       
+            }
+            _AddPeer(peerData.peer);      
+            PeerJoinedGameEvt.Invoke(this, new PeerJoinedGameArgs(gameId, peerData.peer));                                           
         }
-        public void OnPeerLeft(string p2pId)
+
+        public void OnPeerLeftGame(string p2pId, string gameId)
         {
-            logger.Info($"OnPeerLeft({p2pId})"); 
+            logger.Info($"OnPeerLeftGame({p2pId})"); 
+            PeerLeftGameEvt.Invoke(this, new PeerLeftGameArgs(gameId, p2pId));               
             _RemovePeer(p2pId);                                            
         }
 
@@ -371,9 +371,6 @@ namespace BeamBackend
             if  ( gameData.Peers.ContainsKey(p.PeerId))
                 return false;  
 
-            gameData.Peers[p.PeerId] = p;
-            PeerJoinedEvt?.Invoke(this, p);
-
             return true;
         }
 
@@ -382,7 +379,7 @@ namespace BeamBackend
             if  (!gameData.Peers.ContainsKey(p2pId))
                 return false;              
 
-            PeerLeftEvt?.Invoke(this, p2pId);    
+            PeerLeftGameEvt?.Invoke(this, new PeerLeftGameArgs(CurrentGameId, p2pId));    
 
             foreach (IBike ib in gameData.LocalBikes(p2pId)) 
                 _RemoveBike(ib, true); // Blow em up just for yuks.

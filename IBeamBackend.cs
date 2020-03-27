@@ -5,11 +5,19 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public struct GameJoinedArgs {
+    //
+    // Event args
+    //
+    public struct PeerJoinedGameArgs {
         public string gameChannel;
-        public string localP2pId;
-        public GameJoinedArgs(string g, string p) {gameChannel=g; localP2pId=p;}        
+        public BeamPeer peer;
+        public PeerJoinedGameArgs(string g, BeamPeer p) {gameChannel=g; peer=p;}        
     }
+    public struct PeerLeftGameArgs {
+        public string gameChannel;
+        public string p2pId;
+        public PeerLeftGameArgs(string g, string p) {gameChannel=g; p2pId=p;}        
+    }    
     public struct BikeRemovedData {
         public string bikeId; 
         public bool doExplode; 
@@ -27,9 +35,8 @@ namespace BeamBackend
     public interface IBeamBackend {
 
         event EventHandler<string> GameCreatedEvt; // game channel
-        event EventHandler<GameJoinedArgs> GameJoinedEvt; // local p2pid
-        event EventHandler<BeamPeer> PeerJoinedEvt;
-        event EventHandler<string> PeerLeftEvt; // peer p2pId
+        event EventHandler<PeerJoinedGameArgs> PeerJoinedGameEvt; 
+        event EventHandler<PeerLeftGameArgs> PeerLeftGameEvt;
         event EventHandler PeersClearedEvt;
         event EventHandler<IBike> NewBikeEvt;   
         event EventHandler<BikeRemovedData> BikeRemovedEvt; 

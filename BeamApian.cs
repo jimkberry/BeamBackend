@@ -98,28 +98,36 @@ namespace BeamBackend
             apianPeers[p2pId] = p; 
         }
 
-        public void OnGameJoined(string gameId, string localP2pId)
-        {           
-            ApianGroup = new ApianBasicGroupManager(this, gameId, localP2pId);
+
+        public string LocalPeerData() => client.LocalPeerData();  
+
+        public void OnPeerJoinedGame(string p2pId, string gameId, string peerHelloData) 
+        {
+            logger.Info($"OnPeerJoinedGame() - {(p2pId==GameNet.LocalP2pId()?"Local":"Remote")} Peer: {p2pId}, Game: {gameId}");  
+
+            if (ApianGroup == null)
+                ApianGroup = new ApianBasicGroupManager(this, gameId, GameNet.LocalP2pId());
+
+            AddApianPeer( p2pId, peerHelloData); // doesn't add to group        
+
             if (gameId == "localgame") // TODO: YUUUK!!! Make this be a param
             {
                 logger.Info($"OnGameJoined(): Local-only group");                
                 ApianGroup.StartLocalOnlyGroup();
             }
-        }
+        }      
 
-        public void OnGameLeft()
+        public void OnPeerLeftGame(string p2pId, string gameId)
         {
-            //client.OnGameLeft();
-            InitApianVars();
-        }
+            logger.Info($"OnPeerLeftGame() - {(p2pId==GameNet.LocalP2pId()?"Local":"Remote")} Peer: {p2pId}, Game: {gameId}");      
+            client.OnPeerLeftGame(p2pId, gameId);
+            
+            ApianGroup?.OnApianMsg( new GroupMemberLefttMsg(ApianGroup?.GroupId, p2pId), GameNet.LocalP2pId(), ApianGroup?.GroupId);
 
-        public string LocalPeerData() => client.LocalPeerData();  
-
-        public void OnPeerJoined(string p2pId, string peerHelloData) 
-        {
-            logger.Info($"OnPeerJoined() - {(p2pId==GameNet.LocalP2pId()?"Local":"Remote")} Peer: {p2pId}");            
-            AddApianPeer( p2pId, peerHelloData);
+            if (p2pId == GameNet.LocalP2pId())
+            {
+                InitApianVars();            
+            }
         }
 
         public void OnPeerSync(string p2pId, long clockOffsetMs, long netLagMs)
@@ -130,18 +138,11 @@ namespace BeamBackend
             {
             case ApianMember.Status.kSyncing:
                 p.status = ApianMember.Status.kJoining;
-                client.OnPeerJoined(p2pId, p.AppHelloData);
                 break;
             case ApianMember.Status.kJoining:
             case ApianMember.Status.kActive:            
                 break;
             }
-        }
-        public void OnPeerLeft(string p2pId)
-        {
-            logger.Info($"OnPeerLeft() - Peer: {p2pId}");           
-            client.OnPeerLeft(p2pId);
-            ApianGroup?.OnApianMsg( new GroupMemberLefttMsg(ApianGroup?.GroupId, p2pId), GameNet.LocalP2pId(), ApianGroup?.GroupId);
         }
 
         public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
@@ -160,7 +161,7 @@ namespace BeamBackend
             {
                 p.status = ApianMember.Status.kActive;
                 logger.Info($"OnApianClockOffsetMsg(): Reporting {fromId} as ready to play.");                 
-                client.OnGameJoined(ApianGroup.GroupId, fromId);  // Inform the client app
+                client.OnPeerJoinedGame(fromId, ApianGroup.GroupId, p.AppHelloData);  // Inform the client app
             } 
         }
 
@@ -173,10 +174,11 @@ namespace BeamBackend
                 // It's us that joined.
                 if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
                 {
+                    BeamApianPeer p = apianPeers[peerId];                    
                     // ...and we are the group creator (and so the original source for the clock)
                     ApianClock.Set(0); // we joined. Set the clock
-                    logger.Info($"OnMemberJoinedGroup(): Reporting local peer as ready to play.");                 
-                    client.OnGameJoined(ApianGroup.GroupId, peerId);  // Inform the client app                    
+                    logger.Info($"OnMemberJoinedGroup(): Reporting local peer as ready to play.");
+                    client.OnPeerJoinedGame(peerId, ApianGroup.GroupId, p.AppHelloData);  // Inform the client app                                                         
                 }               
             
             } else {

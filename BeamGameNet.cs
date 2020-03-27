@@ -69,12 +69,6 @@ namespace BeamBackend
             ApianInst = client as BeamApian;
         }
 
-        // public override void JoinGame(string gameP2pChannel)
-        // {
-        //     p2p.Join(gameP2pChannel);
-        //     callbacksForNextPoll.Enqueue( () => client.OnGameJoined(gameP2pChannel, LocalP2pId()));
-        // }
-
         public override void Loop()
         {
             base.Loop();
@@ -89,7 +83,6 @@ namespace BeamBackend
         public string CurrentGroupId()
         {
            return ApianInst.ApianGroup.GroupId;
-           //return CurrentGameId();
         }
 
         protected override IP2pNet P2pNetFactory(string p2pConnectionString)
@@ -176,7 +169,6 @@ namespace BeamBackend
                 if ((!_lastBikeUpdatesMs.TryGetValue(ib.bikeId, out prevMs) || (nowMs - prevMs > kBikeUpdateMs)) && !(ib as BaseBike).CloseToGridPoint())
                     SendBikeUpdate(ib);
             }
-      
         }
 
         public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)

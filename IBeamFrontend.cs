@@ -25,8 +25,8 @@ namespace BeamBackend
         void OnEndMode(int modeId, object param = null);        
 
         // Players
-        void OnPeerJoinedEvt(object sender, BeamPeer p);
-        void OnPeerLeftEvt(object sender, string p2pId);
+        void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs pa);
+        void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs pa);
         void OnPeersClearedEvt(object sender, EventArgs e);        
         // Bikes
         void OnNewBikeEvt(object sender, IBike ib);

@@ -13,7 +13,7 @@ namespace BeamBackend
         //
         // joiningGame
         //      start: issue joinGame
-        //      on GameJoinedEvt: waitingForRemoteBikes
+        //      on PeerJoinedGameEvt(local peer): waitingForRemoteBikes
         //
         // waitingForRemoteBikes
         //      start: reset timer
@@ -53,9 +53,8 @@ namespace BeamBackend
             game = (BeamGameInstance)gameInst;
 
             game.GameCreatedEvt += OnGameCreatedEvt;
-            game.GameJoinedEvt += OnGameJoinedEvt;
-            game.PeerJoinedEvt += OnPeerJoinedEvt;
-            game.PeerLeftEvt += OnPeerLeftEvt;
+            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            game.PeerLeftGameEvt += OnPeerLeftGameEvt;
             game.NewBikeEvt += OnNewBikeEvt;
 
             settings = game.frontend.GetUserSettings();
@@ -86,9 +85,8 @@ namespace BeamBackend
 
 		public override object End() {         
             game.GameCreatedEvt -= OnGameCreatedEvt;
-            game.GameJoinedEvt -= OnGameJoinedEvt;
-            game.PeerJoinedEvt -= OnPeerJoinedEvt;
-            game.PeerLeftEvt -= OnPeerLeftEvt;
+            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            game.PeerLeftGameEvt -= OnPeerLeftGameEvt;
             game.NewBikeEvt -= OnNewBikeEvt;               
             game.frontend?.OnEndMode(ModeId());            
             return null;
@@ -156,24 +154,23 @@ namespace BeamBackend
                 logger.Error($"{(ModeName())} - OnGameCreatedEvt() - Wrong state: {_curState}");
         }
 
-        public void OnGameJoinedEvt(object sender, GameJoinedArgs ga)
+        public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {     
-                logger.Info($"Joined game: {ga.gameChannel} as ID: {ga.localP2pId}");
+            BeamPeer p = ga.peer;
+            bool isLocal = p.PeerId == game.LocalPeerId;
+            logger.Info($"{(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");  
+            if (isLocal)
+            {          
                 if (_curState == kJoiningGame)
                     _SetState(kWaitingForRemoteBikes, null);             
                 else
                     logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");            
+            }
         }
 
-        public void OnPeerJoinedEvt(object sender, BeamPeer p)
+        public void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs args)
         {
-            string lr = p.IsLocal ? "Local" : "Remote";
-            logger.Info($"{lr} Peer Joined: {p.Name}, ID: {p.PeerId}");                           
-        }
-
-        public void OnPeerLeftEvt(object sender, string p2pId)
-        {
-            logger.Info($"Remote Peer Left: {p2pId}");  
+            logger.Info($"Peer Left Game: {args.p2pId}");  
         }      		
 
         public void OnNewBikeEvt(object sender, IBike ib)
@@ -203,7 +200,7 @@ namespace BeamBackend
         protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
         {               
             // Game.LocalP2pId is not set yet
-            return new BeamPeer(p2pId, settings.screenName, null, true);
+            return new BeamPeer(p2pId, settings.screenName, null);
         }
 
         protected void _CreateLocalBike(string bikeCtrlType)
