@@ -43,6 +43,7 @@ namespace BeamBackend
         event EventHandler BikesClearedEvt;
         event EventHandler<Ground.Place> PlaceClaimedEvt;
         event EventHandler<PlaceHitArgs> PlaceHitEvt;    
+        event EventHandler<string> UnknownBikeEvt;
 
         // Instigated by game mode code
         event EventHandler ReadyToPlayEvt;          

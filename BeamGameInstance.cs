@@ -106,7 +106,8 @@ namespace BeamBackend
         public event EventHandler<BikeRemovedData> BikeRemovedEvt; 
         public event EventHandler BikesClearedEvt;      
         public event EventHandler<Ground.Place> PlaceClaimedEvt;
-        public event EventHandler<PlaceHitArgs> PlaceHitEvt;          
+        public event EventHandler<PlaceHitArgs> PlaceHitEvt;    
+        public event EventHandler<string> UnknownBikeEvt;     
 
         public event EventHandler ReadyToPlayEvt;
         public event EventHandler RespawnPlayerEvt;        
@@ -362,6 +363,12 @@ namespace BeamBackend
                 bike.score = 0;
                 _RemoveBike(bike);
             }
+        }
+
+        //  informational
+        public void OnUnknownBike(string srcId, string bikeId)
+        {
+            UnknownBikeEvt?.Invoke(this, bikeId); 
         }
 
         // Peer-related

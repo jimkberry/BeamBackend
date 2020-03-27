@@ -16,8 +16,8 @@ namespace BeamBackend
         void SendBikeUpdates(List<IBike> localBikes);
         void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt);        
         void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt);
-        void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx);
-        void SendPlaceHitObs(string bikeId, int xIdx, int zIdx);     
+        void SendPlaceClaimObs(IBike bike, int xIdx, int zIdx);
+        void SendPlaceHitObs(IBike bike, int xIdx, int zIdx);     
         void SendApianMessage(string toChannel, ApianMessage apianMsg);      
         long CurrentApianTime();  
         string CurrentGroupId();  
@@ -140,13 +140,13 @@ namespace BeamBackend
         public void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeTurnMsg msg = new BikeTurnMsg(CurrentApianTime(), bike.bikeId, dir, nextPt);
+            BikeTurnMsg msg = new BikeTurnMsg(CurrentApianTime(), bike.bikeId, bike.peerId, dir, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
         public void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeCommandMsg msg = new BikeCommandMsg(CurrentApianTime(), bike.bikeId, cmd, nextPt);
+            BikeCommandMsg msg = new BikeCommandMsg(CurrentApianTime(), bike.bikeId, bike.peerId, cmd, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }        
 
@@ -171,17 +171,17 @@ namespace BeamBackend
             }
         }
 
-        public void SendPlaceClaimObs(string bikeId, int xIdx, int zIdx)
+        public void SendPlaceClaimObs(IBike bike, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceClaim()");            
-            PlaceClaimMsg msg = new PlaceClaimMsg(CurrentApianTime(), bikeId, xIdx, zIdx);
+            PlaceClaimMsg msg = new PlaceClaimMsg(CurrentApianTime(), bike.bikeId, bike.peerId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
         
-        public void SendPlaceHitObs(string bikeId, int xIdx, int zIdx)
+        public void SendPlaceHitObs(IBike bike, int xIdx, int zIdx)
         {
             logger.Verbose($"ReportPlaceHit()");                
-            PlaceHitMsg msg = new PlaceHitMsg(CurrentApianTime(), bikeId, xIdx, zIdx);
+            PlaceHitMsg msg = new PlaceHitMsg(CurrentApianTime(), bike.bikeId, bike.peerId, xIdx, zIdx);
             _SendClientMessage( CurrentGroupId(), msg.MsgType, JsonConvert.SerializeObject(msg));            
         }
 

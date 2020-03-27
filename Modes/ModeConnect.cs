@@ -15,12 +15,12 @@ namespace BeamBackend
         //      start: issue joinGame
         //      on PeerJoinedGameEvt(local peer): waitingForRemoteBikes
         //
-        // waitingForRemoteBikes
+        // waitingForUnknownBikes
         //      start: reset timer
-        //      loop: wait for kWaitForBikesSecs to go by without a remoteBikeCreated event
-        //          (the whole while we are issuing BkeCreaetData requests when we see a bike we don;t know)   
+        //      loop: wait for kWaitForBikesSecs to go by without an UnknownBikeEvt event
+        //          (the whole while we are issuing BikeCreaetData requests when we see a bike we don't know)   
         //          if times out: creatingBikes
-        //      on NewBikeCreatedEvt: reset wait timer 
+        //      on UnknownBikeEvt: reset wait timer 
         //          
         // creatingBikes:
         //      start:  issue create reqs for any AI bikes
@@ -33,7 +33,7 @@ namespace BeamBackend
         protected readonly float kWaitForBikesSecs = 1.75f * Ground.gridSize / BaseBike.defaultSpeed; // 1.75 grid time's worth
         protected const int kCreatingGame = 0;        
         protected const int kJoiningGame = 1;
-        protected const int kWaitingForRemoteBikes = 2; // wait for a clear couple seconds before creating bike(s)
+        protected const int kWaitingForUnknownBikes = 2; // wait for a clear couple seconds before creating local bike(s)
         protected const int kCreatingBikes = 3;           
         protected const int kReadyToPlay = 4;   
 
@@ -55,6 +55,7 @@ namespace BeamBackend
             game.GameCreatedEvt += OnGameCreatedEvt;
             game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
             game.PeerLeftGameEvt += OnPeerLeftGameEvt;
+            game.UnknownBikeEvt += OnUnknownBikeEvt;
             game.NewBikeEvt += OnNewBikeEvt;
 
             settings = game.frontend.GetUserSettings();
@@ -87,7 +88,8 @@ namespace BeamBackend
             game.GameCreatedEvt -= OnGameCreatedEvt;
             game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PeerLeftGameEvt -= OnPeerLeftGameEvt;
-            game.NewBikeEvt -= OnNewBikeEvt;               
+            game.NewBikeEvt -= OnNewBikeEvt;     
+            game.UnknownBikeEvt -= OnUnknownBikeEvt;                      
             game.frontend?.OnEndMode(ModeId());            
             return null;
         }         
@@ -107,7 +109,7 @@ namespace BeamBackend
                 logger.Info($"{(ModeName())}: SetState: kJoiningGame");            
                 game.gameNet.JoinGame((string)startParam);
                 break;                      
-            case kWaitingForRemoteBikes:
+            case kWaitingForUnknownBikes:
                 logger.Info($"{(ModeName())}: SetState: kWaitingForRemoteBikes");    
                 _loopFunc = _WaitForRemoteBikesLoop;
                 break;
@@ -158,11 +160,11 @@ namespace BeamBackend
         {     
             BeamPeer p = ga.peer;
             bool isLocal = p.PeerId == game.LocalPeerId;
-            logger.Info($"{(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");  
+            logger.Info($"{(ModeName())} - OnPeerJoinedGameEvt() - {(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");  
             if (isLocal)
             {          
                 if (_curState == kJoiningGame)
-                    _SetState(kWaitingForRemoteBikes, null);             
+                    _SetState(kWaitingForUnknownBikes, null);             
                 else
                     logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");            
             }
@@ -170,22 +172,22 @@ namespace BeamBackend
 
         public void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs args)
         {
-            logger.Info($"Peer Left Game: {args.p2pId}");  
+            logger.Info($"OnPeerJoinedGameEvt - Peer Left Game: {args.p2pId}");  
         }      		
 
         public void OnNewBikeEvt(object sender, IBike ib)
         {
             bool isLocal = ib.peerId == game.LocalPeerId;
-            logger.Info($"New {(isLocal?"Local":"Remote")} bike: {ib.bikeId}"); 
-            if (_curState == kWaitingForRemoteBikes)
-            {
-               if (!isLocal)
-                    _curStateSecs = 0; // reset and wait some more
-                else
-                    logger.Error($"{(ModeName())} - OnNewBikeEvt() got a local bike while waiting for remotes!");                
-            }
-            else if (_curState == kCreatingBikes && isLocal)
+            logger.Info($"{(ModeName())} - OnNewBikeEvt() - New {(isLocal?"Local":"Remote")} bike: {ib.bikeId}"); 
+            if (_curState == kCreatingBikes && isLocal)
                 _SetState(kReadyToPlay, null);                         
+        }
+
+        public void OnUnknownBikeEvt(object sender, string bikeId)
+        {
+            logger.Info($"{(ModeName())} - OnUnknownBikeEvt() bike: {bikeId}"); 
+            if (_curState == kWaitingForUnknownBikes)
+                _curStateSecs = 0; // reset and wait some more                 
         }
 
         //

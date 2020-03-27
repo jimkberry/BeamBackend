@@ -129,16 +129,18 @@ namespace BeamBackend
     public class BikeTurnMsg : BeamMessage
     {
         // TODO: use place hashes instad of positions?
-        public string bikeId;   
+        public string bikeId;  
+        public string ownerPeer;         
         public TurnDir dir;
         public float nextPtX;
         public float nextPtZ;  
 
         public BikeTurnMsg() : base(kBikeTurnMsg, 0)  {}
 
-        public BikeTurnMsg(long ts, string _bikeId, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
+        public BikeTurnMsg(long ts, string _bikeId, string _ownerPeer, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
         {
             bikeId = _bikeId;
+            ownerPeer = _ownerPeer;
             dir = _dir;
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
@@ -149,15 +151,17 @@ namespace BeamBackend
     {
         // TODO: use place hashes instad of positions?
         public string bikeId;   
+        public string ownerPeer;          
         public BikeCommand cmd;
         public float nextPtX;
         public float nextPtZ;  
 
         public BikeCommandMsg() : base(kBikeCommandMsg, 0)  {}
 
-        public BikeCommandMsg(long ts, string _bikeId, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg, ts) 
+        public BikeCommandMsg(long ts, string _bikeId, string _ownerPeer, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg, ts) 
         {
             bikeId = _bikeId;
+            ownerPeer = _ownerPeer;            
             cmd = _cmd;
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
@@ -167,11 +171,13 @@ namespace BeamBackend
     public class PlaceClaimMsg : BeamMessage
     {
         public string bikeId;
+        public string ownerPeer;          
         public int xIdx;
         public int zIdx;
-        public PlaceClaimMsg(long ts, string _bikeId, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg, ts) 
+        public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg, ts) 
         { 
             bikeId = _bikeId; 
+            ownerPeer = _ownerPeer;            
             xIdx = _xIdx;
             zIdx = _zIdx;
         }
@@ -180,11 +186,13 @@ namespace BeamBackend
     public class PlaceHitMsg : BeamMessage
     {
         public string bikeId;
+        public string ownerPeer;          
         public int xIdx;
         public int zIdx;
-        public PlaceHitMsg(long ts, string _bikeId, int _xIdx, int _zIdx) : base(kPlaceHitMsg, ts) 
+        public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx) : base(kPlaceHitMsg, ts) 
         { 
             bikeId = _bikeId; 
+            ownerPeer = _ownerPeer;            
             xIdx=_xIdx;
             zIdx=_zIdx;
         }

@@ -66,7 +66,7 @@ namespace BeamBackend
         //
         public override void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
-            if (ApianClock.IsIdle) // this is fugly
+            if (ApianClock.IsIdle) // TODO: this is fugly. SHould replace with a check if the local ApianPeer obkect is ready
                 return;
 
             logger.Info($"OnCreateBikeReq() - got req from {srcId}"); // &&&&&&&
@@ -97,8 +97,9 @@ namespace BeamBackend
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
-                logger.Debug($"OnPlaceHitObs() - unknown bike: {msg.bikeId}");
-                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
+                logger.Verbose($"OnPlaceHitObs() - unknown bike: {msg.bikeId}, source: {srcId}");
+                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);
+                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
                 // TODO: think about what happens if we get the bike data before the vote is done.
                 // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit() <- doing this now
                 //      while the bike isn't there
@@ -129,8 +130,9 @@ namespace BeamBackend
            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
-                logger.Debug($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}");
-                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
+                logger.Verbose($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}, source: {srcId}");
+                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
             }              
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
@@ -150,8 +152,9 @@ namespace BeamBackend
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
-                logger.Debug($"OnBikeCommandReq() - unknown bike: {msg.bikeId}");
-                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
+                logger.Verbose($"OnBikeCommandReq() - unknown bike: {msg.bikeId}, source: {srcId}");
+                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);               
+                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
             } else {
                 if (bb.peerId == srcId)
                     client.OnBikeCommand(msg, msgDelay);
@@ -165,8 +168,9 @@ namespace BeamBackend
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
             if (bb == null)
             {
-                logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}");
-                BeamGameNet.RequestBikeData(msg.bikeId, srcId);
+                logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}, source: {srcId}");
+                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
             } else {            
                 if ( bb.peerId == srcId)
                     client.OnBikeTurn(msg, msgDelay);
@@ -175,6 +179,7 @@ namespace BeamBackend
 
         public override void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay) 
         {
+            // TODO: no longer used. Get rid of update stuff
             if (ApianClock.IsIdle) // this is fugly
                 return;            
             BaseBike b = gameData.GetBaseBike(msg.bikeId);            
