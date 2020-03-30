@@ -163,6 +163,17 @@ namespace BeamBackend
                 logger.Info($"OnApianClockOffsetMsg(): Reporting {fromId} as ready to play.");                 
                 client.OnPeerJoinedGame(fromId, ApianGroup.GroupId, p.AppHelloData);  // Inform the client app
             } 
+
+            // Are we newly sync'ed now?
+            p = apianPeers[ ApianGroup.LocalP2pId];
+            logger.Info($"OnApianClockOffsetMsg(): local peer status: {p.status}");              
+            if (p.status != ApianMember.Status.kActive)
+            {
+                p.status = ApianMember.Status.kActive;
+                logger.Info($"OnApianClockOffsetMsg(): Reporting local peer as ready to play.");                 
+                client.OnPeerJoinedGame(p.P2pId, ApianGroup.GroupId, p.AppHelloData);  // Inform the client app
+            }             
+
         }
 
         public override void OnMemberJoinedGroup(string peerId)
@@ -174,10 +185,11 @@ namespace BeamBackend
                 // It's us that joined.
                 if ( ApianGroup.LocalP2pId == ApianGroup.GroupCreatorId) // we're the group creator
                 {
-                    BeamApianPeer p = apianPeers[peerId];                    
+                    BeamApianPeer p = apianPeers[peerId];     
+                    p.status = ApianMember.Status.kActive;                                   
                     // ...and we are the group creator (and so the original source for the clock)
                     ApianClock.Set(0); // we joined. Set the clock
-                    logger.Info($"OnMemberJoinedGroup(): Reporting local peer as ready to play.");
+                    logger.Info($"OnMemberJoinedGroup(): Reporting local peer (clock owner) as ready to play.");
                     client.OnPeerJoinedGame(peerId, ApianGroup.GroupId, p.AppHelloData);  // Inform the client app                                                         
                 }               
             
