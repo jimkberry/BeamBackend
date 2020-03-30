@@ -16,33 +16,37 @@ namespace BeamBackend
         public const string kPlaceClaimMsg = "B109";
         public const string kPlaceHitMsg = "B110";
 
-        public string MsgType;
-        public long TimeStamp;
-        public BeamMessage(string t, long ts) {MsgType = t; TimeStamp = ts;}
-    }
-
-
-    //
-    // GameNet messages
-    //
-    //
-
-
-    public class BeamApianMessage : BeamMessage 
-    {
-        public string apianMsgType;
-        public string apianMsgJson;
-
-        public BeamApianMessage() : base(kApianMsg, 0) {}      
-        public BeamApianMessage(long ts, string apMsgType, string msgJson) : base(kApianMsg, ts)
+        // Data classes
+        public class BikeState
         {
-            apianMsgType = apMsgType;
-            apianMsgJson = msgJson;        
-        }
-    }
+            public int score;     
+            public float xPos;
+            public float yPos;
+            public Heading heading;     
+            public float speed;
 
-    public class BikeCreateDataMsg : BeamMessage
-    {
+            public BikeState() {}
+
+            public BikeState(IBike ib) 
+            {
+                score = ib.score;
+                xPos = ib.position.x;
+                yPos = ib.position.y;
+                heading = ib.heading;
+                speed = ib.speed;
+            }
+
+            public BikeState(int _score, float _xPos, float _yPos, Heading _heading, float _speed) 
+            {
+                score = _score;
+                xPos = _xPos;
+                yPos = _yPos;
+                heading = _heading;
+                speed = _speed;
+            }            
+        }
+
+
         public class PlaceCreateData // Don't need bikeId since this is part of a bike data msg
         {
             public int xIdx;
@@ -58,6 +62,31 @@ namespace BeamBackend
             }
         }
 
+        public string MsgType;
+        public long TimeStamp;
+        public BeamMessage(string t, long ts) {MsgType = t; TimeStamp = ts;}
+    }
+
+
+    //
+    // GameNet messages
+    //
+    //
+    public class BeamApianMessage : BeamMessage 
+    {
+        public string apianMsgType;
+        public string apianMsgJson;
+
+        public BeamApianMessage() : base(kApianMsg, 0) {}      
+        public BeamApianMessage(long ts, string apMsgType, string msgJson) : base(kApianMsg, ts)
+        {
+            apianMsgType = apMsgType;
+            apianMsgJson = msgJson;        
+        }
+    }
+
+    public class BikeCreateDataMsg : BeamMessage
+    {
         public string bikeId; 
         public string peerId;
         public string name;
@@ -66,7 +95,8 @@ namespace BeamBackend
         public string ctrlType;
         public float xPos;
         public float yPos;
-        public Heading heading;     
+        public Heading heading;    
+        public TurnDir pendingTurn; 
         public float speed;
 
         public List<PlaceCreateData> ownedPlaces;
@@ -82,6 +112,7 @@ namespace BeamBackend
             xPos = ib.position.x;
             yPos = ib.position.y;
             heading = ib.heading;
+            pendingTurn = ib.pendingTurn;
             speed = ib.speed;
             ownedPlaces = new List<PlaceCreateData>();
             if (places != null)
@@ -94,7 +125,8 @@ namespace BeamBackend
         public IBike ToBike(BeamGameInstance gi)
         {
             // Remote bikes always get control type: BikeFactory.RemoteCrtl
-            return new BaseBike(gi, bikeId, peerId , name, team, peerId != gi.LocalPeerId ? BikeFactory.RemoteCtrl : ctrlType, new Vector2(xPos, yPos), heading, speed);
+            return new BaseBike(gi, bikeId, peerId , name, team, peerId != gi.LocalPeerId ? BikeFactory.RemoteCtrl : ctrlType, 
+                                new Vector2(xPos, yPos), heading, speed, pendingTurn);
         }
     }
 
