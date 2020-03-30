@@ -27,7 +27,7 @@ namespace BeamBackend
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed)
+        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed, TurnDir _pendingTurn=TurnDir.kUnset)
         { 
             gameInst = gi;
             bikeId = _id;
@@ -37,6 +37,7 @@ namespace BeamBackend
             position = initialPos;
             speed = _speed;
             heading = head;
+            pendingTurn = _pendingTurn;
             ctrlType = ctrl;  
             score = kStartScore;  
             logger = UniLogger.GetLogger("BaseBike");
@@ -53,11 +54,14 @@ namespace BeamBackend
 
         public void AddScore(int val) => score += val;
 
-        public void ApplyTurn(TurnDir dir, Vector2 nextPt, long msgTime)
+        public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs)
         {
+
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
+            float rollbackSecs = _rollbackTime(commandDelaySecs);
+
             Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
             {
@@ -76,17 +80,18 @@ namespace BeamBackend
                 } else {
                     logger.Verbose($"  Unable to fix.");                    
                 }
-
             }
-
             pendingTurn = dir;
+            _updatePosition(rollbackSecs);
         }
 
-        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long msgTime)
+        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, float commandDelaySecs)
         {
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
+            float rollbackSecs = _rollbackTime(commandDelaySecs);
+
             if (!UpcomingGridPoint().Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
 
@@ -102,12 +107,12 @@ namespace BeamBackend
                 logger.Warn($"ApplyCommand(): Unknown BikeCommand: {cmd}");
                 break;
             }
+
+            _updatePosition(rollbackSecs);
         }        
 
         public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
         {
-            // This happens even for an inactive bike. Sets it active, in fact.
-
             // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
             
             speed = newSpeed;
@@ -153,6 +158,26 @@ namespace BeamBackend
             newPos += GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
 
             position = newPos;
+        }
+
+        private float _rollbackTime(float secs)
+        {
+            // Propagate the bike backwards in time by "secs" or the length of time that 
+            // takes it back to the next point - whichever is longer            
+            // This is to try to minimize message delays. 
+            // If, for instance, a bike command is received that we know happened .08 secs ago, 
+            // then the code handling the command can roll the bike back, apply th ecommand, and then 
+            // call bike.update(rolledBackTime) to have effectively back-applied the command.
+            // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
+            // It returns the amount of time rolled back as a positive float.
+            Vector2 upcomingPoint = UpcomingGridPoint();
+            float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
+            float timeSinceLastPoint = (Ground.gridSize / speed) - timeToNextPoint;
+            secs = (secs > timeSinceLastPoint) ? timeSinceLastPoint : secs;
+
+            position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
+
+            return secs;
         }
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)

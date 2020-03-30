@@ -218,7 +218,12 @@ namespace BeamBackend
         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
         {
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
-            IBike ib = msg.ToBike(this);             
+            IBike ib = msg.ToBike(this); 
+
+            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs
+            logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
+            ib.Loop(elapsedSecs); // project to NOW
+
             if (_AddBike(ib))
             {
                 foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
@@ -236,7 +241,8 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
-            bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), msg.TimeStamp);
+            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs            
+            bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
         public void OnBikeTurn(BikeTurnMsg msg, long msgDelay)
@@ -246,7 +252,8 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
-            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), msg.TimeStamp);
+            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs              
+            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
         public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
