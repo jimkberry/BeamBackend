@@ -191,7 +191,7 @@ namespace BeamBackend
         public void OnPeerJoinedGame(string p2pId, string gameId, string helloData)
         {  
             NetPeerData peerData = JsonConvert.DeserializeObject<NetPeerData>(helloData);    
-            logger.Info($"OnPeerJoinedGame(name: {peerData.peer.Name})");          
+            logger.Info($"OnPeerJoinedGame() {((p2pId == LocalPeerId)?"Local":"Remote")} name: {peerData.peer.Name}");          
             if (p2pId == LocalPeerId)
             {
                 CurrentGameId = gameId;       
