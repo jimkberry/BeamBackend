@@ -172,7 +172,7 @@ namespace BeamBackend
 
         public void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs args)
         {
-            logger.Info($"OnPeerJoinedGameEvt - Peer Left Game: {args.p2pId}");  
+            logger.Info($"OnPeerLeftGameEvt - Peer Left Game: {args.p2pId}");  
         }      		
 
         public void OnNewBikeEvt(object sender, IBike ib)
