@@ -76,7 +76,9 @@ namespace BeamBackend
         public string ethNodeUrl;
         public string ethAcct;
         public string localPlayerCtrlType;
-        public int aiBikeCount; // in addiotn to localPLayerBike, spawn this many AIs (and respawn to keep the number up)
+        public int aiBikeCount; // in addition to localPLayerBike, spawn this many AIs (and respawn to keep the number up)
+        public bool regenerateAiBikes; // create new ones when old ones get blown up
+
         public Dictionary<string, string> debugLevels;
         public Dictionary<string, string> tempSettings; // dict of cli-set, non-peristent values        
 
@@ -97,6 +99,7 @@ namespace BeamBackend
             ethAcct = source.ethAcct; 
             localPlayerCtrlType = source.localPlayerCtrlType;
             aiBikeCount = source.aiBikeCount;
+            regenerateAiBikes = source.regenerateAiBikes;
             debugLevels = source.debugLevels ?? new Dictionary<string, string>();
             tempSettings = source.tempSettings ?? new Dictionary<string, string>();                 
         }
@@ -113,6 +116,7 @@ namespace BeamBackend
                 ethAcct = "0x2b42eBD222B5a1134e85D78613078740eE3Cc93D",
                 localPlayerCtrlType = BikeFactory.AiCtrl,
                 aiBikeCount = 2,
+                regenerateAiBikes = false,
                 debugLevels = new Dictionary<string, string>() {
                     {"UserSettings", UniLogger.LevelNames[UniLogger.Level.Info]},
                     {"P2pNet", UniLogger.LevelNames[UniLogger.Level.Warn]},

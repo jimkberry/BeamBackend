@@ -10,10 +10,11 @@ namespace BeamBackend
         public readonly int kMaxPlayers = 12;        
 
         public BeamGameInstance game = null;
+        public BeamUserSettings settings;
 
         protected BaseBike playerBike = null;
 
-        protected const float kRespawnCheckInterval = .33f;
+        protected const float kRespawnCheckInterval = 1.3f;
 
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval; 
 
@@ -22,6 +23,8 @@ namespace BeamBackend
             base.Start();          
             game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode 
             game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
+
+            settings = game.frontend.GetUserSettings();
 
             game.ClearPlaces();     
             IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
@@ -33,7 +36,16 @@ namespace BeamBackend
 
 		public override void Loop(float frameSecs) 
         {
-
+            if (settings.regenerateAiBikes)
+            {
+                _secsToNextRespawnCheck -= frameSecs;
+                if (_secsToNextRespawnCheck <= 0)
+                {
+                    if (game.gameData.LocalBikes(game.LocalPeerId).Where(ib => ib.ctrlType==BikeFactory.AiCtrl).Count() < settings.aiBikeCount)
+                        SpawnAiBike();
+                    _secsToNextRespawnCheck = kRespawnCheckInterval;
+                }
+            }
         }
 
 		public override object End() {            
@@ -58,6 +70,19 @@ namespace BeamBackend
             BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
             game.PostBikeCreateData(bb); 
             return bb.bikeId;
+        }
+
+        protected string SpawnAiBike()
+        {            
+            // TODO: this (or something like it) appears several places in the codebase. Fix that.
+            Heading heading = BikeFactory.PickRandomHeading();
+            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            string bikeId = Guid.NewGuid().ToString();
+            IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(), 
+                BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
+            game.PostBikeCreateData(ib); 
+            logger.Info($"{this.ModeName()}: SpawnAiBike({bikeId})");
+            return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet. 
         }
 
         protected string SpawnPlayerBike()
