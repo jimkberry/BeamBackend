@@ -172,7 +172,7 @@ namespace BeamBackend
             // It returns the amount of time rolled back as a positive float.
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
-            float timeSinceLastPoint = (Ground.gridSize / speed) - timeToNextPoint;
+            float timeSinceLastPoint = ((Ground.gridSize / speed) - timeToNextPoint) * .9f; // Note QUITE all the way back
             secs = (secs > timeSinceLastPoint) ? timeSinceLastPoint : secs;
 
             position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
