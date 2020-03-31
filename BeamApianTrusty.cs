@@ -95,12 +95,15 @@ namespace BeamBackend
             if (ApianClock.IsIdle) // this is fugly
                 return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null && srcId != ApianGroup.LocalP2pId)
+            if (bb == null)
             {
-                logger.Verbose($"OnPlaceHitObs() - unknown bike: {msg.bikeId}, source: {srcId}");
-                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);
-                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
-                return;
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {                
+                    logger.Verbose($"OnPlaceHitObs() - unknown bike: {msg.bikeId}, source: {srcId}");
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                    return;
+                }
                 // TODO: think about what happens if we get the bike data before the vote is done.
                 // Should we: go ahead and count the incoming votes, but just not call OnPlaceHit() <- doing this now
                 //      while the bike isn't there
@@ -129,11 +132,14 @@ namespace BeamBackend
             if (ApianClock.IsIdle) // this is fugly
                 return;            
            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null && srcId != ApianGroup.LocalP2pId)
+            if (bb == null)
             {
-                logger.Verbose($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}, source: {srcId}");
-                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
-                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {                
+                    logger.Verbose($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}, source: {srcId}");
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
             }              
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
@@ -151,11 +157,14 @@ namespace BeamBackend
             if (ApianClock.IsIdle) // this is fugly
                 return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null && srcId != ApianGroup.LocalP2pId)
-            {
-                logger.Verbose($"OnBikeCommandReq() - unknown bike: {msg.bikeId}, source: {srcId}");
-                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);               
-                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+            if (bb == null) 
+            {                
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {
+                    logger.Verbose($"OnBikeCommandReq() - unknown bike: {msg.bikeId}, source: {srcId}");                    
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);               
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
             } else {
                 if (bb.peerId == srcId)
                     client.OnBikeCommand(msg, msgDelay);
@@ -167,11 +176,14 @@ namespace BeamBackend
             if (ApianClock.IsIdle) // this is fugly
                 return;            
             BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null  && srcId != ApianGroup.LocalP2pId)
+            if (bb == null)
             {
-                logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}, source: {srcId}");
-                client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
-                BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {                
+                    logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}, source: {srcId}");
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
             } else {            
                 if ( bb.peerId == srcId)
                     client.OnBikeTurn(msg, msgDelay);
