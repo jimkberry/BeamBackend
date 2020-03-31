@@ -64,7 +64,7 @@ namespace BeamBackend
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
             // Just shove it in TODO: make this more gentle
-            score = reportedState.score;
+            //score = reportedState.score;
             speed = reportedState.speed;
             heading = reportedState.heading;
             position = new Vector2(reportedState.xPos, reportedState.yPos);
