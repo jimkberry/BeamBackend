@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UniLog;
 
 
@@ -65,12 +66,12 @@ namespace BeamBackend
             Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
             {
-                logger.Verbose($"ApplyTurn(): wrong upcoming point for bike: {bikeId}");
+                logger.Verbose($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
                 // Fix it up...
                 // Go back 1 grid space
                 Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
-                testPt = UpcomingGridPoint(p2, heading);
-                if (testPt.Equals(nextPt))
+                Vector2 testPt2 = UpcomingGridPoint(p2, heading);
+                if (testPt2.Equals(nextPt))
                 {
                     // We can fix
                     Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
@@ -78,7 +79,7 @@ namespace BeamBackend
                     heading = newHead;
                     logger.Verbose($"  Fixed.");                     
                 } else {
-                    logger.Verbose($"  Unable to fix.");                    
+                    logger.Verbose($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");  
                 }
             }
             pendingTurn = dir;
@@ -139,6 +140,9 @@ namespace BeamBackend
 
         private void _updatePosition(float secs)
         {
+            if (secs == 0)
+                return;
+                
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 
@@ -162,21 +166,19 @@ namespace BeamBackend
 
         private float _rollbackTime(float secs)
         {
-            // Propagate the bike backwards in time by "secs" or the length of time that 
-            // takes it back to the next point - whichever is longer            
+            // Propagate the bike backwards in time by "secs" or almost the length of time that 
+            // takes it backwards to the previous point - whichever is shorter            
             // This is to try to minimize message delays. 
             // If, for instance, a bike command is received that we know happened .08 secs ago, 
-            // then the code handling the command can roll the bike back, apply th ecommand, and then 
+            // then the code handling the command can roll the bike back, apply the ecommand, and then 
             // call bike.update(rolledBackTime) to have effectively back-applied the command.
             // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
             // It returns the amount of time rolled back as a positive float.
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
-            float timeSinceLastPoint = ((Ground.gridSize / speed) - timeToNextPoint) * .9f; // Note QUITE all the way back
-            secs = (secs > timeSinceLastPoint) ? timeSinceLastPoint : secs;
-
+            float timeSinceLastPoint = Mathf.Max(0,((Ground.gridSize * .8f) / speed) - timeToNextPoint); // Note QUITE all the way back
+            secs = Mathf.Min(secs, timeSinceLastPoint);
             position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
-
             return secs;
         }
 
