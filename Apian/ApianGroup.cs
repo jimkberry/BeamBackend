@@ -178,24 +178,27 @@ namespace Apian
             public override LocalState Update()
             {
                 LocalState retVal = this;
-
-                switch (joinVoteMachine.GetStatus(voteKey, true)) // cleans up if done
+                VoteResult vr = joinVoteMachine.GetResult(voteKey);
+                if (!vr.wasComplete)
                 {
-                case VoteStatus.kWon:
-                    Group.logger.Verbose($"{this.GetType().Name} - Got enough yes votes.");                    
-                    retVal = new StateInGroup(Group, newGroup);                  
-                    break;
-                case VoteStatus.kLost:
-                    Group.logger.Warn("{this.GetType().Name} - Failed joining group: lost vote");
-                    retVal = new StateListeningForGroup(Group);
-                    break;
-                case VoteStatus.kNoVotes:
-                    if (Group.SysMs > responseTimeout)
+                switch (vr.status) // cleans up if done
                     {
-                        Group.logger.Verbose("{this.GetType().Name} - No one voted. Bailing");
-                        retVal = new StateListeningForGroup(Group);                        
+                    case VoteStatus.kWon:
+                        Group.logger.Verbose($"{this.GetType().Name} - Got enough yes votes.");                    
+                        retVal = new StateInGroup(Group, newGroup);                  
+                        break;
+                    case VoteStatus.kLost:
+                        Group.logger.Warn("{this.GetType().Name} - Failed joining group: lost vote");
+                        retVal = new StateListeningForGroup(Group);
+                        break;
+                    case VoteStatus.kNotFound:
+                        if (Group.SysMs > responseTimeout)
+                        {
+                            Group.logger.Verbose("{this.GetType().Name} - No one voted. Bailing");
+                            retVal = new StateListeningForGroup(Group);                        
+                        }
+                        break;
                     }
-                    break;
                 }
 
                 return retVal;
@@ -210,7 +213,7 @@ namespace Apian
                     if (gv.groupId == newGroup.groupId && gv.peerId == Group.LocalP2pId)
                     {
                         Group.logger.Verbose($"{this.GetType().Name} - Got a {(gv.approve ? "yes" : "no")} join vote.");                        
-                        joinVoteMachine.AddVote(voteKey, msgSrc, newGroup.memberIds.Count); 
+                        joinVoteMachine.AddVote(voteKey, msgSrc, 0, newGroup.memberIds.Count);  // msg time is irrelevant here
                     }
                     break;
                 }
@@ -294,9 +297,11 @@ namespace Apian
                     GroupJoinVoteMsg gv = (msg as GroupJoinVoteMsg);
                     if (gv.groupId == Group.GroupId)
                     {
-                        Group.logger.Verbose($"{this.GetType().Name} - Got a {(gv.approve ? "yes" : "no")} join vote for {gv.peerId}");                        
-                        VoteStatus s = joinVoteMachine.AddVote(new JoinVoteKey(gv.peerId), msgSrc, Group.Members.Count, true);
-                        if (s == VoteStatus.kWon)
+                        Group.logger.Verbose($"{this.GetType().Name} - Got a {(gv.approve ? "yes" : "no")} join vote for {gv.peerId}"); 
+                        JoinVoteKey jvk = new JoinVoteKey(gv.peerId);                 
+                        joinVoteMachine.AddVote(jvk, msgSrc, 0, Group.Members.Count);
+                        VoteResult result = joinVoteMachine.GetResult(jvk);
+                        if (result.status == VoteStatus.kWon)
                         {
                             if (!Group.Members.Keys.Contains(gv.peerId))
                             {

@@ -119,8 +119,11 @@ namespace BeamBackend
        
             logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
-            if (placeHitVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count, true) == VoteStatus.kWon && bb != null)
+            placeHitVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
+            VoteResult vr = placeHitVoteMachine.GetResult(newPd);         
+            if (!vr.wasComplete && vr.status == VoteStatus.kWon && bb != null)
             {
+                msg.TimeStamp = vr.timeStamp;
                 logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");                
                 client.OnPlaceHit(msg, msgDelay);                
             }
@@ -144,9 +147,12 @@ namespace BeamBackend
          
             logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);            
-            if (placeClaimVoteMachine.AddVote(newPd, srcId, client.gameData.Peers.Count, true) == VoteStatus.kWon && bb != null)
-            {
-                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");                
+            placeClaimVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
+            VoteResult vr = placeClaimVoteMachine.GetResult(newPd);        
+            if (!vr.wasComplete && vr.status == VoteStatus.kWon && bb != null)
+            {        
+                msg.TimeStamp = vr.timeStamp;                
+                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");              
                 client.OnPlaceClaim(msg, msgDelay);                
             }
             
