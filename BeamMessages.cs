@@ -162,21 +162,35 @@ namespace BeamBackend
     {
         // TODO: use place hashes instad of positions?
         public string bikeId;  
-        public string ownerPeer;         
+        public string ownerPeer;     
+
+        public BikeState bikeState;
+
         public TurnDir dir;
         public float nextPtX;
         public float nextPtZ;  
 
         public BikeTurnMsg() : base(kBikeTurnMsg, 0)  {}
 
-        public BikeTurnMsg(long ts, string _bikeId, string _ownerPeer, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
+        // public BikeTurnMsg(long ts, string _bikeId, string _ownerPeer, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
+        // {
+        //     bikeId = _bikeId;
+        //     ownerPeer = _ownerPeer;
+        //     dir = _dir;
+        //     nextPtX = nextGridPt.x;
+        //     nextPtZ = nextGridPt.y;
+        // }
+
+        public BikeTurnMsg(long ts, IBike ib, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
         {
-            bikeId = _bikeId;
-            ownerPeer = _ownerPeer;
+            bikeId = ib.bikeId;
+            ownerPeer = ib.peerId;
+            bikeState = new BikeState(ib);
             dir = _dir;
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
         }
+
     }    
 
     public class BikeCommandMsg : BeamMessage

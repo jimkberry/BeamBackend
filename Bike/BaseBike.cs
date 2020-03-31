@@ -55,7 +55,7 @@ namespace BeamBackend
 
         public void AddScore(int val) => score += val;
 
-        public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs)
+        public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs, BeamMessage.BikeState reportedState)
         {
 
             // Check to see that the reported upcoming point is what we think it is, too
@@ -63,25 +63,31 @@ namespace BeamBackend
             // is valid before it even makes it here. Or... we might have to "fix things up"
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
-            Vector2 testPt = UpcomingGridPoint();
-            if (!testPt.Equals(nextPt))
-            {
-                logger.Verbose($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
-                // Fix it up...
-                // Go back 1 grid space
-                Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
-                Vector2 testPt2 = UpcomingGridPoint(p2, heading);
-                if (testPt2.Equals(nextPt))
-                {
-                    // We can fix
-                    Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
-                    Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
-                    heading = newHead;
-                    logger.Verbose($"  Fixed.");                     
-                } else {
-                    logger.Verbose($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");  
-                }
-            }
+            // Just shove it in TODO: make this more gentle
+            score = reportedState.score;
+            speed = reportedState.speed;
+            heading = reportedState.heading;
+            position = new Vector2(reportedState.xPos, reportedState.yPos);
+
+            // Vector2 testPt = UpcomingGridPoint();
+            // if (!testPt.Equals(nextPt))
+            // {
+            //     logger.Verbose($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
+            //     // Fix it up...
+            //     // Go back 1 grid space
+            //     Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
+            //     Vector2 testPt2 = UpcomingGridPoint(p2, heading);
+            //     if (testPt2.Equals(nextPt))
+            //     {
+            //         // We can fix
+            //         Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
+            //         Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
+            //         heading = newHead;
+            //         logger.Verbose($"  Fixed.");                     
+            //     } else {
+            //         logger.Verbose($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");  
+            //     }
+            // }
             pendingTurn = dir;
             _updatePosition(rollbackSecs);
         }

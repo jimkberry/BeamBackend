@@ -140,7 +140,7 @@ namespace BeamBackend
         public void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
-            BikeTurnMsg msg = new BikeTurnMsg(CurrentApianTime(), bike.bikeId, bike.peerId, dir, nextPt);
+            BikeTurnMsg msg = new BikeTurnMsg(CurrentApianTime(), bike, dir, nextPt);
             _SendClientMessage(CurrentGroupId(), msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));            
         }
         public void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)

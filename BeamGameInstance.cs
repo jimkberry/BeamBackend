@@ -253,7 +253,7 @@ namespace BeamBackend
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
             float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs              
-            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
+            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
         public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
