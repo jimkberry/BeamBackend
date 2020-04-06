@@ -57,13 +57,16 @@ namespace BeamBackend
 
         public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs, BeamMessage.BikeState reportedState)
         {
+            // TODO: reported state really should not be there. If there's a position issue it should already have been
+            // detected by Apian and fixed. (No, it doesn't do that - yet)
 
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command 
             // is valid before it even makes it here. Or... we might have to "fix things up"
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
-            // Just shove it in TODO: make this more gentle
+            // Just shove it in 
+            // TODO: make this more gentle
             //score = reportedState.score;
             speed = reportedState.speed;
             heading = reportedState.heading;
