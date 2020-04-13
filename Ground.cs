@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Apian;
 using UnityEngine;
 
 namespace BeamBackend
 {
-    public class Ground 
+    public class Ground : IApianStateData
     {
         // North is Z, East is X,  Y is up
         public static float gridSize = 10f; // assume a square grid    
@@ -24,12 +26,22 @@ namespace BeamBackend
         public event EventHandler<Ground.Place> SetupPlaceMarkerEvt;        
         public event EventHandler PlacesClearedEvt;
 
-        public class Place
+        public class Place : IApianStateData
         {
             public int xIdx; // x index into array.
             public int zIdx;
             public IBike bike;
             public float secsLeft;
+
+            public string ApianSerialized()
+            {
+                return  JsonConvert.SerializeObject(new object[]{
+                    bike.bikeId,
+                    xIdx,
+                    zIdx,
+                    secsLeft
+                 });    
+            }
 
             public int posHash() => xIdx + zIdx * Ground.pointsPerAxis; // Is this useful?
 
@@ -56,6 +68,14 @@ namespace BeamBackend
             InitPlaces();
         }
 
+        public string ApianSerialized()
+        {
+            return  JsonConvert.SerializeObject(new object[]{
+                // All that is needed here is a list of the active places. 
+                // The position arrays can be reconstructed by calling SetupPlace() on the placedata
+                activePlaces.OrderBy<Place,int>(p => p.posHash()).Select(p => p.ApianSerialized()).ToArray()
+            });    
+        }
 
         // Update is called once per frame
         public void Loop(float deltaSecs)

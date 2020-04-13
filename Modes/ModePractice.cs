@@ -38,7 +38,7 @@ namespace BeamBackend
             BeamUserSettings settings = game.frontend.GetUserSettings();
             game.gameNet.Connect("p2ploopback");
             string p2pId = game.gameNet.LocalP2pId();
-            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null);
+            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
             game.AddLocalPeer(localPeer);
             game.gameNet.JoinGame("localgame");                 
         }
@@ -96,7 +96,7 @@ namespace BeamBackend
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);                 
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());                 
         }        
 
         protected string SpawnAIBike(string name = null, Team team = null)

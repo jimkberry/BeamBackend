@@ -1,5 +1,4 @@
-using System.Reflection.Emit;
-using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using GameNet;
 using Apian;
@@ -30,41 +29,125 @@ namespace BeamBackend
             placeClaimVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, kDefaultVoteTimeoutMs*2, logger);
             placeHitVoteMachine = new ApianVoteMachine<PlaceBikeData>(kDefaultVoteTimeoutMs, kDefaultVoteTimeoutMs*2, logger);   
 
-            // Trusty messagees json/from/to/lagMs
-            ApMsgHandlers[ApianMessage.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
-            ApMsgHandlers[ApianMessage.kGroupAnnounce] = (j, f,t,l) => OnGroupAnnounceMsg(j, f,t,l);
-            ApMsgHandlers[ApianMessage.kGroupJoinReq] = (j, f,t,l) => OnGroupJoinReq(j, f,t,l);            
-            ApMsgHandlers[ApianMessage.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);                        
+             // Trusty messagees json/from/to/lagMs  &&&&& (obsolete)
+            // OldBeamApMsgHandlers[BasicGroupMessages.kRequestGroups] = (j, f,t,l) => OnRequestGroupsMsg(j, f,t,l);             
+            // OldBeamApMsgHandlers[BasicGroupMessages.kGroupAnnounce] = (j, f,t,l) => OnGroupAnnounceMsg(j, f,t,l);
+            // OldBeamApMsgHandlers[BasicGroupMessages.kGroupJoinReq] = (j, f,t,l) => OnGroupJoinReq(j, f,t,l);            
+            // OldBeamApMsgHandlers[BasicGroupMessages.kGroupJoinVote] = (j, f,t,l) => OnGroupJoinVote(j, f,t,l);                       
         }
 
         // Apian Message Handlers
-        public void OnRequestGroupsMsg(string msgJson, string fromId, string toId, long lagMs)
-        {
-            RequestGroupsMsg msg = JsonConvert.DeserializeObject<RequestGroupsMsg>(msgJson);
-            ApianGroup.OnApianMsg(msg, fromId, toId);
-        }        
-        public void OnGroupAnnounceMsg(string msgJson, string fromId, string toId, long lagMs)
-        {
-            GroupAnnounceMsg msg = JsonConvert.DeserializeObject<GroupAnnounceMsg>(msgJson);
-            ApianGroup.OnApianMsg(msg, fromId, toId);
-        }
+        // public void OnRequestGroupsMsg(string msgJson, string fromId, string toId, long lagMs)
+        // {
+        //     BasicGroupMessages.RequestGroupsMsg msg = JsonConvert.DeserializeObject<BasicGroupMessages.RequestGroupsMsg>(msgJson);
+        //     ApianGroup.OnApianMsg(msg, fromId, toId);
+        // }        
+        // public void OnGroupAnnounceMsg(string msgJson, string fromId, string toId, long lagMs)
+        // {
+        //     BasicGroupMessages.GroupAnnounceMsg msg = JsonConvert.DeserializeObject<BasicGroupMessages.GroupAnnounceMsg>(msgJson);
+        //     ApianGroup.OnApianMsg(msg, fromId, toId);
+        // }
 
-        public void OnGroupJoinReq(string msgJson, string fromId, string toId, long lagMs)
-        {
-            GroupJoinRequestMsg msg = JsonConvert.DeserializeObject<GroupJoinRequestMsg>(msgJson);
-            ApianGroup.OnApianMsg(msg, fromId, toId);
-        }
+        // public void OnGroupJoinReq(string msgJson, string fromId, string toId, long lagMs)
+        // {
+        //     BasicGroupMessages.GroupJoinRequestMsg msg = JsonConvert.DeserializeObject<BasicGroupMessages.GroupJoinRequestMsg>(msgJson);
+        //     ApianGroup.OnApianMsg(msg, fromId, toId);
+        // }
 
-        public void OnGroupJoinVote(string msgJson, string fromId, string toId, long lagMs)
-        {
-            GroupJoinVoteMsg msg = JsonConvert.DeserializeObject<GroupJoinVoteMsg>(msgJson);
-            ApianGroup.OnApianMsg(msg, fromId, toId);
-        }
+        // public void OnGroupJoinVote(string msgJson, string fromId, string toId, long lagMs)
+        // {
+        //     BasicGroupMessages.GroupJoinVoteMsg msg = JsonConvert.DeserializeObject<BasicGroupMessages.GroupJoinVoteMsg>(msgJson);
+        //     ApianGroup.OnApianMsg(msg, fromId, toId);
+        // }
 
         //
         // IBeamApian  
         //
-        public override void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
+        //protected void _SendApianRequest( ApianClientMsg cliMsg)
+        //{
+        //    ApianRequest req = new ApianRequest(cliMsg);
+        //    BeamGameNet.SendApianMessage(ApianGroup.GroupId, req);  
+        //}
+
+        public override void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
+        {
+            logger.Debug($"SendBikeTurnReq) Bike: {bike.bikeId}");                    
+            BikeTurnMsg msg = new BikeTurnMsg(ApianClock.CurrentTime, bike, dir, nextPt); 
+            ApianBikeTurnRequest req = new ApianBikeTurnRequest(msg);
+            BeamGameNet.SendApianMessage(ApianGroup.GroupId, req);                   
+        }
+        public override void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
+        {
+            logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");                    
+            BikeCommandMsg msg = new BikeCommandMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, cmd, nextPt);
+            ApianBikeCommandRequest req = new ApianBikeCommandRequest(msg);
+            BeamGameNet.SendApianMessage(ApianGroup.GroupId, req);                      
+        }        
+        public override void SendBikeCreateReq(IBike ib, List<Ground.Place> ownedPlaces, string destId = null)
+        {
+            logger.Debug($"SendBikeCreateReq() - dest: {(destId??"bcast")}");            
+            // Broadcast this to send it to everyone
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(ApianClock.CurrentTime, ib, ownedPlaces);
+            ApianBikeCreateRequest req = new ApianBikeCreateRequest(msg);
+            BeamGameNet.SendApianMessage(destId ?? ApianGroup.GroupId, req);
+        }
+
+        public override void SendPlaceClaimObs(IBike bike, int xIdx, int zIdx)
+        {
+            logger.Debug($"SendPlaceClaimObs()");            
+            PlaceClaimMsg msg = new PlaceClaimMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, xIdx, zIdx);
+            ApianPlaceClaimObservation obs = new ApianPlaceClaimObservation(msg);
+            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);          
+        }
+        
+        public override void SendPlaceHitObs(IBike bike, int xIdx, int zIdx)
+        {
+            logger.Debug($"SendPlaceHitObs()");                
+            PlaceHitMsg msg = new PlaceHitMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, xIdx, zIdx);
+            ApianPlaceHitObservation obs = new ApianPlaceHitObservation(msg);
+            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);             
+        }        
+
+        public override void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay)
+        {
+            logger.Verbose($"OnBikeTurnReq() - bike: {msg.bikeId}, source: {srcId}");            
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
+            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            if (bb == null)
+            {
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {                
+                    logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}, source: {srcId}");
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
+            } else {            
+                if ( bb.peerId == srcId)
+                    client.OnBikeTurn(msg, msgDelay);
+            }
+        } 
+
+        public override void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
+        {
+            if (ApianClock.IsIdle) // this is fugly
+                return;            
+            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            if (bb == null) 
+            {                
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {
+                    logger.Verbose($"OnBikeCommandReq() - unknown bike: {msg.bikeId}, source: {srcId}");                    
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);               
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
+            } else {
+                if (bb.peerId == srcId)
+                    client.OnBikeCommand(msg, msgDelay);
+            }
+        }
+
+        public override void OnBikeCreateReq(BikeCreateDataMsg msg, string srcId, long msgDelay)
         {
             if (ApianClock.IsIdle) // TODO: this is fugly. SHould replace with a check if the local ApianPeer obkect is ready
                 return;
@@ -80,15 +163,33 @@ namespace BeamBackend
                 client.OnCreateBike(msg, msgDelay);
         }
 
-        public override void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay)
+        public override void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
         {
             if (ApianClock.IsIdle) // this is fugly
-                return;                       
-            IBike ib = client.gameData.GetBaseBike(msg.bikeId);
-            logger.Info($"OnBikeDataQuery() - bike: {msg.bikeId} {(ib==null?"is GONE! Ignoring.":"Sending")}");             
-            if (ib != null)
-                client.PostBikeCreateData(ib, srcId); 
-        }        
+                return;            
+           BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            if (bb == null)
+            {
+                if (msg.ownerPeer != ApianGroup.LocalP2pId)
+                {                
+                    logger.Verbose($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}, source: {srcId}");
+                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
+                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
+                }
+            }              
+         
+            logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
+            PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);            
+            placeClaimVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
+            VoteResult vr = placeClaimVoteMachine.GetResult(newPd);        
+            if (!vr.wasComplete && vr.status == VoteStatus.kWon && bb != null)
+            {        
+                msg.TimeStamp = vr.timeStamp;                
+                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");              
+                client.OnPlaceClaim(msg, msgDelay); 
+            }
+        }
+
 
         public override void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay) 
         {
@@ -127,74 +228,20 @@ namespace BeamBackend
                 logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");                
                 client.OnPlaceHit(msg, msgDelay);                
             }
-   
-        }
 
-        public override void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay) 
-        {
-            if (ApianClock.IsIdle) // this is fugly
-                return;            
-           BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null)
-            {
-                if (msg.ownerPeer != ApianGroup.LocalP2pId)
-                {                
-                    logger.Verbose($"OnPlaceClaimObs() - unknown bike: {msg.bikeId}, source: {srcId}");
-                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
-                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
-                }
-            }              
-         
-            logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
-            PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);            
-            placeClaimVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
-            VoteResult vr = placeClaimVoteMachine.GetResult(newPd);        
-            if (!vr.wasComplete && vr.status == VoteStatus.kWon && bb != null)
-            {        
-                msg.TimeStamp = vr.timeStamp;                
-                logger.Debug($"OnPlaceClaimObs() - Calling OnPlaceClaim()");              
-                client.OnPlaceClaim(msg, msgDelay);                
-            }
-            
-        }
-   
-        public override void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay) 
-        {
-            if (ApianClock.IsIdle) // this is fugly
-                return;            
-            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null) 
-            {                
-                if (msg.ownerPeer != ApianGroup.LocalP2pId)
-                {
-                    logger.Verbose($"OnBikeCommandReq() - unknown bike: {msg.bikeId}, source: {srcId}");                    
-                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);               
-                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
-                }
-            } else {
-                if (bb.peerId == srcId)
-                    client.OnBikeCommand(msg, msgDelay);
-            }
-        }
+        }        
 
-        public override void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay)
+        // IBeamApian  &&& new is above - - - - - - - - - -
+
+        public override void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay)
         {
             if (ApianClock.IsIdle) // this is fugly
-                return;            
-            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
-            if (bb == null)
-            {
-                if (msg.ownerPeer != ApianGroup.LocalP2pId)
-                {                
-                    logger.Debug($"OnBikeTurnReq() - unknown bike: {msg.bikeId}, source: {srcId}");
-                    client.OnUnknownBike(msg.bikeId, msg.ownerPeer);                
-                    BeamGameNet.RequestBikeData(msg.bikeId, msg.ownerPeer);
-                }
-            } else {            
-                if ( bb.peerId == srcId)
-                    client.OnBikeTurn(msg, msgDelay);
-            }
-        }    
+                return;                       
+            IBike ib = client.gameData.GetBaseBike(msg.bikeId);
+            logger.Info($"OnBikeDataQuery() - bike: {msg.bikeId} {(ib==null?"is GONE! Ignoring.":"Sending")}");             
+            if (ib != null)
+                client.PostBikeCreateData(ib, srcId); 
+        }        
 
         public override void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay) 
         {

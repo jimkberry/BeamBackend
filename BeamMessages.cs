@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 using Apian;
 
 namespace BeamBackend
 {
-    public class BeamMessage
+    public class BeamMessage : ApianClientMsg
     {     
         public const string kApianMsg = "B101"; // An Apian-defined message 
         public const string kBikeCreateData = "B104";
@@ -62,9 +63,7 @@ namespace BeamBackend
             }
         }
 
-        public string MsgType;
-        public long TimeStamp;
-        public BeamMessage(string t, long ts) {MsgType = t; TimeStamp = ts;}
+        public BeamMessage(string t, long ts) : base(t,ts) {}
     }
 
 
@@ -72,6 +71,8 @@ namespace BeamBackend
     // GameNet messages
     //
     //
+
+    // &&& This (below) needs to go away.It's going to be turned inside-out
     public class BeamApianMessage : BeamMessage 
     {
         public string apianMsgType;
@@ -130,6 +131,14 @@ namespace BeamBackend
         }
     }
 
+    public class ApianBikeCreateRequest : ApianRequest
+    {
+        public BikeCreateDataMsg bikeCreateDataMsg;
+        public ApianBikeCreateRequest(BikeCreateDataMsg _bikeCreateMsg) : base(_bikeCreateMsg.MsgType) {bikeCreateDataMsg=_bikeCreateMsg;}
+        public ApianBikeCreateRequest() : base() {}        
+    }
+
+
     public class BikeDataQueryMsg : BeamMessage
     {
         public string bikeId;
@@ -163,23 +172,11 @@ namespace BeamBackend
         // TODO: use place hashes instad of positions?
         public string bikeId;  
         public string ownerPeer;     
-
         public BikeState bikeState;
-
         public TurnDir dir;
         public float nextPtX;
         public float nextPtZ;  
-
         public BikeTurnMsg() : base(kBikeTurnMsg, 0)  {}
-
-        // public BikeTurnMsg(long ts, string _bikeId, string _ownerPeer, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
-        // {
-        //     bikeId = _bikeId;
-        //     ownerPeer = _ownerPeer;
-        //     dir = _dir;
-        //     nextPtX = nextGridPt.x;
-        //     nextPtZ = nextGridPt.y;
-        // }
 
         public BikeTurnMsg(long ts, IBike ib, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts) 
         {
@@ -190,8 +187,14 @@ namespace BeamBackend
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
         }
-
     }    
+
+    public class ApianBikeTurnRequest : ApianRequest
+    {
+        public BikeTurnMsg bikeTurnMsg;
+        public ApianBikeTurnRequest(BikeTurnMsg _bikeTurnMsg) : base(_bikeTurnMsg.MsgType) {bikeTurnMsg=_bikeTurnMsg;}
+        public ApianBikeTurnRequest() : base() {}        
+    }
 
     public class BikeCommandMsg : BeamMessage
     {
@@ -201,9 +204,7 @@ namespace BeamBackend
         public BikeCommand cmd;
         public float nextPtX;
         public float nextPtZ;  
-
         public BikeCommandMsg() : base(kBikeCommandMsg, 0)  {}
-
         public BikeCommandMsg(long ts, string _bikeId, string _ownerPeer, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg, ts) 
         {
             bikeId = _bikeId;
@@ -213,6 +214,13 @@ namespace BeamBackend
             nextPtZ = nextGridPt.y;
         }
     }  
+
+    public class ApianBikeCommandRequest : ApianRequest
+    {
+        public BikeCommandMsg bikeCommandMsg;
+        public ApianBikeCommandRequest(BikeCommandMsg _bikeCommandMsg) : base(_bikeCommandMsg.MsgType) {bikeCommandMsg=_bikeCommandMsg;}
+        public ApianBikeCommandRequest() : base() {}        
+    }    
 
     public class PlaceClaimMsg : BeamMessage
     {
@@ -229,6 +237,13 @@ namespace BeamBackend
         }
     }
 
+    public class ApianPlaceClaimObservation : ApianObservation
+    {
+        public PlaceClaimMsg placeClaimMsg;
+        public ApianPlaceClaimObservation(PlaceClaimMsg _placeClaimMsg) : base(_placeClaimMsg.MsgType) {placeClaimMsg=_placeClaimMsg;}
+        public ApianPlaceClaimObservation() : base() {}        
+    }        
+
     public class PlaceHitMsg : BeamMessage
     {
         public string bikeId;
@@ -243,6 +258,31 @@ namespace BeamBackend
             zIdx=_zIdx;
         }
     }
- 
+
+    public class ApianPlaceHitObservation : ApianObservation
+    {
+        public PlaceHitMsg placeHitMsg;
+        public ApianPlaceHitObservation(PlaceHitMsg _placeHitMsg) : base(_placeHitMsg.MsgType) {placeHitMsg=_placeHitMsg;}
+        public ApianPlaceHitObservation() : base() {}        
+    }  
+
+    static public class BeamMessageDeserializer
+    {
+        public static Dictionary<string, Func<string, ApianMessage>> deserializers = new  Dictionary<string, Func<string, ApianMessage>>()
+        {
+            {ApianMessage.kCliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
+            {ApianMessage.kCliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
+            {ApianMessage.kCliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },            
+            {ApianMessage.kCliObservation+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimObservation>(s) },            
+            {ApianMessage.kCliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },             
+        };
+
+        public static ApianMessage FromJSON(string msgId, string json)
+        {
+            return deserializers[msgId](json) as ApianMessage;
+        }
+
+    }
+
 
 }

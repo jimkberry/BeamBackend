@@ -1,11 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Apian;
 using UnityEngine;
 
 
 namespace BeamBackend
 {
-    public interface IBike 
+    public interface IBike : IApianStateData
     {
         string bikeId {get;}  
         string peerId {get;}

@@ -1,10 +1,12 @@
 
+using System.Text.RegularExpressions;
 using System.Reflection.Emit;
 using System;
 using System.Collections.Generic;
 using GameNet;
 using Apian;
 using Newtonsoft.Json;
+using UnityEngine;
 using UniLog;
 
 namespace BeamBackend
@@ -16,20 +18,9 @@ namespace BeamBackend
         void OnPlaceHit(PlaceHitMsg msg, long msgDelay);        
         void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay); // delay since the claim was originally made
         void OnBikeCommand(BikeCommandMsg msg, long msgDelay);
-        void OnBikeTurn(BikeTurnMsg msg, long msgDelay);
-        void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);   // TODO: where does this (or stuff like it) go?      
+        void OnBikeTurn(BikeTurnMsg msg, long msgDelay);    
     }
 
-    public class BeamApianAssertion : ApianAssertion
-    {
-        public long messageDelay;
-        public BeamMessage Message {get; private set;}        
-        public BeamApianAssertion(BeamMessage msg, long seq, long msgdly) : base( seq) 
-        {
-            Message = msg;
-            messageDelay = msgdly;
-        }      
-    }
 
     public class BeamApianPeer : ApianMember
     {
@@ -44,25 +35,28 @@ namespace BeamBackend
     public abstract class BeamApian : ApianBase, IBeamGameNetClient
     {   
         public Dictionary<string, BeamApianPeer> apianPeers;  
-        
         public IBeamGameNet BeamGameNet {get; private set;}
                
         protected BeamGameInstance client;
-        protected BeamGameData gameData; // TODO: should be a read-only API. Apian writing to it is not allowed      
+        protected BeamGameData gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed      
         protected long NextAssertionSequenceNumber {get; private set;}
 
         public void SetGameNetInstance(IGameNet gn) {} // IGameNetClient API call not used byt Apian (happens in ctor)
 
-        public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn)
+        public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn, _client)
         {           
             BeamGameNet = _gn;   
             client = _client as BeamGameInstance; 
             gameData = client.gameData;   
 
             // Add BeamApian-level ApianMsg handlers here
-            // ApMsgHandlers[BeamMessage.kBikeCreateData] = (f,t,l,m) => this.HandleBikeCreateData(f,t,l,m), 
-
-            ApMsgHandlers[ApianMessage.kApianClockOffset] = (j, f,t,l) => OnApianClockOffsetMsg(j, f,t,l);             
+            // params are:  from, to, apMsg, msSinceSent            
+            ApMsgHandlers[ApianMessage.kCliRequest] = (f,t,m,d) => this.OnApianRequest(f,t,m,d);
+            ApMsgHandlers[ApianMessage.kCliObservation] = (f,t,m,d) => this.OnApianObservation(f,t,m,d);
+            //ApMsgHandlers[ApianMessage.kCliCommand] = (f,t,m,d) => this.OnApianCommand(f,t,m,d);
+            ApMsgHandlers[ApianMessage.kGroupMessage] = (f,t,m,d) => this.OnApianGroupMessage(f,t,m,d);            
+            ApMsgHandlers[ApianMessage.kApianClockOffset] = (f,t,m,d) => this.OnApianClockOffsetMsg(f,t,m,d);                          
+            
             InitApianVars();
         }
 
@@ -74,16 +68,40 @@ namespace BeamBackend
             ApianGroup = null;         
         }
 
+
         public override void SendApianMessage(string toChannel, ApianMessage msg)
         {
-           BeamGameNet.SendApianMessage(toChannel, msg);            
-        }    
-
-        public override void OnApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs)   
-        {          
-            logger.Debug(msgJson);
-            ApMsgHandlers[msgType](msgJson, fromId, toId, lagMs);        
+            BeamGameNet.SendApianMessage(toChannel, msg);
         }
+
+        public override void OnApianMessage(string fromId, string toId, ApianMessage msg, long lagMs)
+        {    
+            ApMsgHandlers[msg.msgType](fromId, toId, msg, lagMs);
+        }
+           
+        public override ApianMessage DeserializeMessage(string msgType,string subType, string json)
+        {
+            switch (msgType)
+            {
+            case ApianMessage.kGroupMessage:
+                return ApianGroup.DeserializeMessage(subType, json);
+            
+            case ApianMessage.kCliRequest:
+            case ApianMessage.kCliObservation:
+            case ApianMessage.kCliCommand:
+                return BeamMessageDeserializer.FromJSON(msgType+subType, json);
+            default:
+                return null;                
+            }
+        }
+
+        // public void OnBeamApianMessage(string msgType, string msgJson, string fromId, string toId, long lagMs)   
+        // {    
+        //     // &&& old      
+        //     //logger.Debug(msgJson);
+        //     OldBeamApMsgHandlers[msgType](msgJson, fromId, toId, lagMs);        
+        // }
+
         public override void Update()
         {
             ApianGroup?.Update();
@@ -97,7 +115,6 @@ namespace BeamBackend
             p.status = ApianMember.Status.kSyncing;
             apianPeers[p2pId] = p; 
         }
-
 
         public string LocalPeerData() => client.LocalPeerData();  
 
@@ -122,7 +139,7 @@ namespace BeamBackend
             logger.Info($"OnPeerLeftGame() - {(p2pId==GameNet.LocalP2pId()?"Local":"Remote")} Peer: {p2pId}, Game: {gameId}");      
             client.OnPeerLeftGame(p2pId, gameId);
             
-            ApianGroup?.OnApianMsg( new GroupMemberLefttMsg(ApianGroup?.GroupId, p2pId), GameNet.LocalP2pId(), ApianGroup?.GroupId);
+            ApianGroup?.OnApianMessage( new BasicGroupMessages.GroupMemberLefttMsg(ApianGroup?.GroupId, p2pId), GameNet.LocalP2pId(), ApianGroup?.GroupId);
 
             if (p2pId == GameNet.LocalP2pId())
             {
@@ -145,7 +162,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnApianClockOffsetMsg(string msgJson, string fromId, string toId, long lagMs)
+        public void OnApianClockOffsetMsg(string fromId, string toId, ApianMessage msg, long lagMs)
         { 
             if (fromId == ApianGroup.LocalP2pId)
             {
@@ -154,8 +171,7 @@ namespace BeamBackend
             }            
             logger.Info($"OnApianClockOffsetMsg() - From: {fromId}");  
             BeamApianPeer p = apianPeers[fromId];            
-            ApianClockOffsetMsg msg = JsonConvert.DeserializeObject<ApianClockOffsetMsg>(msgJson);
-            ApianClock.OnApianClockOffset(msg.peerId, msg.clockOffset);
+            ApianClock.OnApianClockOffset(fromId, (msg as ApianClockOffsetMsg).clockOffset);
 
             if (p.status == ApianMember.Status.kJoining)
             {
@@ -176,8 +192,16 @@ namespace BeamBackend
 
         }
 
+        public void OnApianGroupMessage(string fromId, string toId, ApianMessage msg, long lagMs)
+        {
+            logger.Debug($"OnApianGroupMessage(): {((msg as ApianGroupMessage).groupMsgType)}");
+            ApianGroup.OnApianMessage(msg, fromId, toId);
+        }
+
+
         public override void OnMemberJoinedGroup(string peerId)
         {
+            // Note: this message is FROM the group manager
             logger.Info($"OnMemberJoinedGroup(): {peerId}");    
         
             if (peerId == ApianGroup.LocalP2pId)
@@ -201,19 +225,57 @@ namespace BeamBackend
             
         }
 
-        public abstract void OnCreateBikeReq(BikeCreateDataMsg msg, string srcId, long msgDelay);
-        public abstract void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay);      
-        public abstract void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay); // delay since the msg was sent
-        public abstract void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay); 
-        public abstract void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay); 
+        protected void OnApianRequest(string fromId, string toId, ApianMessage msg, long delayMs)
+        {
+            // TODO: use dispatch table instead of switch
+            ApianRequest req = msg as ApianRequest;
+            switch (req.cliMsgType)
+            {
+                case BeamMessage.kBikeTurnMsg:
+                    OnBikeTurnReq((req as ApianBikeTurnRequest).bikeTurnMsg, fromId, delayMs);
+                    break;
+                case BeamMessage.kBikeCommandMsg:
+                    OnBikeCommandReq((req as ApianBikeCommandRequest).bikeCommandMsg, fromId, delayMs);
+                    break;   
+                case BeamMessage.kBikeCreateData:
+                    OnBikeCreateReq((req as ApianBikeCreateRequest).bikeCreateDataMsg, fromId, delayMs);
+                    break;                                        
+            }
+        }
+
+        protected void OnApianObservation(string fromId, string toId, ApianMessage msg, long delayMs)
+        {
+            ApianObservation obs = msg as ApianObservation;
+            switch (obs.cliMsgType)
+            {
+                case BeamMessage.kPlaceClaimMsg:
+                    OnPlaceClaimObs((obs as ApianPlaceClaimObservation).placeClaimMsg, fromId, delayMs);
+                    break;
+                case BeamMessage.kPlaceHitMsg:
+                    OnPlaceHitObs((obs as ApianPlaceHitObservation).placeHitMsg, fromId, delayMs);
+                    break;                                         
+            }
+        }
+
+        public abstract void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt);
         public abstract void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay);
+        public abstract void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt);
+        public abstract void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay); 
+        public abstract void SendBikeCreateReq(IBike ib, List<Ground.Place> ownedPlaces, string destId = null);
+        public abstract void OnBikeCreateReq(BikeCreateDataMsg msg, string srcId, long msgDelay);
+        public abstract void SendPlaceClaimObs(IBike bike, int xIdx, int zIdx);
+        public abstract void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay);         
+        public abstract void SendPlaceHitObs(IBike bike, int xIdx, int zIdx); 
+        public abstract void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay); // delay since the msg was sent        
+
+        // &&&----------------
+ 
+        public abstract void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay);      
+
+
+
         public abstract void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay);  // TODO: where does this (or stuff like it) go?
 
-        protected void SendAssertion(BeamMessage msg, long msgDelay)
-        {
-            BeamApianAssertion aa = new BeamApianAssertion(msg, NextAssertionSequenceNumber++, msgDelay);
-            client.OnApianAssertion(aa);
-        }
 
     }
 

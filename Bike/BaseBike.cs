@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Newtonsoft.Json;
 using UnityEngine;
 using UniLog;
 
@@ -44,8 +44,24 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("BaseBike");
         }
 
-        // Commands from outside
+        public string ApianSerialized()
+        {
+            return  JsonConvert.SerializeObject(new object[]{
+                    bikeId,
+                    peerId,
+                    name,
+                    team.TeamID,
+                    ctrlType,        
+                    position.x, // decompose Vector2
+                    position.y, 
+                    heading,
+                    speed,
+                    score,
+                    pendingTurn
+                 });            
+        }
 
+        // Commands from outside
   
         public void Loop(float secs)
         {
@@ -205,7 +221,7 @@ namespace BeamBackend
                 {
                     // Yes. Since it's empty send a claim report 
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.gameNet.SendPlaceClaimObs(this, xIdx, zIdx);
+                    gameInst.apian.SendPlaceClaimObs(this, xIdx, zIdx);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -217,11 +233,11 @@ namespace BeamBackend
                     //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);     
                     // This is stupid and temporary (rather than just getting rid of the test)
                     // TODO: FIX THIS!!!  &&&&&&&
-                    gameInst.gameNet.SendPlaceClaimObs(this, xIdx, zIdx);               
+                    gameInst.apian.SendPlaceClaimObs(this, xIdx, zIdx);               
                 }
             } else {
                 // Hit a marker. Report it.
-                gameInst.gameNet.SendPlaceHitObs(this, p.xIdx, p.zIdx);
+                gameInst.apian.SendPlaceHitObs(this, p.xIdx, p.zIdx);
             }            
         }
 

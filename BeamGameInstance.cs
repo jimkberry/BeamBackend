@@ -10,80 +10,14 @@ using UniLog;
 
 namespace BeamBackend
 {
-    public class NetPeerData 
-    {
-        public BeamPeer peer;
-    }
-
-    public class BeamGameData
-    {
-        public Dictionary<string, BeamPeer> Peers { get; private set; } = null;
-        public Dictionary<string, IBike> Bikes { get; private set; } = null;
-	    public Ground Ground { get; private set; } = null;
-
-        protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
-        public BeamGameData(IBeamFrontend fep)
-        {
-            Peers = new Dictionary<string, BeamPeer>();
-            Bikes = new Dictionary<string, IBike>();
-            Ground = new Ground(fep);    
-            _bikeIdsToRemoveAfterLoop = new List<string>();          
-        }
-
-        public BeamPeer GetPeer(string peerId)
-        {
-            try { return Peers[peerId];} catch (KeyNotFoundException){ return null;} 
-        }
-
-        public BaseBike GetBaseBike(string bikeId)
-        {
-            try { return Bikes[bikeId] as BaseBike;} catch (KeyNotFoundException){ return null;}
-        }
-
-        public void PostBikeRemoval(string bikeId) => _bikeIdsToRemoveAfterLoop.Add(bikeId);
-
-        public void Init() 
-        {
-            Peers.Clear();
-            Bikes.Clear();
-        }
-
-        public void Loop(float frameSecs)
-        {
-            Ground.Loop(frameSecs);
-            foreach( IBike ib in Bikes.Values)
-                ib.Loop(frameSecs);  // Bike "ib" might get destroyed here and need to be removed
-
-            _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
-
-        }
-
-        public IBike ClosestBike(IBike thisBike)
-        {  
-            return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
-                    .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).First();
-        }   
-
-        public List<IBike> LocalBikes(string peerId)
-        {
-            return Bikes.Values.Where(ib => ib.peerId == peerId).ToList();
-        }
-
-        public List<Vector2> CloseBikePositions(IBike thisBike, int maxCnt)
-        {
-            // Todo: this is actually "current enemy pos"         
-            return Bikes.Values.Where(b => b != thisBike)
-                .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).Take(maxCnt) // IBikes
-                .Select(ob => ob.position).ToList();
-        }                 
-    }
-
+  
     public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamApianClient
     {
         public ModeManager modeMgr {get; private set;}
         public  BeamGameData gameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
         public  IBeamGameNet gameNet {get; private set;}        
+        public BeamApian apian {get; private set;}
         public UniLogger logger;
         public BeamPeer LocalPeer { get; private set; } = null;   
         public string LocalPeerId => LocalPeer?.PeerId;
@@ -131,6 +65,11 @@ namespace BeamBackend
                 [BeamMessage.kPlaceHitMsg] = (msg,dly) => this.OnPlaceHit(msg as PlaceHitMsg, dly),                
                                
             };                            
+        }
+
+        public void SetApianReference(ApianBase ap)
+        {
+            apian = ap as BeamApian;
         }
 
         public void AddLocalPeer(BeamPeer p)
@@ -210,9 +149,9 @@ namespace BeamBackend
         // Apian Assertions
         public void OnApianAssertion(ApianAssertion aa)
         {
-            BeamApianAssertion baa = aa as BeamApianAssertion;
-            BeamMessage msg = baa.Message as BeamMessage;
-            assertionHandlers[msg.MsgType](msg, (aa as BeamApianAssertion).messageDelay);            
+            // BeamApianAssertion baa = aa as BeamApianAssertion;
+            // BeamMessage msg = baa.Message as BeamMessage;
+            // assertionHandlers[msg.MsgType](msg, (aa as BeamApianAssertion).messageDelay);            
         }      
 
         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
@@ -317,12 +256,12 @@ namespace BeamBackend
         {
             List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
             logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
-            gameNet.SendBikeCreateData(ib, places, destId);            
+            apian.SendBikeCreateReq(ib, places, destId);            
         }
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            gameNet.SendBikeCommandReq(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
+            apian.SendBikeCommandReq(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
@@ -333,7 +272,7 @@ namespace BeamBackend
             if (dx < BaseBike.length * .5f)
                 logger.Debug($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else
-                gameNet.SendBikeTurnReq(bike, dir, nextPt);
+                apian.SendBikeTurnReq(bike, dir, nextPt);
         }
 
         protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, Ground.Place place)

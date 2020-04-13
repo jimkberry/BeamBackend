@@ -40,7 +40,7 @@ namespace BeamBackend
             BeamUserSettings settings = game.frontend.GetUserSettings();
             game.gameNet.Connect("p2ploopback");
             string p2pId = game.gameNet.LocalP2pId();
-            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName, null);
+            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
             game.AddLocalPeer(localPeer);
             game.gameNet.JoinGame("localgame");                     
         }

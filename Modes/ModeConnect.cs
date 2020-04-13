@@ -202,7 +202,7 @@ namespace BeamBackend
         protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
         {               
             // Game.LocalP2pId is not set yet
-            return new BeamPeer(p2pId, settings.screenName, null);
+            return new BeamPeer(p2pId, settings.screenName);
         }
 
         protected void _CreateLocalBike(string bikeCtrlType)
@@ -214,7 +214,7 @@ namespace BeamBackend
                  _localBikesToCreate++;
                 string scrName = game.frontend.GetUserSettings().screenName;
                 string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPeer.Name, game.LocalPeer.Team);     
+                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());     
                 game.PostBikeCreateData(bb); // will result in OnBikeInfo()            
             }
         }          
