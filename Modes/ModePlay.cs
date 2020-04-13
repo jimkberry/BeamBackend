@@ -30,7 +30,7 @@ namespace BeamBackend
             IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
             if (playerBike == null) 
                 playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();                   
-            _startLocalBikes();
+            //_startLocalBikes();
             game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );             
         }
 
