@@ -13,17 +13,17 @@ namespace BeamBackend
 
     public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamApianClient
     {
-        public ModeManager modeMgr {get; private set;}
+        //public ModeManager modeMgr {get; private set;}
         public  BeamGameData gameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
-        public  IBeamGameNet gameNet {get; private set;}
+       // public  IBeamGameNet gameNet {get; private set;}
         public BeamApian apian {get; private set;}
         public UniLogger logger;
         public BeamPeer LocalPeer { get; private set; } = null;
         public string LocalPeerId => LocalPeer?.PeerId;
         public string CurrentGameId  { get; private set; }
 
-        public long CurGameTime {get => gameNet.CurrentApianTime(); }
+        public long CurGameTime {get => apian.ApianClock.CurrentTime; }
 
         // Not sure where this oughta be. The Loop() methd gets passed a "frameSecs" float that is based on
         // Whatever clck the driver is using. We want everything in the GameInstance to be based on the shared "ApianClock"
@@ -48,12 +48,11 @@ namespace BeamBackend
 
         protected Dictionary<string, Action<BeamMessage, long>> assertionHandlers;
 
-        public BeamGameInstance(IBeamFrontend fep, BeamGameNet bgn)
+        public BeamGameInstance(IBeamFrontend fep)
         {
             logger = UniLogger.GetLogger("GameInstance");
-            modeMgr = new ModeManager(new BeamModeFactory(), this);
+            //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
-            gameNet = bgn;
             gameData = new BeamGameData(frontend);
 
             assertionHandlers = new  Dictionary<string, Action<BeamMessage, long>>()
@@ -84,14 +83,14 @@ namespace BeamBackend
         //
         public void Start(int initialMode)
         {
-            modeMgr.Start(initialMode);
+
         }
 
         public bool Loop(float frameSecs)
         {
             // Ignore passed in framesecs.
             long prevFrameApianTime = FrameApianTime;
-            FrameApianTime = gameNet.CurrentApianTime();
+            FrameApianTime = CurGameTime;
             if (prevFrameApianTime < 0)
             {
                 // skip first frame
@@ -107,7 +106,7 @@ namespace BeamBackend
             // the whole thing every frame
             //gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
 
-            return modeMgr.Loop(frameSecs); // TODO: I THINK this is OK. manager code can't change instance state
+            return true; // return modeMgr.Loop(frameSecs); // TODO: I THINK this is OK. manager code can't change instance state
         }
 
         //
@@ -151,7 +150,7 @@ namespace BeamBackend
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);
 
-            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs
+            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
             logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
             ib.Loop(elapsedSecs); // project to NOW
 
@@ -172,7 +171,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs
+            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
@@ -183,7 +182,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)gameNet.CurrentApianTime() - msg.TimeStamp) *.001f; // float secs
+            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
@@ -237,7 +236,7 @@ namespace BeamBackend
 
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
-           modeMgr.SwitchToMode(newModeId, modeParam);
+           // &&&&&modeMgr.SwitchToMode(newModeId, modeParam);
         }
 
         // A couple of these are just acting as intermediaries to commands in GameNet that could potentially be called by the frontend

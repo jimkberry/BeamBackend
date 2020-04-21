@@ -7,7 +7,7 @@ namespace BeamBackend
 {
     public class ModePractice : BeamGameMode
     {
-        public readonly int kMaxAiBikes = 11;        
+        public readonly int kMaxAiBikes = 11;
 
         public BeamGameInstance game = null;
 
@@ -15,45 +15,45 @@ namespace BeamBackend
 
         protected const float kRespawnCheckInterval = 1.3f;
 
-        protected float _secsToNextRespawnCheck = kRespawnCheckInterval; 
+        protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
         protected bool gameJoined;
-        protected bool bikesCreated;        
+        protected bool bikesCreated;
 
-		public override void Start(object param = null)	
+		public override void Start(object param = null)
         {
             base.Start();
 
-            game = (BeamGameInstance)gameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;            
-            game.RespawnPlayerEvt += OnRespawnPlayerEvt; 
+            game = backend.mainGameInst;
+            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            game.RespawnPlayerEvt += OnRespawnPlayerEvt;
 
             gameJoined = false;
             bikesCreated = false;
 
             game.ClearPeers();
-            game.ClearBikes();    
-            game.ClearPlaces();     
+            game.ClearBikes();
+            game.ClearPlaces();
 
             // Setup/connect fake network
             BeamUserSettings settings = game.frontend.GetUserSettings();
-            game.gameNet.Connect("p2ploopback");
-            string p2pId = game.gameNet.LocalP2pId();
+            backend.gameNet.Connect("p2ploopback");
+            string p2pId = backend.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
             game.AddLocalPeer(localPeer);
-            game.gameNet.JoinGame("localgame");                 
+            backend.gameNet.JoinGame("localgame");
         }
 
-		public override void Loop(float frameSecs) 
+		public override void Loop(float frameSecs)
         {
             if (gameJoined && !bikesCreated)
             {
                 // Create player bike
                 string playerBikeId = SpawnPlayerBike();
-                for( int i=0;i<kMaxAiBikes; i++) 
+                for( int i=0;i<kMaxAiBikes; i++)
                 {
                     // TODO: create a list of names/teams and respawn them when the blow up?
                     // ...or do it when respawn gets called
-                    SpawnAIBike(); 
+                    SpawnAIBike();
                 }
                 game.frontend?.OnStartMode(BeamModeFactory.kPractice, new TargetIdParams{targetId = playerBikeId} );
                 bikesCreated = true;
@@ -72,23 +72,23 @@ namespace BeamBackend
             }
         }
 
-		public override object End() {            
-            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;            
-            game.RespawnPlayerEvt -= OnRespawnPlayerEvt;             
-            game.frontend?.OnEndMode(game.modeMgr.CurrentModeId(), null);
+		public override object End() {
+            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
+            game.frontend?.OnEndMode(backend.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
-            game.ClearBikes();    
-            game.ClearPlaces();              
+            game.ClearBikes();
+            game.ClearPlaces();
             return null;
-        } 
-  
+        }
+
         protected string CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );  
+            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
-            game.PostBikeCreateData(bb); 
+            game.PostBikeCreateData(bb);
             return bb.bikeId;
         }
 
@@ -96,8 +96,8 @@ namespace BeamBackend
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());                 
-        }        
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());
+        }
 
         protected string SpawnAIBike(string name = null, Team team = null)
         {
@@ -114,18 +114,18 @@ namespace BeamBackend
         {
             logger.Info("Respawning Player");
             SpawnPlayerBike();
-            // Note that this will eventually result in a NewBikeEvt which the frontend 
-            // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.            
-        }   
+            // Note that this will eventually result in a NewBikeEvt which the frontend
+            // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.
+        }
 
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
-        {     
-            bool isLocal = ga.peer.PeerId == game.LocalPeerId;            
+        {
+            bool isLocal = ga.peer.PeerId == game.LocalPeerId;
             if (isLocal)
             {
                 logger.Info("Practice game joined");
-                gameJoined = true;            
+                gameJoined = true;
             }
-        }        
+        }
     }
 }
