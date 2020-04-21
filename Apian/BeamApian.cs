@@ -79,20 +79,12 @@ namespace BeamBackend
             ApMsgHandlers[msg.MsgType](fromId, toId, msg, lagMs);
         }
 
-        public override ApianMessage DeserializeMessage(string msgType,string subType, string json)
+        public override ApianMessage DeserializeApianMessage(string apianMsgType, string json)
         {
-            switch (msgType)
-            {
-            case ApianMessage.GroupMessage:
-                return ApianGroup.DeserializeMessage(subType, json);
-
-            case ApianMessage.CliRequest:
-            case ApianMessage.CliObservation:
-            case ApianMessage.CliCommand:
-                return BeamMessageDeserializer.FromJSON(msgType+subType, json);
-            default:
-                return null;
-            }
+            // TODO: can I do this without decoding it twice?
+            // One option would be for the deifnition of ApianMessage to have type and subType,
+            // but I'd rather just decode it smarter
+            return BeamApianMessageDeserializer.FromJSON(apianMsgType, json);
         }
 
         public override void Update()

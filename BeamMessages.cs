@@ -72,20 +72,6 @@ namespace BeamBackend
     //
     //
 
-    // &&& This (below) needs to go away.It's going to be turned inside-out
-    public class BeamApianMessage : BeamMessage
-    {
-        public string apianMsgType;
-        public string apianMsgJson;
-
-        public BeamApianMessage() : base(kApianMsg, 0) {}
-        public BeamApianMessage(long ts, string apMsgType, string msgJson) : base(kApianMsg, ts)
-        {
-            apianMsgType = apMsgType;
-            apianMsgJson = msgJson;
-        }
-    }
-
     public class BikeCreateDataMsg : BeamMessage
     {
         public string bikeId;
@@ -266,9 +252,11 @@ namespace BeamBackend
         public ApianPlaceHitObservation() : base() {}
     }
 
-    static public class BeamMessageDeserializer
+    static public class BeamApianMessageDeserializer
     {
-        public static Dictionary<string, Func<string, ApianMessage>> deserializers = new  Dictionary<string, Func<string, ApianMessage>>()
+        // TODO: Come up with a sane way of desrializing messages
+        //(prefereably without having to include class type info in the JSON)
+        public static Dictionary<string, Func<string, ApianMessage>> beamDeserializers = new  Dictionary<string, Func<string, ApianMessage>>()
         {
             {ApianMessage.CliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
@@ -277,9 +265,13 @@ namespace BeamBackend
             {ApianMessage.CliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },
         };
 
-        public static ApianMessage FromJSON(string msgId, string json)
+        public static ApianMessage FromJSON(string msgType, string json)
         {
-            return deserializers[msgId](json) as ApianMessage;
+            // Deserialize once. May have to do it again
+            ApianMessage aMsg = ApianMessageDeserializer.FromJSON(msgType, json);
+            string subType = ApianMessageDeserializer.GetSubType(aMsg);
+
+            return subType == null ? aMsg : beamDeserializers[msgType+subType](json) as ApianMessage;
         }
 
     }

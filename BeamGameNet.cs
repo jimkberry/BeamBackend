@@ -8,71 +8,23 @@ using Apian;
 
 namespace BeamBackend
 {
-    public interface IBeamGameNet : IGameNet
+    public interface IBeamGameNet : IApianGameNet
     {
-        void SendApianMessage(string toChannel, ApianMessage appMsg);
-        void RequestBikeData(string bikeId, string destId); // TODO: I dunno if this makes sense in an Apian game
-        long CurrentApianTime();
-        string CurrentGroupId();
+        void RequestBikeData(string bikeId, string destId);
     }
 
-    public interface IBeamGameNetClient : IGameNetClient
+    public interface IBeamGameNetClient : IApianGameNetClient
     {
-        void OnBikeDataQuery(BikeDataQueryMsg msg, string srcId, long msgDelay);
-        void OnBikeCreateReq(BikeCreateDataMsg msg, string srcId, long msgDelay);
-        void OnBikeTurnReq(BikeTurnMsg msg, string srcId, long msgDelay);
-        void OnBikeCommandReq(BikeCommandMsg msg, string srcId, long msgDelay);
-        void OnPlaceClaimObs(PlaceClaimMsg msg, string srcId, long msgDelay);
-        void OnPlaceHitObs(PlaceHitMsg msg, string srcId, long msgDelay);
+        void OnBikeDataQuery(BikeDataQueryMsg msg, string from, long msSinceSent);
     }
 
-    public class BeamGameNet : GameNetBase, IBeamGameNet
+    public class BeamGameNet : ApianGameNet, IBeamGameNet
     {
-        public readonly long kBikeUpdateMs = 1017;
-        protected Dictionary<string, long> _lastBikeUpdatesMs;
-        public BeamApian ApianInst {get; protected set;}
-        protected Dictionary<string, Action<string, string, long, GameNetClientMessage>> _MsgHandlers;
-        public class GameCreationData {}
+
 
         public BeamGameNet() : base()
         {
-            _lastBikeUpdatesMs = new Dictionary<string, long>();
-            _MsgHandlers = new  Dictionary<string, Action<string, string, long, GameNetClientMessage>>()
-            {
-                [ApianMessage.CliRequest] = (f,t,s,m) => this._HandleApianRequest(f,t,s,m),
-                [ApianMessage.CliObservation ] = (f,t,s,m) => this._HandleApianObservation(f,t,s,m),
-                // Need ApianMessage.kCliCommand
-                [ApianMessage.GroupMessage] = (f,t,s,m) => this._HandleApianGroupMessage(f,t,s,m),
-                [ApianMessage.ApianClockOffset ] = (f,t,s,m) => this._HandleApianClockMessage(f,t,s,m),
-
-                // This is part of the original "request create data fr unknown bikes" protocol,
-                // which really doesn't make sense for a consensus system based game.
-                [BeamMessage.kBikeDataQuery] = (f,t,s,m) => this._HandleBikeDataQuery(f,t,s,m),
-
-            };
-        }
-
-        public override void Init(IGameNetClient client)
-        {
-            base.Init(client); // sets GameNet.IGmeNetClient
-            ApianInst = client as BeamApian;
-        }
-
-        public override void Loop()
-        {
-            base.Loop();
-            ApianInst.Update(); // &&& Is this where we want this?
-        }
-
-        public long CurrentApianTime()
-        {
-            return ApianInst.ApianClock.CurrentTime;
-        }
-
-        public string CurrentGroupId()
-        {
-            // &&& Needed
-           return ApianInst.ApianGroup.GroupId;
+            _MsgHandlers[BeamMessage.kBikeDataQuery] = (f,t,s,m) => this._HandleBikeDataQuery(f,t,s,m);
         }
 
         protected override IP2pNet P2pNetFactory(string p2pConnectionString)
@@ -112,19 +64,12 @@ namespace BeamBackend
 
         // Sending
 
-        public void SendApianMessage(string toChannel, ApianMessage appMsg)
-        {
-            logger.Verbose($"SendApianMessage() - type: {appMsg.MsgType}, To: {toChannel}");
-            _SendClientMessage( toChannel ?? CurrentGroupId(), appMsg.MsgType,  JsonConvert.SerializeObject(appMsg));
-
-        }
-
         // IBeamGameNet
 
         public void RequestBikeData(string bikeId, string destId)
         {
             logger.Verbose($"RequestBikeData()");
-            BikeDataQueryMsg msg = new BikeDataQueryMsg(CurrentApianTime(), bikeId);
+            BikeDataQueryMsg msg = new BikeDataQueryMsg(ApianInst.ApianClock.CurrentTime, bikeId);
             _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
         }
 
@@ -132,51 +77,6 @@ namespace BeamBackend
         //
         // Beam message handlers
         //
-        protected override void _HandleClientMessage(string from, string to, long msSinceSent, GameNetClientMessage msg)
-        {
-                // Turns out we're best-off letting it throw rather than handling exceptions
-                _MsgHandlers[msg.clientMsgType](from, to, msSinceSent, msg);
-        }
-
-         protected void _HandleApianRequest(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
-        {
-            ApianRequest genReq = JsonConvert.DeserializeObject<ApianRequest>(clientMessage.payload);
-            ApianMessage apMsg = BeamMessageDeserializer.FromJSON(ApianMessage.CliRequest+genReq.CliMsgType,clientMessage.payload);
-            logger.Verbose($"_HandleApianRequest() Type: {apMsg.MsgType}, src: {(from==LocalP2pId()?"Local":from)}");
-            (client as BeamApian).OnApianMessage(from, to, apMsg, msSinceSent);
-        }
-
-         protected void _HandleApianObservation(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
-        {
-            // TODO: Can we get rid of this double deserializetion. Also, we probably ought to be asking the Apian instance
-            // too do the decoding isntead of calling NewtonSoft here.
-            ApianObservation genObs = JsonConvert.DeserializeObject<ApianObservation>(clientMessage.payload);
-            ApianMessage apMsg = BeamMessageDeserializer.FromJSON(ApianMessage.CliObservation+genObs.CliMsgType,clientMessage.payload);
-            logger.Verbose($"_HandleApianObservation() Type: {apMsg.MsgType}, src: {(from==LocalP2pId()?"Local":from)}");
-            (client as BeamApian).OnApianMessage(from, to, apMsg, msSinceSent);
-        }
-
-
-        protected void _HandleApianGroupMessage(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
-        {
-            // Unlike BeamMessages (which are application specific, as is this module) - we don't know here
-            // exactly what kind of ApinGroupMessage we are fielding, so well have to pass it in serialized form to the Apian
-            // instance (which DOES know) to decide.
-            // TODO: Hmm. We should be able to just ask the apian instance to decode it for us... mostly just because passing around the
-            // JSON text is ugly.
-            ApianGroupMessage genGrpMsg = JsonConvert.DeserializeObject<ApianGroupMessage>(clientMessage.payload);
-            ApianMessage apMsg = (client as BeamApian).DeserializeMessage(ApianMessage.GroupMessage,genGrpMsg.GroupMsgType,clientMessage.payload);
-            logger.Verbose($"_HandleApianGroupMessage() Type: {genGrpMsg.MsgType}, Subtype: {genGrpMsg.GroupMsgType} src: {(from==LocalP2pId()?"Local":from)}");
-            (client as BeamApian).OnApianMessage(from, to, apMsg, msSinceSent);
-        }
-
-        protected void _HandleApianClockMessage(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
-        {
-            ApianClockOffsetMsg apMsg =  JsonConvert.DeserializeObject<ApianClockOffsetMsg>(clientMessage.payload);
-            logger.Verbose($"_HandleApianClockMessage() Type: {apMsg.MsgType}, src: {(from==LocalP2pId()?"Local":from)}");
-            (client as BeamApian).OnApianMessage(from, to, apMsg, msSinceSent);
-        }
-
         protected void _HandleBikeDataQuery(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
         {
             // TODO: this protocol (see a message about a bike you don't know / ask for data about it)  doesn;t work
