@@ -23,7 +23,7 @@ namespace BeamBackend
         {
             base.Start();
 
-            game = backend.mainGameInst;
+            game = core.mainGameInst;
             game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
             game.RespawnPlayerEvt += OnRespawnPlayerEvt;
 
@@ -36,11 +36,11 @@ namespace BeamBackend
 
             // Setup/connect fake network
             BeamUserSettings settings = game.frontend.GetUserSettings();
-            backend.gameNet.Connect("p2ploopback");
-            string p2pId = backend.gameNet.LocalP2pId();
+            core.gameNet.Connect("p2ploopback");
+            string p2pId = core.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
             game.AddLocalPeer(localPeer);
-            backend.gameNet.JoinGame("localgame");
+            core.gameNet.JoinGame("localgame");
         }
 
 		public override void Loop(float frameSecs)
@@ -75,7 +75,7 @@ namespace BeamBackend
 		public override object End() {
             game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
-            game.frontend?.OnEndMode(backend.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
             game.ClearBikes();
             game.ClearPlaces();

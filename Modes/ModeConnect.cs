@@ -50,7 +50,7 @@ namespace BeamBackend
         {
             base.Start();
 
-            game = backend.mainGameInst;
+            game = core.mainGameInst;
 
             game.GameCreatedEvt += OnGameCreatedEvt;
             game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
@@ -65,8 +65,8 @@ namespace BeamBackend
             game.ClearPlaces();
 
             // need to "connect"first in order to have a p2pId
-            backend.gameNet.Connect(settings.p2pConnectionString);
-            string p2pId = backend.gameNet.LocalP2pId();
+            core.gameNet.Connect(settings.p2pConnectionString);
+            string p2pId = core.gameNet.LocalP2pId();
             BeamPeer localPeer = _CreateLocalPeer(p2pId, settings);
             game.AddLocalPeer(localPeer);
 
@@ -103,11 +103,11 @@ namespace BeamBackend
             {
             case kCreatingGame:
                 logger.Info($"{(ModeName())}: SetState: kCreatingGame");
-                backend.gameNet.CreateGame(startParam);
+                core.gameNet.CreateGame(startParam);
                 break;
             case kJoiningGame:
                 logger.Info($"{(ModeName())}: SetState: kJoiningGame");
-                backend.gameNet.JoinGame((string)startParam);
+                core.gameNet.JoinGame((string)startParam);
                 break;
             case kWaitingForUnknownBikes:
                 logger.Info($"{(ModeName())}: SetState: kWaitingForRemoteBikes");

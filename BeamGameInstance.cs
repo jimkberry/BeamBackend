@@ -88,6 +88,8 @@ namespace BeamBackend
 
         public bool Loop(float frameSecs)
         {
+            apian.Update();
+
             // Ignore passed in framesecs.
             long prevFrameApianTime = FrameApianTime;
             FrameApianTime = CurGameTime;
@@ -98,15 +100,10 @@ namespace BeamBackend
             }
 
             float apianFrameSecs = (FrameApianTime - prevFrameApianTime) / 1000f;
-
             //logger.Debug("Loop()");
             gameData.Loop(apianFrameSecs);
-            // TODO: gets throttled per-bike by gamenet, but we should probably
-            // have it time-based here as well rather than going though
-            // the whole thing every frame
-            //gameNet.SendBikeUpdates(gameData.LocalBikes(LocalPeerId));
 
-            return true; // return modeMgr.Loop(frameSecs); // TODO: I THINK this is OK. manager code can't change instance state
+            return true;
         }
 
         //

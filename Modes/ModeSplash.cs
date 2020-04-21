@@ -1,3 +1,4 @@
+using System.Security.Permissions;
 using System;
 using System.Linq;
 using GameModeMgr;
@@ -25,22 +26,23 @@ namespace BeamBackend
             logger.Info("Starting Splash");
             base.Start();
 
-            game = backend.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
+            // Create gameInstance and associated Apian
+            BeamGameInstance inst = new BeamGameInstance(core.frontend);
+            BeamApian apian = new BeamApianTrusty(core.gameNet, inst);
+            core.SetGameInstance(inst);
+
+            game = core.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
             game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
 
-            gameJoined = false;
-            bikesCreated = false;
-            game.ClearPeers();
-            game.ClearBikes();
-            game.ClearPlaces();
+            core.gameNet.SetClient(apian);
 
             // Setup/connect fake network
             BeamUserSettings settings = game.frontend.GetUserSettings();
-            backend.gameNet.Connect("p2ploopback");
-            string p2pId = backend.gameNet.LocalP2pId();
+            core.gameNet.Connect("p2ploopback");
+            string p2pId = core.gameNet.LocalP2pId();
             BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
             game.AddLocalPeer(localPeer);
-            backend.gameNet.JoinGame("localgame");
+            core.gameNet.JoinGame("localgame");
         }
 
 		public override void Loop(float frameSecs)
@@ -72,8 +74,8 @@ namespace BeamBackend
 
 		public override object End() {
             game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.frontend?.OnEndMode(backend.modeMgr.CurrentModeId(), null);
-            backend.gameNet.LeaveGame();
+            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
+            core.gameNet.LeaveGame();
             game.ClearPeers();
             game.ClearBikes();
             game.ClearPlaces();

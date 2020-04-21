@@ -21,7 +21,7 @@ namespace BeamBackend
 		public override void Start(object param = null)
         {
             base.Start();
-            game = backend.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
+            game = core.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
             game.RespawnPlayerEvt += OnRespawnPlayerEvt;
 
             settings = game.frontend.GetUserSettings();
@@ -50,7 +50,7 @@ namespace BeamBackend
 
 		public override object End() {
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
-            game.frontend?.OnEndMode(backend.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
             game.ClearBikes();
             game.ClearPlaces();
