@@ -2,7 +2,7 @@ using GameModeMgr;
 using UniLog;
 namespace BeamBackend
 {
-    public class BeamCore : IGameInstance
+    public class BeamCore : IGameInstance // NOT a BeamGameInstance
     {
 
         public ModeManager modeMgr {get; private set;}
