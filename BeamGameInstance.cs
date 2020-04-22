@@ -231,6 +231,7 @@ namespace BeamBackend
 
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
+           logger.Error("backend.OnSwitchModeReq() not working");
            // &&&&&modeMgr.SwitchToMode(newModeId, modeParam);
         }
 
