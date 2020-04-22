@@ -13,10 +13,8 @@ namespace BeamBackend
 
     public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamApianClient
     {
-        //public ModeManager modeMgr {get; private set;}
-        public  BeamGameData gameData {get; private set;}
+        public BeamGameData GameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
-       // public  IBeamGameNet gameNet {get; private set;}
         public BeamApian apian {get; private set;}
         public UniLogger logger;
         public BeamPeer LocalPeer { get; private set; } = null;
@@ -53,7 +51,7 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("GameInstance");
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
-            gameData = new BeamGameData(frontend);
+            GameData = new BeamGameData(frontend);
 
             assertionHandlers = new  Dictionary<string, Action<BeamMessage, long>>()
             {
@@ -101,7 +99,7 @@ namespace BeamBackend
 
             float apianFrameSecs = (FrameApianTime - prevFrameApianTime) / 1000f;
             //logger.Debug("Loop()");
-            gameData.Loop(apianFrameSecs);
+            GameData.Loop(apianFrameSecs);
 
             return true;
         }
@@ -155,7 +153,7 @@ namespace BeamBackend
             {
                 foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
                 {
-                    if (gameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
+                    if (GameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
                         logger.Warn($"OnBikeCreateData() Claimplace() failed");
                 }
             }
@@ -163,7 +161,7 @@ namespace BeamBackend
 
         public void OnBikeCommand(BikeCommandMsg msg, long msgDelay)
         {
-            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Caller (Apian) checks the bike and message sourcevalidity
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
@@ -174,7 +172,7 @@ namespace BeamBackend
 
         public void OnBikeTurn(BikeTurnMsg msg, long msgDelay)
         {
-            BaseBike bb = gameData.GetBaseBike(msg.bikeId);
+            BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Code (Apian) checks bike and source validity
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
@@ -186,11 +184,11 @@ namespace BeamBackend
         public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
         {
             // Apian has said this message is authoritative
-            BaseBike b = gameData.GetBaseBike(msg.bikeId);
-            if (gameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
+            BaseBike b = GameData.GetBaseBike(msg.bikeId);
+            if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
                 // Claim it
-                Ground.Place p = gameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx);
+                Ground.Place p = GameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx);
                 if (p != null)
                 {
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
@@ -209,17 +207,17 @@ namespace BeamBackend
         {
             // Apian has already checked the the place is claimed and the bike exists
             Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
-            Ground.Place p = gameData.Ground.GetPlace(pos);
-            BaseBike hittingBike = gameData.GetBaseBike(msg.bikeId);
+            Ground.Place p = GameData.Ground.GetPlace(pos);
+            BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
             OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
         }
 
         public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay)
         {
-            IBike ib = gameData.GetBaseBike(msg.bikeId);
+            IBike ib = GameData.GetBaseBike(msg.bikeId);
             logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}. TS: {msg.TimeStamp}");
-            gameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msg.TimeStamp);
+            GameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msg.TimeStamp);
         }
 
 
@@ -229,7 +227,7 @@ namespace BeamBackend
 
         public void RaiseReadyToPlay() => ReadyToPlayEvt?.Invoke(this, EventArgs.Empty); // GameCode -> FE
         public void RaiseRespawnPlayer() => RespawnPlayerEvt?.Invoke(this, EventArgs.Empty); // FE -> GameCode
-        public Ground GetGround() => gameData.Ground;
+        public Ground GetGround() => GameData.Ground;
 
         public void OnSwitchModeReq(int newModeId, object modeParam)
         {
@@ -242,7 +240,7 @@ namespace BeamBackend
 
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
-            List<Ground.Place> places = gameData.Ground.PlacesForBike(ib);
+            List<Ground.Place> places = GameData.Ground.PlacesForBike(ib);
             logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
             apian.SendBikeCreateReq(ib, places, destId);
         }
@@ -284,7 +282,7 @@ namespace BeamBackend
                 }
 
                 IEnumerable<IBike> rewardedOtherBikes =
-                    gameData.Bikes.Values.Where( b => b != bike && b.team == place.bike.team);  // Bikes other the "bike" on affected team
+                    GameData.Bikes.Values.Where( b => b != bike && b.team == place.bike.team);  // Bikes other the "bike" on affected team
                 if (rewardedOtherBikes.Count() > 0)
                 {
                     foreach (BaseBike b  in rewardedOtherBikes)
@@ -309,7 +307,7 @@ namespace BeamBackend
         protected bool _AddPeer(BeamPeer p)
         {
             logger.Debug($"AddPeer(). Name: {p.Name} ID: {p.PeerId}");
-            if  ( gameData.Peers.ContainsKey(p.PeerId))
+            if  ( GameData.Peers.ContainsKey(p.PeerId))
                 return false;
 
             return true;
@@ -317,22 +315,22 @@ namespace BeamBackend
 
         protected bool _RemovePeer(string p2pId)
         {
-            if  (!gameData.Peers.ContainsKey(p2pId))
+            if  (!GameData.Peers.ContainsKey(p2pId))
                 return false;
 
             PeerLeftGameEvt?.Invoke(this, new PeerLeftGameArgs(CurrentGameId, p2pId));
 
-            foreach (IBike ib in gameData.LocalBikes(p2pId))
+            foreach (IBike ib in GameData.LocalBikes(p2pId))
                 _RemoveBike(ib, true); // Blow em up just for yuks.
 
-            gameData.Peers.Remove(p2pId);
+            GameData.Peers.Remove(p2pId);
             return true;
         }
 
         public void ClearPeers()
         {
             PeersClearedEvt?.Invoke(this, EventArgs.Empty);
-            gameData.Peers.Clear();
+            GameData.Peers.Clear();
         }
 
         // Bike-related
@@ -340,7 +338,7 @@ namespace BeamBackend
         public BaseBike CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( this.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            Vector2 pos = BikeFactory.PositionForNewBike( this.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
         }
@@ -349,10 +347,10 @@ namespace BeamBackend
         {
             logger.Verbose($"_AddBike(): {ib.bikeId}");
 
-            if (gameData.GetBaseBike(ib.bikeId) != null)
+            if (GameData.GetBaseBike(ib.bikeId) != null)
                 return false;
 
-            gameData.Bikes[ib.bikeId] = ib;
+            GameData.Bikes[ib.bikeId] = ib;
 
             NewBikeEvt?.Invoke(this, ib);
             return true;
@@ -361,20 +359,20 @@ namespace BeamBackend
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
             logger.Verbose($"_RemoveBike(): {ib.bikeId}");
-            gameData.Ground.RemovePlacesForBike(ib);
+            GameData.Ground.RemovePlacesForBike(ib);
             BikeRemovedEvt?.Invoke(this, new BikeRemovedData(ib.bikeId,  shouldBlowUp));
-            gameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
+            GameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
         }
         public void ClearBikes()
         {
             BikesClearedEvt?.Invoke(this, EventArgs.Empty);
-            gameData.Bikes.Clear();
+            GameData.Bikes.Clear();
         }
 
        // Ground-related
         public void ClearPlaces()
         {
-            gameData.Ground.ClearPlaces(); // ground notifies FE.
+            GameData.Ground.ClearPlaces(); // ground notifies FE.
         }
 
     }

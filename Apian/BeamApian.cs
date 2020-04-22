@@ -47,7 +47,7 @@ namespace BeamBackend
         {
             BeamGameNet = _gn;
             client = _client as BeamGameInstance;
-            gameData = client.gameData;
+            gameData = client.GameData;
 
             // Add BeamApian-level ApianMsg handlers here
             // params are:  from, to, apMsg, msSinceSent

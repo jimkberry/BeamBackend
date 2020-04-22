@@ -65,7 +65,7 @@ namespace BeamBackend
                 if (_secsToNextRespawnCheck <= 0)
                 {
                     // TODO: respawn with prev names/teams?
-                    if (game.gameData.Bikes.Count() < kSplashBikeCount)
+                    if (game.GameData.Bikes.Count() < kSplashBikeCount)
                         CreateADemoBike();
                     _secsToNextRespawnCheck = kRespawnCheckInterval;
                 }
@@ -85,7 +85,7 @@ namespace BeamBackend
         protected string CreateADemoBike()
         {
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
                 BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);

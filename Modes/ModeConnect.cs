@@ -196,7 +196,7 @@ namespace BeamBackend
 
         protected bool _RemoteBikeExists()
         {
-            return game.gameData.Bikes.Values.Where( ib => ib.peerId != game.LocalPeerId).Count() > 0;
+            return game.GameData.Bikes.Values.Where( ib => ib.peerId != game.LocalPeerId).Count() > 0;
         }
 
         protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
@@ -223,7 +223,7 @@ namespace BeamBackend
         {
             _localBikesToCreate++;
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
                 BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);

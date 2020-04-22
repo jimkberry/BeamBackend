@@ -27,9 +27,9 @@ namespace BeamBackend
             settings = game.frontend.GetUserSettings();
 
             game.ClearPlaces();
-            IBike playerBike = game.gameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
+            IBike playerBike = game.GameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
             if (playerBike == null)
-                playerBike = game.gameData.LocalBikes(game.LocalPeerId).First();
+                playerBike = game.GameData.LocalBikes(game.LocalPeerId).First();
             //_startLocalBikes();
             game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );
         }
@@ -41,7 +41,7 @@ namespace BeamBackend
                 _secsToNextRespawnCheck -= frameSecs;
                 if (_secsToNextRespawnCheck <= 0)
                 {
-                    if (game.gameData.LocalBikes(game.LocalPeerId).Where(ib => ib.ctrlType==BikeFactory.AiCtrl).Count() < settings.aiBikeCount)
+                    if (game.GameData.LocalBikes(game.LocalPeerId).Where(ib => ib.ctrlType==BikeFactory.AiCtrl).Count() < settings.aiBikeCount)
                         SpawnAiBike();
                     _secsToNextRespawnCheck = kRespawnCheckInterval;
                 }
@@ -59,13 +59,13 @@ namespace BeamBackend
 
         protected void _startLocalBikes()
         {
-            foreach( IBike ib in game.gameData.LocalBikes(game.LocalPeerId)) { game.PostBikeCommand(ib, BikeCommand.kGo);  }
+            foreach( IBike ib in game.GameData.LocalBikes(game.LocalPeerId)) { game.PostBikeCommand(ib, BikeCommand.kGo);  }
         }
 
         protected string CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
             game.PostBikeCreateData(bb);
@@ -76,7 +76,7 @@ namespace BeamBackend
         {
             // TODO: this (or something like it) appears several places in the codebase. Fix that.
             Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.gameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
+            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
                 BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);

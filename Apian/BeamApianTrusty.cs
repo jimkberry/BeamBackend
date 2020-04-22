@@ -144,9 +144,9 @@ namespace BeamBackend
                 }
             }
 
-            Logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
+            Logger.Debug($"OnPlaceClaimObs() - Got ClaimObs from {srcId}. PeerCount: {client.GameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
-            placeClaimVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
+            placeClaimVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.GameData.Peers.Count);
             VoteResult vr = placeClaimVoteMachine.GetResult(newPd);
             if (!vr.WasComplete && vr.Status == VoteStatus.Won && bb != null)
             {
@@ -184,9 +184,9 @@ namespace BeamBackend
                 return;
             }
 
-            Logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.gameData.Peers.Count}");
+            Logger.Debug($"OnPlaceHitObs() - Got HitObs from {srcId}. PeerCount: {client.GameData.Peers.Count}");
             PlaceBikeData newPd = new PlaceBikeData(msg.xIdx, msg.zIdx, msg.bikeId);
-            placeHitVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.gameData.Peers.Count);
+            placeHitVoteMachine.AddVote(newPd, srcId, msg.TimeStamp, client.GameData.Peers.Count);
             VoteResult vr = placeHitVoteMachine.GetResult(newPd);
             if (!vr.WasComplete && vr.Status == VoteStatus.Won && bb != null)
             {
@@ -203,7 +203,7 @@ namespace BeamBackend
         {
             if (ApianClock.IsIdle) // this is fugly
                 return;
-            IBike ib = client.gameData.GetBaseBike(msg.bikeId);
+            IBike ib = client.GameData.GetBaseBike(msg.bikeId);
             Logger.Info($"OnBikeDataQuery() - bike: {msg.bikeId} {(ib==null?"is GONE! Ignoring.":"Sending")}");
             if (ib != null)
                 client.PostBikeCreateData(ib, srcId);

@@ -7,15 +7,15 @@ namespace BeamBackend
 {
     public class BaseBike : IBike
     {
-        public const int kStartScore = 2000;        
+        public const int kStartScore = 2000;
         public static readonly float length = 2.0f;
-        public static readonly float defaultSpeed =  15.0f;   
+        public static readonly float defaultSpeed =  15.0f;
 
-        public string bikeId {get; private set;} 
+        public string bikeId {get; private set;}
         public string peerId {get; private set;}
         public string name {get; private set;}
         public Team team {get; private set;}
-        public int score {get; set;}        
+        public int score {get; set;}
         public string ctrlType {get; private set;}
         public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
@@ -29,7 +29,7 @@ namespace BeamBackend
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
         public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed, TurnDir _pendingTurn=TurnDir.kUnset)
-        { 
+        {
             gameInst = gi;
             bikeId = _id;
             peerId = _peerId;
@@ -39,8 +39,8 @@ namespace BeamBackend
             speed = _speed;
             heading = head;
             pendingTurn = _pendingTurn;
-            ctrlType = ctrl;  
-            score = kStartScore;  
+            ctrlType = ctrl;
+            score = kStartScore;
             logger = UniLogger.GetLogger("BaseBike");
         }
 
@@ -51,21 +51,21 @@ namespace BeamBackend
                     peerId,
                     name,
                     team.TeamID,
-                    ctrlType,        
+                    ctrlType,
                     position.x, // decompose Vector2
-                    position.y, 
+                    position.y,
                     heading,
                     speed,
                     score,
                     pendingTurn
-                 });            
+                 });
         }
 
         // Commands from outside
-  
+
         public void Loop(float secs)
         {
-            //logger.Debug($"Loop(). Bike: {bikeId} Speed: {speed})");            
+            //logger.Debug($"Loop(). Bike: {bikeId} Speed: {speed})");
             _updatePosition(secs);
         }
 
@@ -77,11 +77,11 @@ namespace BeamBackend
             // detected by Apian and fixed. (No, it doesn't do that - yet)
 
             // Check to see that the reported upcoming point is what we think it is, too
-            // In real life this'll get checked by Apian/consensus code to decide if the command 
+            // In real life this'll get checked by Apian/consensus code to decide if the command
             // is valid before it even makes it here. Or... we might have to "fix things up"
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
-            // Just shove it in 
+            // Just shove it in
             // TODO: make this more gentle
             //score = reportedState.score;
             speed = reportedState.speed;
@@ -102,9 +102,9 @@ namespace BeamBackend
             //         Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
             //         Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
             //         heading = newHead;
-            //         logger.Verbose($"  Fixed.");                     
+            //         logger.Verbose($"  Fixed.");
             //     } else {
-            //         logger.Verbose($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");  
+            //         logger.Verbose($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");
             //     }
             // }
             pendingTurn = dir;
@@ -114,7 +114,7 @@ namespace BeamBackend
         public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, float commandDelaySecs)
         {
             // Check to see that the reported upcoming point is what we think it is, too
-            // In real life this'll get checked by Apian/consensus code to decide if the command 
+            // In real life this'll get checked by Apian/consensus code to decide if the command
             // is valid before it even makes it here. Or... we might have to "fix things up"
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
@@ -135,25 +135,25 @@ namespace BeamBackend
             }
 
             _updatePosition(rollbackSecs);
-        }        
+        }
 
         public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
         {
             // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
-            
+
             speed = newSpeed;
             heading = newHeading;
 
             // project reported pos to now.
             long lagMs = gameInst.CurGameTime - msgTime;
-            //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");            
+            //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");
             logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
 
             newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
             score = newScore; // TODO: this might be problematic
 
-            // Make sure the bike is on a grid line...     
-            Vector2 ptPos = Ground.NearestGridPoint(newPos);   
+            // Make sure the bike is on a grid line...
+            Vector2 ptPos = Ground.NearestGridPoint(newPos);
             if (heading == Heading.kEast || heading == Heading.kWest)
             {
                 newPos.y = ptPos.y;
@@ -167,21 +167,21 @@ namespace BeamBackend
         {
             if (secs == 0)
                 return;
-                
+
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
 
             Vector2 newPos = position;
             Heading newHead = heading;
 
-            if (secs >= timeToPoint) 
+            if (secs >= timeToPoint)
             {
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
                 pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading);    
-                heading = newHead;                    
+                DoAtGridPoint(upcomingPoint, heading);
+                heading = newHead;
             }
 
             newPos += GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
@@ -191,11 +191,11 @@ namespace BeamBackend
 
         private float _rollbackTime(float secs)
         {
-            // Propagate the bike backwards in time by "secs" or almost the length of time that 
-            // takes it backwards to the previous point - whichever is shorter            
-            // This is to try to minimize message delays. 
-            // If, for instance, a bike command is received that we know happened .08 secs ago, 
-            // then the code handling the command can roll the bike back, apply the ecommand, and then 
+            // Propagate the bike backwards in time by "secs" or almost the length of time that
+            // takes it backwards to the previous point - whichever is shorter
+            // This is to try to minimize message delays.
+            // If, for instance, a bike command is received that we know happened .08 secs ago,
+            // then the code handling the command can roll the bike back, apply the ecommand, and then
             // call bike.update(rolledBackTime) to have effectively back-applied the command.
             // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
             // It returns the amount of time rolled back as a positive float.
@@ -209,7 +209,7 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
         {
-            Ground g = gameInst.gameData.Ground;
+            Ground g = gameInst.GameData.Ground;
             Ground.Place p = g.GetPlace(pos);
             logger.Debug($"DoAtGridPoint()");
             if (p == null)
@@ -219,7 +219,7 @@ namespace BeamBackend
                 // is it on the map?
                 if (g.IndicesAreOnMap(xIdx, zIdx))
                 {
-                    // Yes. Since it's empty send a claim report 
+                    // Yes. Since it's empty send a claim report
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
                     gameInst.apian.SendPlaceClaimObs(this, xIdx, zIdx);
                 } else {
@@ -228,22 +228,22 @@ namespace BeamBackend
                     // Current thinking: yeah. But not now.
                     // A thought: Could just skip the on-map check and call it a place claim and report it
                     //   GameNet can grant/not grant it depending on the consensus rules, and if inst
-                    //   gets the claim it can just blow it up then. 
+                    //   gets the claim it can just blow it up then.
 
-                    //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);     
+                    //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);
                     // This is stupid and temporary (rather than just getting rid of the test)
                     // TODO: FIX THIS!!!  &&&&&&&
-                    gameInst.apian.SendPlaceClaimObs(this, xIdx, zIdx);               
+                    gameInst.apian.SendPlaceClaimObs(this, xIdx, zIdx);
                 }
             } else {
                 // Hit a marker. Report it.
                 gameInst.apian.SendPlaceHitObs(this, p.xIdx, p.zIdx);
-            }            
+            }
         }
 
         //
         // Static tools. Potentially useful publicly
-        // 
+        //
         public static Vector2 NearestGridPoint(Vector2 pos)
         {
             float invGridSize = 1.0f / Ground.gridSize;
@@ -264,9 +264,9 @@ namespace BeamBackend
             if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(head), point - pos) < 0)
             {
                 point += GameConstants.UnitOffset2ForHeading(head) * Ground.gridSize;
-            }            
+            }
             return point;
-        }    
+        }
 
         public Vector2 UpcomingGridPoint( )
         {
