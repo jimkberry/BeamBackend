@@ -7,14 +7,13 @@ namespace BeamBackend
 {
     public class ModePractice : BeamGameMode
     {
+        static public readonly string GameName = "LocalPracticeGame";
+        static public readonly string ApianGroupName = "LocalPracticeGroup";
+        static public readonly string ApianGroupId = "LocalPracticeId";
         public readonly int kMaxAiBikes = 11;
-
         public BeamGameInstance game = null;
-
         protected BaseBike playerBike = null;
-
         protected const float kRespawnCheckInterval = 1.3f;
-
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
         protected bool gameJoined;
         protected bool bikesCreated;
@@ -23,22 +22,19 @@ namespace BeamBackend
         {
             base.Start();
 
-            game = core.mainGameInst;
- ///           game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            game.RespawnPlayerEvt += OnRespawnPlayerEvt;
+            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
+            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
+            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+
 
             gameJoined = false;
             bikesCreated = false;
 
-            game.ClearPeers();
-            game.ClearBikes();
-            game.ClearPlaces();
-
             // Setup/connect fake network
-            BeamUserSettings settings = game.frontend.GetUserSettings();
             core.ConnectToNetwork("p2ploopback");
- ///           game.AddLocalPeer(core.LocalPeer);
-            core.JoinNetworkGame("localgame");
+            core.JoinNetworkGame(GameName);
+            // Now wait for OnPeerJoinedGame()
         }
 
 		public override void Loop(float frameSecs)
@@ -118,12 +114,28 @@ namespace BeamBackend
 
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {
-            bool isLocal = ga.peer.PeerId == game.LocalPeerId;
-            if (isLocal)
+            bool isLocal = ga.peer.PeerId == core.LocalPeer.PeerId;
+            if (isLocal && game == null)
             {
-                logger.Info("Practice game joined");
-                gameJoined = true;
+                logger.Info("practice game joined");
+                // Create gameInstance and associated Apian
+                game = new BeamGameInstance(core.frontend);
+                game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
+                BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
+                core.AddGameInstance(game);
+                // Dont need to check for groups in splash
+                apian.CreateGroup(ApianGroupId, ApianGroupName);
+                BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                // waiting for OnGroupJoined()
             }
+        }
+
+        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        {
+            game.RespawnPlayerEvt += OnRespawnPlayerEvt;
+            gameJoined = true;
         }
     }
 }
+
+

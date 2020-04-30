@@ -34,7 +34,6 @@ namespace BeamBackend
             base.Start();
 
             core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
-
             core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
 
             // Setup/connect fake network
