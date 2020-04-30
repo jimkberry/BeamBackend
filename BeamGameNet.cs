@@ -10,21 +10,15 @@ namespace BeamBackend
 {
     public interface IBeamGameNet : IApianGameNet
     {
-        void RequestBikeData(string bikeId, string destId);
+
     }
 
-    public interface IBeamGameNetClient : IApianGameNetClient
+    public class BeamGameNet : ApianGameNetBase, IBeamGameNet
     {
-        void OnBikeDataQuery(BikeDataQueryMsg msg, string from, long msSinceSent);
-    }
-
-    public class BeamGameNet : ApianGameNet, IBeamGameNet
-    {
-
 
         public BeamGameNet() : base()
         {
-            _MsgHandlers[BeamMessage.kBikeDataQuery] = (f,t,s,m) => this._HandleBikeDataQuery(f,t,s,m);
+           // _MsgHandlers[BeamMessage.kBikeDataQuery] = (f,t,s,m) => this._HandleBikeDataQuery(f,t,s,m);
         }
 
         protected override IP2pNet P2pNetFactory(string p2pConnectionString)
@@ -56,35 +50,20 @@ namespace BeamBackend
             return ip2p;
         }
 
-        public override void  CreateGame<GameCreationData>(GameCreationData data)
+        public override ApianMessage DeserializeApianMessage(string msgType, string msgJSON)
         {
-            logger.Verbose($"CreateGame()");
-            _SyncTrivialNewGame(); // Creates/sets an ID and enqueues OnGameCreated()
+            // TODO: can I do this without decoding it twice?
+            // One option would be for the deifnition of ApianMessage to have type and subType,
+            // but I'd rather just decode it smarter
+            return BeamApianMessageDeserializer.FromJSON(msgType, msgJSON);
         }
 
-        // Sending
+        // public override void  CreateGame<GameCreationData>(GameCreationData data)
+        // {
+        //     logger.Verbose($"CreateGame()");
+        //     _SyncTrivialNewGame(); // Creates/sets an ID and enqueues OnGameCreated()
+        // }
 
-        // IBeamGameNet
-
-        public void RequestBikeData(string bikeId, string destId)
-        {
-            logger.Verbose($"RequestBikeData()");
-            BikeDataQueryMsg msg = new BikeDataQueryMsg(ApianInst.ApianClock.CurrentTime, bikeId);
-            _SendClientMessage( destId, msg.MsgType.ToString(), JsonConvert.SerializeObject(msg));
-        }
-
-
-        //
-        // Beam message handlers
-        //
-        protected void _HandleBikeDataQuery(string from, string to, long msSinceSent, GameNetClientMessage clientMessage)
-        {
-            // TODO: this protocol (see a message about a bike you don't know / ask for data about it)  doesn;t work
-            // with a proper Consensus System. I mean, I guess it could as part of the member sync process,
-            // but it really doesn;t belong here
-            logger.Verbose($"_HandleBikeDataQuery() src: {(from==LocalP2pId()?"Local":from)}");
-            (client as IBeamGameNetClient).OnBikeDataQuery(JsonConvert.DeserializeObject<BikeDataQueryMsg>(clientMessage.payload), from, msSinceSent);
-        }
     }
 
 }

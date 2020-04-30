@@ -24,7 +24,7 @@ namespace BeamBackend
             base.Start();
 
             game = core.mainGameInst;
-            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+ ///           game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
             game.RespawnPlayerEvt += OnRespawnPlayerEvt;
 
             gameJoined = false;
@@ -36,11 +36,9 @@ namespace BeamBackend
 
             // Setup/connect fake network
             BeamUserSettings settings = game.frontend.GetUserSettings();
-            core.gameNet.Connect("p2ploopback");
-            string p2pId = core.gameNet.LocalP2pId();
-            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
-            game.AddLocalPeer(localPeer);
-            core.gameNet.JoinGame("localgame");
+            core.ConnectToNetwork("p2ploopback");
+ ///           game.AddLocalPeer(core.LocalPeer);
+            core.JoinNetworkGame("localgame");
         }
 
 		public override void Loop(float frameSecs)
@@ -73,7 +71,7 @@ namespace BeamBackend
         }
 
 		public override object End() {
-            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+ ///           game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
@@ -96,7 +94,7 @@ namespace BeamBackend
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
         }
 
         protected string SpawnAIBike(string name = null, Team team = null)

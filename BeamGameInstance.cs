@@ -11,15 +11,21 @@ using UniLog;
 namespace BeamBackend
 {
 
-    public class BeamGameInstance : IGameInstance, IBeamBackend, IBeamApianClient
+    public class BeamGameInstance : IGameInstance, IBeamGameInstance, IBeamApianClient
     {
+
+        public event EventHandler<MemberJoinedGroupArgs> MemberJoinedGroupEvt;
+        public event EventHandler<MemberLeftGroupArgs> MemberLeftGroupEvt;
+
         public BeamGameData GameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
         public BeamApian apian {get; private set;}
         public UniLogger logger;
-        public BeamPeer LocalPeer { get; private set; } = null;
-        public string LocalPeerId => LocalPeer?.PeerId;
+        public BeamGroupMember LocalMember { get; private set; } = null;
+        public string LocalPeerId => LocalMember?.PeerId;
         public string CurrentGameId  { get; private set; }
+
+        //public ApianClientMemberData LocalPeerData {get => LocalMember;}
 
         public long CurGameTime {get => apian.ApianClock.CurrentTime; }
 
@@ -30,9 +36,7 @@ namespace BeamBackend
         public long FrameApianTime {get; private set;} = -1;
 
         // IBeamBackend events
-        public event EventHandler<string> GameCreatedEvt; // game channel
-        public event EventHandler<PeerJoinedGameArgs> PeerJoinedGameEvt;
-        public event EventHandler<PeerLeftGameArgs> PeerLeftGameEvt;
+
         public event EventHandler PeersClearedEvt;
         public event EventHandler<IBike> NewBikeEvt;
         public event EventHandler<BikeRemovedData> BikeRemovedEvt;
@@ -64,16 +68,11 @@ namespace BeamBackend
             };
         }
 
-        public void SetApianReference(ApianBase ap)
-        {
-            apian = ap as BeamApian;
-        }
-
-        public void AddLocalPeer(BeamPeer p)
-        {
-            LocalPeer = p;
-            _AddPeer(p);
-        }
+        // public void AddLocalPeer(BeamGroupMember p)
+        // {
+        //     LocalMember = p;
+        //     _AddMember(p);
+        // }
 
 
         //
@@ -108,36 +107,29 @@ namespace BeamBackend
         // IBeamApianClient
         //
 
-        public string LocalPeerData()
+        public void SetApianReference(ApianBase ap)
         {
-            if (LocalPeer == null)
-                logger.Warn("LocalPeerData() - no local peer");
-            return  JsonConvert.SerializeObject( new NetPeerData(){ peer = LocalPeer });
+            apian = ap as BeamApian;
         }
+        // public string LocalPeerData()
+        // {
+        //     if (LocalPeer == null)
+        //         logger.Warn("LocalPeerData() - no local peer");
+        //     return  JsonConvert.SerializeObject( LocalPeer);
+        // }
 
-        public void OnGameCreated(string gameP2pChannel)
+
+        public void OnMemberJoined(ApianClientMemberData memberData)
         {
-            logger.Info($"OnGameCreated({gameP2pChannel}");
-            GameCreatedEvt?.Invoke(this, gameP2pChannel);
-        }
+            BeamGroupMember member = memberData as BeamGroupMember;
+            logger.Info($"OnMemberJoined() {((member.PeerId == LocalPeerId)?"Local":"Remote")} name: {member.Name}");
+            _AddMember(member);
+          }
 
-        public void OnPeerJoinedGame(string p2pId, string gameId, string helloData)
-        {
-            NetPeerData peerData = JsonConvert.DeserializeObject<NetPeerData>(helloData);
-            logger.Info($"OnPeerJoinedGame() {((p2pId == LocalPeerId)?"Local":"Remote")} name: {peerData.peer.Name}");
-            if (p2pId == LocalPeerId)
-            {
-                CurrentGameId = gameId;
-            }
-            _AddPeer(peerData.peer);
-            PeerJoinedGameEvt.Invoke(this, new PeerJoinedGameArgs(gameId, peerData.peer));
-        }
-
-        public void OnPeerLeftGame(string p2pId, string gameId)
+        public void OnMemberLeft(string p2pId)
         {
             logger.Info($"OnPeerLeftGame({p2pId})");
-            PeerLeftGameEvt.Invoke(this, new PeerLeftGameArgs(gameId, p2pId));
-            _RemovePeer(p2pId);
+            _RemoveMember(p2pId);
         }
 
         public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
@@ -211,13 +203,6 @@ namespace BeamBackend
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
             OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
-        }
-
-        public void OnRemoteBikeUpdate(BikeUpdateMsg msg, string srcId, long msgDelay)
-        {
-            IBike ib = GameData.GetBaseBike(msg.bikeId);
-            logger.Debug($"OnRemoteBikeUpdate() - updating remote bike: {msg.bikeId}. TS: {msg.TimeStamp}");
-            GameData.GetBaseBike(msg.bikeId).ApplyUpdate(new Vector2(msg.xPos, msg.yPos), msg.speed, msg.heading, msg.score, msg.TimeStamp);
         }
 
 
@@ -305,33 +290,37 @@ namespace BeamBackend
         }
 
         // Peer-related
-        protected bool _AddPeer(BeamPeer p)
+        protected bool _AddMember(BeamGroupMember p)
         {
-            logger.Debug($"AddPeer(). Name: {p.Name} ID: {p.PeerId}");
-            if  ( GameData.Peers.ContainsKey(p.PeerId))
+            logger.Debug($"_AddMember(). Name: {p.Name} ID: {p.PeerId}");
+            if  ( GameData.Members.ContainsKey(p.PeerId))
                 return false;
 
+            GameData.Members[p.PeerId] = p;
+            if (p.PeerId == apian.GameNet.LocalP2pId() )
+                LocalMember = p;
+            MemberJoinedGroupEvt.Invoke(this, new MemberJoinedGroupArgs(CurrentGameId, p));
             return true;
         }
 
-        protected bool _RemovePeer(string p2pId)
+        protected bool _RemoveMember(string p2pId)
         {
-            if  (!GameData.Peers.ContainsKey(p2pId))
+            if  (!GameData.Members.ContainsKey(p2pId))
                 return false;
 
-            PeerLeftGameEvt?.Invoke(this, new PeerLeftGameArgs(CurrentGameId, p2pId));
+            MemberLeftGroupEvt?.Invoke(this, new MemberLeftGroupArgs(CurrentGameId, p2pId));
 
             foreach (IBike ib in GameData.LocalBikes(p2pId))
                 _RemoveBike(ib, true); // Blow em up just for yuks.
 
-            GameData.Peers.Remove(p2pId);
+            GameData.Members.Remove(p2pId);
             return true;
         }
 
         public void ClearPeers()
         {
             PeersClearedEvt?.Invoke(this, EventArgs.Empty);
-            GameData.Peers.Clear();
+            GameData.Members.Clear();
         }
 
         // Bike-related

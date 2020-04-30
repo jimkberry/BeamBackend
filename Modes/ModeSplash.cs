@@ -6,13 +6,12 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    // Remember, BaseGameMode is Setup() with:
-    //  manager == ModeManager
-	//	gameInst == GameInstance
     public class ModeSplash : BeamGameMode
     {
+        static public readonly string GameName = "LocalSplashGame";
+        static public readonly string ApianGroupName = "LocalSplashGroup";
+        static public readonly string ApianGroupId = "LocalSplashId";
         static public readonly int kCmdTargetCamera = 1;
-
 	    static public readonly int kSplashBikeCount = 12;
         protected const float kRespawnCheckInterval = .33f;
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
@@ -20,30 +19,32 @@ namespace BeamBackend
         protected bool gameJoined;
         protected bool bikesCreated;
 
+        private enum ModeState {
+            JoiningGame = 1,
+            JoiningGroup,
+            CreatingBikes,
+            Playing
+        }
+
+        private ModeState _CurrentState;
 
 		public override void Start(object param = null)
         {
             logger.Info("Starting Splash");
             base.Start();
 
-            // Create gameInstance and associated Apian
-            BeamGameInstance inst = new BeamGameInstance(core.frontend);
-            BeamApian apian = new BeamApianTrusty(core.gameNet, inst);
-            core.SetGameInstance(inst);
+            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
 
-            game = core.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-
-            core.gameNet.SetClient(apian);
+            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
 
             // Setup/connect fake network
-            BeamUserSettings settings = game.frontend.GetUserSettings();
-            core.gameNet.Connect("p2ploopback");
-            string p2pId = core.gameNet.LocalP2pId();
-            BeamPeer localPeer = new BeamPeer(p2pId, settings.screenName);
-            game.AddLocalPeer(localPeer);
-            core.gameNet.JoinGame("localgame");
+            core.ConnectToNetwork("p2ploopback");
+            core.JoinNetworkGame(GameName);
+            _CurrentState = ModeState.JoiningGame;
+            // Now wait for OnPeerJoinedGame()
+
         }
+
 
 		public override void Loop(float frameSecs)
         {
@@ -73,12 +74,11 @@ namespace BeamBackend
         }
 
 		public override object End() {
-            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             core.gameNet.LeaveGame();
-            game.ClearPeers();
-            game.ClearBikes();
-            game.ClearPlaces();
+            core.AddGameInstance(null);
             return null;
         }
 
@@ -96,12 +96,28 @@ namespace BeamBackend
 
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {
-            bool isLocal = ga.peer.PeerId == game.LocalPeerId;
-            if (isLocal)
+            bool isLocal = ga.peer.PeerId == core.LocalPeer.PeerId;
+            if (isLocal && _CurrentState == ModeState.JoiningGame)
             {
                 logger.Info("Splash game joined");
-                gameJoined = true;
+                // Create gameInstance and associated Apian
+                game = new BeamGameInstance(core.frontend);
+                game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
+                BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
+                core.AddGameInstance(game);
+                // Dont need to check for groups in splash
+                apian.CreateGroup(ApianGroupId, ApianGroupName);
+                BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
+                _CurrentState = ModeState.JoiningGroup;
+                // waiting for OnGroupJoined()
             }
+        }
+
+        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        {
+            _CurrentState = ModeState.Playing;
+            gameJoined = true;
         }
 
     }

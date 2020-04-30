@@ -52,9 +52,9 @@ namespace BeamBackend
 
             game = core.mainGameInst;
 
-            game.GameCreatedEvt += OnGameCreatedEvt;
-            game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            game.PeerLeftGameEvt += OnPeerLeftGameEvt;
+///            game.GameCreatedEvt += OnGameCreatedEvt;
+///           game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+///            game.PeerLeftGameEvt += OnPeerLeftGameEvt;
             game.UnknownBikeEvt += OnUnknownBikeEvt;
             game.NewBikeEvt += OnNewBikeEvt;
 
@@ -65,10 +65,8 @@ namespace BeamBackend
             game.ClearPlaces();
 
             // need to "connect"first in order to have a p2pId
-            core.gameNet.Connect(settings.p2pConnectionString);
-            string p2pId = core.gameNet.LocalP2pId();
-            BeamPeer localPeer = _CreateLocalPeer(p2pId, settings);
-            game.AddLocalPeer(localPeer);
+            core.ConnectToNetwork(settings.p2pConnectionString);
+///            game.AddLocalPeer(core.LocalPeer);
 
             if (!settings.tempSettings.ContainsKey("gameId"))
                 _SetState(kCreatingGame, new BeamGameNet.GameCreationData());
@@ -85,9 +83,9 @@ namespace BeamBackend
         }
 
 		public override object End() {
-            game.GameCreatedEvt -= OnGameCreatedEvt;
-            game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.PeerLeftGameEvt -= OnPeerLeftGameEvt;
+///            game.GameCreatedEvt -= OnGameCreatedEvt;
+ ///           game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+///            game.PeerLeftGameEvt -= OnPeerLeftGameEvt;
             game.NewBikeEvt -= OnNewBikeEvt;
             game.UnknownBikeEvt -= OnUnknownBikeEvt;
             game.frontend?.OnEndMode(ModeId());
@@ -107,7 +105,7 @@ namespace BeamBackend
                 break;
             case kJoiningGame:
                 logger.Info($"{(ModeName())}: SetState: kJoiningGame");
-                core.gameNet.JoinGame((string)startParam);
+                core.JoinNetworkGame((string)startParam);
                 break;
             case kWaitingForUnknownBikes:
                 logger.Info($"{(ModeName())}: SetState: kWaitingForRemoteBikes");
@@ -156,19 +154,19 @@ namespace BeamBackend
                 logger.Error($"{(ModeName())} - OnGameCreatedEvt() - Wrong state: {_curState}");
         }
 
-        public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
-        {
-            BeamPeer p = ga.peer;
-            bool isLocal = p.PeerId == game.LocalPeerId;
-            logger.Info($"{(ModeName())} - OnPeerJoinedGameEvt() - {(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");
-            if (isLocal)
-            {
-                if (_curState == kJoiningGame)
-                    _SetState(kWaitingForUnknownBikes, null);
-                else
-                    logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");
-            }
-        }
+ ///       // public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
+        // {
+        //     BeamGroupMember p = ga.peer;
+        //     bool isLocal = p.PeerId == game.LocalPeerId;
+        //     logger.Info($"{(ModeName())} - OnPeerJoinedGameEvt() - {(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");
+        //     if (isLocal)
+        //     {
+        //         if (_curState == kJoiningGame)
+        //             _SetState(kWaitingForUnknownBikes, null);
+        //         else
+        //             logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");
+        //     }
+        // }
 
         public void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs args)
         {
@@ -199,11 +197,7 @@ namespace BeamBackend
             return game.GameData.Bikes.Values.Where( ib => ib.peerId != game.LocalPeerId).Count() > 0;
         }
 
-        protected BeamPeer _CreateLocalPeer(string p2pId, BeamUserSettings settings)
-        {
-            // Game.LocalP2pId is not set yet
-            return new BeamPeer(p2pId, settings.screenName);
-        }
+
 
         protected void _CreateLocalBike(string bikeCtrlType)
         {
@@ -214,7 +208,7 @@ namespace BeamBackend
                  _localBikesToCreate++;
                 string scrName = game.frontend.GetUserSettings().screenName;
                 string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());
+                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
                 game.PostBikeCreateData(bb); // will result in OnBikeInfo()
             }
         }

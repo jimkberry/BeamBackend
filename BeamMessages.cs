@@ -120,7 +120,7 @@ namespace BeamBackend
     public class ApianBikeCreateRequest : ApianRequest
     {
         public BikeCreateDataMsg bikeCreateDataMsg;
-        public ApianBikeCreateRequest(BikeCreateDataMsg _bikeCreateMsg) : base(_bikeCreateMsg.MsgType) {bikeCreateDataMsg=_bikeCreateMsg;}
+        public ApianBikeCreateRequest(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg.MsgType) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateRequest() : base() {}
     }
 
@@ -128,29 +128,17 @@ namespace BeamBackend
     public class BikeDataQueryMsg : BeamMessage
     {
         public string bikeId;
-        public BikeDataQueryMsg(long ts, string _id) : base(kBikeDataQuery, ts) => bikeId = _id;
+        public BikeDataQueryMsg(string _id) : base(kBikeDataQuery, 0) => bikeId = _id; // TimeStanp usnused
     }
 
-    public class BikeUpdateMsg : BeamMessage
+    public class ApianBikeDataQueryRequest : ApianRequest // &&&& This message should not exist and does not fit at all with a real apian implementation
     {
-        public string bikeId;
-        public int score;
-        public float xPos;
-        public float yPos;
-        public Heading heading;
-        public float speed;
-
-        public BikeUpdateMsg() : base(kBikeUpdate, 0)  {}
-
-        public BikeUpdateMsg(long ts, IBike ib) : base(kBikeUpdate, ts)
-        {
-            bikeId = ib.bikeId;
-            score = ib.score;
-            xPos = ib.position.x;
-            yPos = ib.position.y;
-            heading = ib.heading;
-            speed = ib.speed;
-        }
+        // Asking a specific peer for a BikeCreateRequest for a particular bike
+        // Anyone who already has it will ignore the response.
+        // Should not ever happen in a REAL Apian implmentation (just a crutch for the Trusty pseudo-Apian-thingy)
+        public BikeDataQueryMsg bikeDataQueryMsg;
+        public ApianBikeDataQueryRequest(string gid, BikeDataQueryMsg _bikeDataQueryMsg) : base(gid, _bikeDataQueryMsg.MsgType) {bikeDataQueryMsg=_bikeDataQueryMsg;}
+        public ApianBikeDataQueryRequest() : base() {}
     }
 
     public class BikeTurnMsg : BeamMessage
@@ -178,7 +166,7 @@ namespace BeamBackend
     public class ApianBikeTurnRequest : ApianRequest
     {
         public BikeTurnMsg bikeTurnMsg;
-        public ApianBikeTurnRequest(BikeTurnMsg _bikeTurnMsg) : base(_bikeTurnMsg.MsgType) {bikeTurnMsg=_bikeTurnMsg;}
+        public ApianBikeTurnRequest(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg.MsgType) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnRequest() : base() {}
     }
 
@@ -204,7 +192,7 @@ namespace BeamBackend
     public class ApianBikeCommandRequest : ApianRequest
     {
         public BikeCommandMsg bikeCommandMsg;
-        public ApianBikeCommandRequest(BikeCommandMsg _bikeCommandMsg) : base(_bikeCommandMsg.MsgType) {bikeCommandMsg=_bikeCommandMsg;}
+        public ApianBikeCommandRequest(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg.MsgType) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandRequest() : base() {}
     }
 
@@ -226,7 +214,7 @@ namespace BeamBackend
     public class ApianPlaceClaimObservation : ApianObservation
     {
         public PlaceClaimMsg placeClaimMsg;
-        public ApianPlaceClaimObservation(PlaceClaimMsg _placeClaimMsg) : base(_placeClaimMsg.MsgType) {placeClaimMsg=_placeClaimMsg;}
+        public ApianPlaceClaimObservation(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg.MsgType) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimObservation() : base() {}
     }
 
@@ -248,7 +236,7 @@ namespace BeamBackend
     public class ApianPlaceHitObservation : ApianObservation
     {
         public PlaceHitMsg placeHitMsg;
-        public ApianPlaceHitObservation(PlaceHitMsg _placeHitMsg) : base(_placeHitMsg.MsgType) {placeHitMsg=_placeHitMsg;}
+        public ApianPlaceHitObservation(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg.MsgType) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitObservation() : base() {}
     }
 
@@ -269,9 +257,12 @@ namespace BeamBackend
         {
             // Deserialize once. May have to do it again
             ApianMessage aMsg = ApianMessageDeserializer.FromJSON(msgType, json);
+
             string subType = ApianMessageDeserializer.GetSubType(aMsg);
 
-            return subType == null ? aMsg : beamDeserializers[msgType+subType](json) as ApianMessage;
+            return  aMsg.MsgType == ApianMessage.GroupMessage ? ApianGroupMessageDeserializer.FromJson(subType, json) :
+                subType == null ? aMsg :
+                     beamDeserializers[msgType+subType](json) as ApianMessage;
         }
 
     }

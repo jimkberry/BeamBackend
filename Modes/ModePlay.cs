@@ -90,7 +90,7 @@ namespace BeamBackend
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPeer.Name, BikeDemoData.RandomTeam());
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
         }
 
         public void OnRespawnPlayerEvt(object sender, EventArgs args)

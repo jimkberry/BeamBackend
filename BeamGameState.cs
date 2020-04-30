@@ -10,29 +10,24 @@ using UniLog;
 
 namespace BeamBackend
 {
-    public class NetPeerData 
-    {
-        public BeamPeer peer;
-    }
-
     public class BeamGameData : IApianStateData
     {
-        public Dictionary<string, BeamPeer> Peers { get; private set; } = null;
+        public Dictionary<string, BeamGroupMember> Members { get; private set; } = null;
         public Dictionary<string, IBike> Bikes { get; private set; } = null;
 	    public Ground Ground { get; private set; } = null;
 
         protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
         public BeamGameData(IBeamFrontend fep)
         {
-            Peers = new Dictionary<string, BeamPeer>();
+            Members = new Dictionary<string, BeamGroupMember>();
             Bikes = new Dictionary<string, IBike>();
-            Ground = new Ground(fep);    
-            _bikeIdsToRemoveAfterLoop = new List<string>();          
+            Ground = new Ground(fep);
+            _bikeIdsToRemoveAfterLoop = new List<string>();
         }
 
-        public void Init() 
+        public void Init()
         {
-            Peers.Clear();
+            Members.Clear();
             Bikes.Clear();
         }
 
@@ -48,7 +43,7 @@ namespace BeamBackend
 
         public string ApianSerialized()
         {
-            object[] peersData = Peers.Values.OrderBy(p => p.PeerId).Select(p => p.ApianSerialized()).ToArray();
+            object[] peersData = Members.Values.OrderBy(p => p.PeerId).Select(p => p.ApianSerialized()).ToArray();
             object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId).Select(ib => ib.ApianSerialized()).ToArray();
             return  JsonConvert.SerializeObject(new object[]{
                 peersData,
@@ -58,9 +53,9 @@ namespace BeamBackend
 
         }
 
-        public BeamPeer GetPeer(string peerId)
+        public BeamGroupMember GetMember(string peerId)
         {
-            try { return Peers[peerId];} catch (KeyNotFoundException){ return null;} 
+            try { return Members[peerId];} catch (KeyNotFoundException){ return null;}
         }
 
         public BaseBike GetBaseBike(string bikeId)
@@ -72,10 +67,10 @@ namespace BeamBackend
 
 
         public IBike ClosestBike(IBike thisBike)
-        {  
+        {
             return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
                     .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).First();
-        }   
+        }
 
         public List<IBike> LocalBikes(string peerId)
         {
@@ -84,11 +79,11 @@ namespace BeamBackend
 
         public List<Vector2> CloseBikePositions(IBike thisBike, int maxCnt)
         {
-            // Todo: this is actually "current enemy pos"         
+            // Todo: this is actually "current enemy pos"
             return Bikes.Values.Where(b => b != thisBike)
                 .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).Take(maxCnt) // IBikes
                 .Select(ob => ob.position).ToList();
-        }                 
+        }
     }
 
 }
