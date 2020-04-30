@@ -29,9 +29,6 @@ namespace BeamBackend
             frontend = fe;
             Logger = UniLogger.GetLogger("BeamBackendInstance");
             modeMgr = new ModeManager(new BeamModeFactory(), this);
-            _UpdateLocalPeer();
-
-
         }
 
         public void AddGameInstance(IApianClientApp gi)
