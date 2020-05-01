@@ -13,7 +13,7 @@ namespace BeamBackend
         static public readonly string ApianGroupId = "LocalSplashId";
         static public readonly int kCmdTargetCamera = 1;
 	    static public readonly int kSplashBikeCount = 12;
-        protected const float kRespawnCheckInterval = .33f;
+        protected const float kRespawnCheckInterval = 1.3f;
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
         public BeamGameInstance game = null;
         protected bool gameJoined;
@@ -33,8 +33,8 @@ namespace BeamBackend
             logger.Info("Starting Splash");
             base.Start();
 
-            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
             core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
 
             // Setup/connect fake network
             core.ConnectToNetwork("p2ploopback");

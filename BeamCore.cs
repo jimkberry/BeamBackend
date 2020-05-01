@@ -50,6 +50,12 @@ namespace BeamBackend
             gameNet.JoinGame(gameId);
         }
 
+        public void OnSwitchModeReq(int newModeId, object modeParam)
+        {
+           //logger.Error("backend.OnSwitchModeReq() not working");
+           modeMgr.SwitchToMode(newModeId, modeParam);
+        }
+
         private void _UpdateLocalPeer()
         {
             BeamUserSettings settings = frontend.GetUserSettings();
@@ -87,7 +93,7 @@ namespace BeamBackend
         public void OnPeerLeftGame(string p2pId, string gameId)
         {
             Logger.Info($"OnPeerLeftGame({p2pId})");
-            PeerLeftGameEvt.Invoke(this, new PeerLeftGameArgs(gameId, p2pId));
+            PeerLeftGameEvt?.Invoke(this, new PeerLeftGameArgs(gameId, p2pId)); // Event instance might be gone
         }
 
         // TODO: On-the-fly LocalPeerData() from GmeNet should go away (in GameNet)

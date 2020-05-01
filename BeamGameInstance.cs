@@ -214,11 +214,11 @@ namespace BeamBackend
         public void RaiseRespawnPlayer() => RespawnPlayerEvt?.Invoke(this, EventArgs.Empty); // FE -> GameCode
         public Ground GetGround() => GameData.Ground;
 
-        public void OnSwitchModeReq(int newModeId, object modeParam)
-        {
-           logger.Error("backend.OnSwitchModeReq() not working");
-           // &&&&&modeMgr.SwitchToMode(newModeId, modeParam);
-        }
+        // public void OnSwitchModeReq(int newModeId, object modeParam)
+        // {
+        //    logger.Error("backend.OnSwitchModeReq() not working");
+        //    // &&&&&modeMgr.SwitchToMode(newModeId, modeParam);
+        // }
 
         // A couple of these are just acting as intermediaries to commands in GameNet that could potentially be called by the frontend
         // directly - if the particular FE code had a reference to the GameNet. It's a lot more likely to  have an IBackend ref.

@@ -22,14 +22,8 @@ namespace BeamBackend
         {
             base.Start();
 
-            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
             core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
             core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
-            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-
-
-            gameJoined = false;
-            bikesCreated = false;
 
             // Setup/connect fake network
             core.ConnectToNetwork("p2ploopback");
@@ -67,7 +61,7 @@ namespace BeamBackend
         }
 
 		public override object End() {
- ///           game.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.ClearPeers();
@@ -126,6 +120,7 @@ namespace BeamBackend
                 // Dont need to check for groups in splash
                 apian.CreateGroup(ApianGroupId, ApianGroupName);
                 BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
                 // waiting for OnGroupJoined()
             }
         }
