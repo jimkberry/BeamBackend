@@ -60,7 +60,7 @@ namespace BeamBackend
 
             settings = game.frontend.GetUserSettings();
 
-            game.ClearPeers();
+            game.ClearMembers();
             game.ClearBikes();
             game.ClearPlaces();
 

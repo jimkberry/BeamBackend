@@ -51,7 +51,7 @@ namespace BeamBackend
 		public override object End() {
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
-            game.ClearPeers();
+            game.ClearMembers();
             game.ClearBikes();
             game.ClearPlaces();
             return null;

@@ -37,7 +37,7 @@ namespace BeamBackend
 
         // IBeamBackend events
 
-        public event EventHandler PeersClearedEvt;
+        public event EventHandler MembersClearedEvt;
         public event EventHandler<IBike> NewBikeEvt;
         public event EventHandler<BikeRemovedData> BikeRemovedEvt;
         public event EventHandler BikesClearedEvt;
@@ -83,6 +83,12 @@ namespace BeamBackend
 
         }
 
+        public void End()
+        {
+            ClearMembers();
+            ClearBikes();
+            ClearPlaces();
+        }
         public bool Loop(float frameSecs)
         {
             apian.Update();
@@ -317,9 +323,9 @@ namespace BeamBackend
             return true;
         }
 
-        public void ClearPeers()
+        public void ClearMembers()
         {
-            PeersClearedEvt?.Invoke(this, EventArgs.Empty);
+            MembersClearedEvt?.Invoke(this, EventArgs.Empty);
             GameData.Members.Clear();
         }
 

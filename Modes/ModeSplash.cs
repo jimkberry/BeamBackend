@@ -76,6 +76,7 @@ namespace BeamBackend
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
+            game.End();
             core.gameNet.LeaveGame();
             core.AddGameInstance(null);
             return null;

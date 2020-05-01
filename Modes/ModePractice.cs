@@ -62,11 +62,11 @@ namespace BeamBackend
 
 		public override object End() {
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
+            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
-            game.ClearPeers();
-            game.ClearBikes();
-            game.ClearPlaces();
+            game.End();
+            core.gameNet.LeaveGame();
+            core.AddGameInstance(null);
             return null;
         }
 

@@ -70,6 +70,8 @@ namespace BeamBackend
             modeMgr.Start(initialMode);
         }
 
+        public void End() {}
+
         public bool Loop(float frameSecs)
         {
             mainGameInst?.Loop(frameSecs);
