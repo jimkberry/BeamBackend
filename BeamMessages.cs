@@ -64,6 +64,7 @@ namespace BeamBackend
         }
 
         public BeamMessage(string t, long ts) : base(t,ts) {}
+        public BeamMessage() : base() {}
     }
 
 
@@ -107,7 +108,7 @@ namespace BeamBackend
                     ownedPlaces.Add(new PlaceCreateData(p));
         }
 
-        public BikeCreateDataMsg() : base(kBikeCreateData, 0) {}
+        public BikeCreateDataMsg() : base() {}
 
         public IBike ToBike(BeamGameInstance gi)
         {
@@ -120,15 +121,15 @@ namespace BeamBackend
     public class ApianBikeCreateRequest : ApianRequest
     {
         public BikeCreateDataMsg bikeCreateDataMsg;
-        public ApianBikeCreateRequest(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg.MsgType) {bikeCreateDataMsg=_bikeCreateMsg;}
+        public ApianBikeCreateRequest(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateRequest() : base() {}
     }
-
 
     public class BikeDataQueryMsg : BeamMessage
     {
         public string bikeId;
         public BikeDataQueryMsg(string _id) : base(kBikeDataQuery, 0) => bikeId = _id; // TimeStanp usnused
+        public BikeDataQueryMsg() : base() {}
     }
 
     public class ApianBikeDataQueryRequest : ApianRequest // &&&& This message should not exist and does not fit at all with a real apian implementation
@@ -137,7 +138,7 @@ namespace BeamBackend
         // Anyone who already has it will ignore the response.
         // Should not ever happen in a REAL Apian implmentation (just a crutch for the Trusty pseudo-Apian-thingy)
         public BikeDataQueryMsg bikeDataQueryMsg;
-        public ApianBikeDataQueryRequest(string gid, BikeDataQueryMsg _bikeDataQueryMsg) : base(gid, _bikeDataQueryMsg.MsgType) {bikeDataQueryMsg=_bikeDataQueryMsg;}
+        public ApianBikeDataQueryRequest(string gid, BikeDataQueryMsg _bikeDataQueryMsg) : base(gid, _bikeDataQueryMsg) {bikeDataQueryMsg=_bikeDataQueryMsg;}
         public ApianBikeDataQueryRequest() : base() {}
     }
 
@@ -150,7 +151,7 @@ namespace BeamBackend
         public TurnDir dir;
         public float nextPtX;
         public float nextPtZ;
-        public BikeTurnMsg() : base(kBikeTurnMsg, 0)  {}
+        public BikeTurnMsg() : base()  {}
 
         public BikeTurnMsg(long ts, IBike ib, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts)
         {
@@ -166,7 +167,7 @@ namespace BeamBackend
     public class ApianBikeTurnRequest : ApianRequest
     {
         public BikeTurnMsg bikeTurnMsg;
-        public ApianBikeTurnRequest(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg.MsgType) {bikeTurnMsg=_bikeTurnMsg;}
+        public ApianBikeTurnRequest(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnRequest() : base() {}
     }
 
@@ -178,7 +179,7 @@ namespace BeamBackend
         public BikeCommand cmd;
         public float nextPtX;
         public float nextPtZ;
-        public BikeCommandMsg() : base(kBikeCommandMsg, 0)  {}
+        public BikeCommandMsg() : base()  {}
         public BikeCommandMsg(long ts, string _bikeId, string _ownerPeer, BikeCommand _cmd, Vector2 nextGridPt) : base(kBikeCommandMsg, ts)
         {
             bikeId = _bikeId;
@@ -192,7 +193,7 @@ namespace BeamBackend
     public class ApianBikeCommandRequest : ApianRequest
     {
         public BikeCommandMsg bikeCommandMsg;
-        public ApianBikeCommandRequest(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg.MsgType) {bikeCommandMsg=_bikeCommandMsg;}
+        public ApianBikeCommandRequest(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandRequest() : base() {}
     }
 
@@ -202,6 +203,7 @@ namespace BeamBackend
         public string ownerPeer;
         public int xIdx;
         public int zIdx;
+        public PlaceClaimMsg() : base() {}
         public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg, ts)
         {
             bikeId = _bikeId;
@@ -214,7 +216,7 @@ namespace BeamBackend
     public class ApianPlaceClaimObservation : ApianObservation
     {
         public PlaceClaimMsg placeClaimMsg;
-        public ApianPlaceClaimObservation(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg.MsgType) {placeClaimMsg=_placeClaimMsg;}
+        public ApianPlaceClaimObservation(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimObservation() : base() {}
     }
 
@@ -224,6 +226,7 @@ namespace BeamBackend
         public string ownerPeer;
         public int xIdx;
         public int zIdx;
+        public PlaceHitMsg() : base() {}
         public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx) : base(kPlaceHitMsg, ts)
         {
             bikeId = _bikeId;
@@ -236,7 +239,7 @@ namespace BeamBackend
     public class ApianPlaceHitObservation : ApianObservation
     {
         public PlaceHitMsg placeHitMsg;
-        public ApianPlaceHitObservation(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg.MsgType) {placeHitMsg=_placeHitMsg;}
+        public ApianPlaceHitObservation(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitObservation() : base() {}
     }
 
