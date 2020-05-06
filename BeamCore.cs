@@ -12,6 +12,7 @@ namespace BeamBackend
         public event EventHandler<string> GameCreatedEvt; // game channel
         public event EventHandler<PeerJoinedGameArgs> PeerJoinedGameEvt;
         public event EventHandler<PeerLeftGameArgs> PeerLeftGameEvt;
+        public event EventHandler<ApianGroupInfo> GroupAnnounceEvt;
 
 
         public ModeManager modeMgr {get; private set;}
@@ -44,10 +45,22 @@ namespace BeamBackend
             gameNet.Connect(netConnectionStr);
         }
 
+        public void CreateNetworkGame(BeamGameNet.GameCreationData createData)
+        {
+            _UpdateLocalPeer(); // reads stuff from settings
+            gameNet.CreateGame(createData);
+        }
+
         public void JoinNetworkGame(string gameId)
         {
             _UpdateLocalPeer(); // reads stuff from settings
             gameNet.JoinGame(gameId);
+        }
+
+        public void ListenForGroups()
+        {
+            _UpdateLocalPeer(); // reads stuff from settings
+            gameNet.RequestGroups();
         }
 
         public void OnSwitchModeReq(int newModeId, object modeParam)
@@ -109,14 +122,18 @@ namespace BeamBackend
         }
 
         public void SetGameNetInstance(IGameNet iGameNetInstance) {} // Stubbed.
-        // TODO: Deso GameNet.SetGameNetInstance() even make sense anymore?
+        // TODO: Does GameNet.SetGameNetInstance() even make sense anymore?
 
         public void OnPeerSync(string p2pId, long clockOffsetMs, long netLagMs) {} // stubbed
         // TODO: Maybe stub this is an ApianGameManagerBase class that this derives from?
 
         // IApianGameManage
 
-        public void OnGroupData(string groupId, string groupType, string creatorId, string groupName) {}
+        public void OnGroupAnnounce(string groupId, string groupType, string creatorId, string groupName)
+        {
+            Logger.Info($"OnGroupData({groupId})");
+            GroupAnnounceEvt?.Invoke(this, new ApianGroupInfo(groupType, groupId, creatorId, groupName));
+        }
 
     }
 }

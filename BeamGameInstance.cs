@@ -130,7 +130,13 @@ namespace BeamBackend
             BeamGroupMember member = memberData as BeamGroupMember;
             logger.Info($"OnMemberJoined() {((member.PeerId == LocalPeerId)?"Local":"Remote")} name: {member.Name}");
             _AddMember(member);
-          }
+        }
+
+        public void OnMemberStatus(string peerId, ApianGroupMember.Status newStatus)
+        {
+            logger.Info($"OnMemberStatus() New status: {newStatus} for {peerId}");
+        }
+
 
         public void OnMemberLeft(string p2pId)
         {

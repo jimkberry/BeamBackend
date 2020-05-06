@@ -1,40 +1,179 @@
+using System.Collections.Generic;
 using System;
 using System.Linq;
 using GameModeMgr;
+using Apian;
 using UnityEngine;
 
 namespace BeamBackend
 {
+    public enum GroupCreateMode
+    {
+        JoinOnly = 0,
+        CreateIfNeeded = 1,
+        MustCreate = 2
+    }
+
     public class ModePlay : BeamGameMode
     {
-        public readonly int kMaxPlayers = 12;
-
-        public BeamGameInstance game = null;
+        protected string gameId;
+        protected string apianGroupId;
+        protected GroupCreateMode groupCreateMode;
         public BeamUserSettings settings;
 
-        protected BaseBike playerBike = null;
-
-        protected const float kRespawnCheckInterval = 1.3f;
+        protected Dictionary<string, ApianGroupInfo> announcedGroups;
 
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
+        protected int _curState;
+        protected float _curStateSecs;
+        protected delegate void LoopFunc(float f);
+        protected LoopFunc _loopFunc;
+        public BeamGameInstance game = null;
+        protected BaseBike playerBike = null;
+
+        // mode substates
+        protected const int kCreatingGame = 0;
+        protected const int kJoiningGame = 1;
+        protected const int kCheckingForGroups = 2;
+        protected const int kJoiningGroup = 4;
+        protected const int kWaitingForMembers = 5;
+        protected const int kPlaying = 6;
+        protected const int kFailed = 7;
+
+        protected const float kRespawnCheckInterval = 1.3f;
+        protected const float kListenForGroupsSecs = 2.0f; // TODO: belongs here?
 
 		public override void Start(object param = null)
         {
             base.Start();
-            game = core.mainGameInst; // Todo - this oughta be in a higher-level BeamGameMode
-            game.RespawnPlayerEvt += OnRespawnPlayerEvt;
+            announcedGroups = new Dictionary<string, ApianGroupInfo>();
 
-            settings = game.frontend.GetUserSettings();
+            settings = core.frontend.GetUserSettings();
 
-            game.ClearPlaces();
-            IBike playerBike = game.GameData.LocalBikes(game.LocalPeerId).FirstOrDefault(ib => ib.ctrlType==BikeFactory.LocalPlayerCtrl);
-            if (playerBike == null)
-                playerBike = game.GameData.LocalBikes(game.LocalPeerId).First();
-            //_startLocalBikes();
-            game.frontend?.OnStartMode(BeamModeFactory.kPlay, new TargetIdParams{targetId = playerBike.bikeId} );
+            _ParseGameAndGroup();
+
+            core.GameCreatedEvt += OnGameCreatedEvt;
+            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            core.AddGameInstance(null);
+
+            // Setup/connect fake network
+            core.ConnectToNetwork(settings.p2pConnectionString);
+
+            if (gameId == null)
+                _SetState(kCreatingGame, new BeamGameNet.GameCreationData());
+            else
+                _SetState(kJoiningGame, gameId);
+
+            core.frontend?.OnStartMode(ModeId(), null );
         }
 
 		public override void Loop(float frameSecs)
+        {
+            _loopFunc(frameSecs);
+            _curStateSecs += frameSecs;
+        }
+
+		public override object End() {
+            core.GameCreatedEvt -= OnGameCreatedEvt;
+            core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
+            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
+            game.End();
+            core.gameNet.LeaveGame();
+            core.AddGameInstance(null);
+            return null;
+        }
+
+        // Loopfuncs
+
+        protected void _SetState(int newState, object startParam = null)
+        {
+            _curStateSecs = 0;
+            _curState = newState;
+            _loopFunc = _DoNothingLoop; // default
+            switch (newState)
+            {
+            case kCreatingGame:
+                logger.Verbose($"{(ModeName())}: SetState: kCreatingGame");
+                core.CreateNetworkGame((BeamGameNet.GameCreationData)startParam);
+                // Wait for OnGameCreatedEvt()
+                break;
+            case kJoiningGame:
+                logger.Verbose($"{(ModeName())}: SetState: kJoiningGame");
+                core.JoinNetworkGame((string)startParam);
+                // Wait for OnGameJoinedEvt()
+                break;
+            case kCheckingForGroups:
+                logger.Verbose($"{(ModeName())}: SetState: kCheckingForGroups");
+                announcedGroups.Clear();
+                core.GroupAnnounceEvt += OnGroupAnnounceEvt;
+                core.ListenForGroups();
+                _loopFunc = _GroupListenLoop;
+                break;
+            case kJoiningGroup:
+                logger.Verbose($"{(ModeName())}: SetState: kJoiningGroup");
+                _JoinGroup();
+                break;
+            case kWaitingForMembers:
+                logger.Verbose($"{(ModeName())}: SetState: kWaitingForMembers");
+                break;
+            case kPlaying:
+                logger.Verbose($"{(ModeName())}: SetState: kPlaying");
+                SpawnPlayerBike();
+                for (int i=0; i<settings.aiBikeCount; i++)
+                    SpawnAiBike();
+                _loopFunc = _PlayLoop;
+                break;
+            case kFailed:
+                logger.Error($"{(ModeName())}: SetState: kFailed  Reason: {(string)startParam}");
+                break;
+            default:
+                logger.Error($"ModeConnect._SetState() - Unknown state: {newState}");
+                break;
+            }
+        }
+
+        protected void _DoNothingLoop(float frameSecs) {}
+
+        protected void _GroupListenLoop(float frameSecs)
+        {
+            if (_curStateSecs > kListenForGroupsSecs)
+            {
+                // TODO: Hoist all this!!!
+                // Stop listening for groups and either create or join (or fail)
+                core.GroupAnnounceEvt -= OnGroupAnnounceEvt; // stop listening
+                bool targetGroupExisted = (apianGroupId != null) && announcedGroups.ContainsKey(apianGroupId);
+
+                switch (groupCreateMode)
+                {
+                case GroupCreateMode.JoinOnly:
+                    if (targetGroupExisted)
+                    {
+                        game.apian.InitExistingGroup(announcedGroups[apianGroupId]); // Like create, but for a remotely-created group
+                        _SetState(kJoiningGroup);
+                    }
+                    else
+                        _SetState(kFailed, $"Apian Group \"{apianGroupId}\" Not Found");
+                    break;
+                case GroupCreateMode.CreateIfNeeded:
+                    if (targetGroupExisted)
+                        game.apian.InitExistingGroup(announcedGroups[apianGroupId]);
+                    else
+                        _CreateGroup();
+                    _SetState(kJoiningGroup);
+                    break;
+                case GroupCreateMode.MustCreate:
+                    if (targetGroupExisted)
+                        _SetState(kFailed, "Apian Group Already Exists");
+                    else
+                        _CreateGroup();
+                        _SetState(kJoiningGroup);
+                    break;
+                }
+            }
+        }
+
+        protected void _PlayLoop(float frameSecs)
         {
             if (settings.regenerateAiBikes)
             {
@@ -48,20 +187,98 @@ namespace BeamBackend
             }
         }
 
-		public override object End() {
-            game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
-            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
-            game.ClearMembers();
-            game.ClearBikes();
-            game.ClearPlaces();
-            return null;
-        }
-
-        protected void _startLocalBikes()
+        // utils
+        private void _ParseGameAndGroup()
         {
-            foreach( IBike ib in game.GameData.LocalBikes(game.LocalPeerId)) { game.PostBikeCommand(ib, BikeCommand.kGo);  }
+            string gameIdSetting;
+            string[] parts = {};
+
+            if (settings.tempSettings.TryGetValue("gameId", out gameIdSetting))
+                parts = gameIdSetting.Split('/');
+
+            // format is gameId/groupId/[j|c|m]   (joinOnly/createIfNeeded/mustCreate)
+            groupCreateMode = parts.Count() < 3 ? GroupCreateMode.CreateIfNeeded :  (GroupCreateMode)"jcm".IndexOf(parts[2]);
+            apianGroupId = parts.Count() < 2 ? null : parts[1]; // null means create a new group
+            gameId = parts.Count() < 1 ? null : parts[0]; // null means create a new game
+
+            logger.Verbose($"{(ModeName())}: _ParseGameAndGroup() game: {gameId}, group: {apianGroupId}, mode: {groupCreateMode}");
+
         }
 
+        private void _CreateGroup()
+        {
+            logger.Verbose($"{(ModeName())}: _CreateGroup()");
+            apianGroupId = apianGroupId ?? "BEAMGRP" + System.Guid.NewGuid().ToString();
+            game.apian.CreateNewGroup(apianGroupId, "GRPNAME_" + apianGroupId);
+        }
+
+        private void _JoinGroup()
+        {
+            BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
+            game.apian.JoinGroup(apianGroupId, mb.ApianSerialized());
+        }
+
+        // Event handlers
+
+        public void OnGameCreatedEvt(object sender, string newGameId)
+        {
+            logger.Info($"{(ModeName())} - OnGameCreatedEvt(): {newGameId}");
+            if (_curState == kCreatingGame)
+                _SetState(kJoiningGame, newGameId);
+            else
+                logger.Error($"{(ModeName())} - OnGameCreatedEvt() - Wrong state: {_curState}");
+        }
+
+
+        public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
+        {
+            BeamNetworkPeer p = ga.peer;
+            bool isLocal = p.PeerId == core.LocalPeer.PeerId;
+            logger.Info($"{(ModeName())} - OnPeerJoinedGameEvt() - {(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");
+            if (isLocal)
+            {
+                if (_curState == kJoiningGame)
+                {
+                    // Create gameinstance and ApianInstance
+                    game = new BeamGameInstance(core.frontend);
+                    game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
+                    BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // TODO: make the groupMgr type run-time spec'ed
+                    //BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // *** This should be commented out (or gone)
+                    core.AddGameInstance(game);
+                    _SetState(kCheckingForGroups, null);
+                }
+                else
+                    logger.Error($"{(ModeName())} - OnGameJoinedEvt() - Wrong state: {_curState}");
+            }
+        }
+
+        public void OnGroupAnnounceEvt(object sender, ApianGroupInfo groupInfo)
+        {
+            logger.Verbose($"{(ModeName())} - OnGroupAnnounceEvt(): {groupInfo.GroupId}");
+            announcedGroups[groupInfo.GroupId] = groupInfo;
+        }
+
+
+        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        {
+            bool isLocal = ga.member.PeerId == core.LocalPeer.PeerId;
+            logger.Info($"{(ModeName())} - OnMemberJoinedGroupEvt() - {(isLocal?"Local":"Remote")} Member Joined: {ga.member.Name}, ID: {ga.member.PeerId}");
+            if (ga.member.PeerId == core.LocalPeer.PeerId)
+            {
+                game.RespawnPlayerEvt += OnRespawnPlayerEvt;
+                _SetState(kWaitingForMembers);
+            }
+        }
+
+        public void OnRespawnPlayerEvt(object sender, EventArgs args)
+        {
+            logger.Info("Respawning Player");
+            SpawnPlayerBike();
+            // Note that this will eventually result in a NewBikeEvt which the frontend
+            // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.
+        }
+
+        // Gameplay control
         protected string CreateBaseBike(string ctrlType, string peerId, string name, Team t)
         {
             Heading heading = BikeFactory.PickRandomHeading();
@@ -87,19 +304,18 @@ namespace BeamBackend
 
         protected string SpawnPlayerBike()
         {
-            // Create one the first time
-            string scrName = game.frontend.GetUserSettings().screenName;
-            string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+            if (settings.localPlayerCtrlType != "none")
+            {
+                string scrName = game.frontend.GetUserSettings().screenName;
+                string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
+                return CreateBaseBike(settings.localPlayerCtrlType, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+            }
+            return null;
         }
 
-        public void OnRespawnPlayerEvt(object sender, EventArgs args)
-        {
-            logger.Info("Respawning Player");
-            SpawnPlayerBike();
-            // Note that this will eventually result in a NewBikeEvt which the frontend
-            // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.
-        }
+
 
     }
 }
+
+

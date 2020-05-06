@@ -24,11 +24,7 @@ namespace BeamBackend
 
     public class BeamApianPeer : ApianGroupMember
     {
-        public string AppHelloData {get; private set;} // TODO - currently this is app-level - it should be apian data
-        public BeamApianPeer(string _p2pId, string _appHelloData) : base(_p2pId)
-        {
-            AppHelloData = _appHelloData;
-        }
+        public BeamApianPeer(string _p2pId, string _appHelloData) : base(_p2pId, _appHelloData) { }
     }
 
 
@@ -82,8 +78,11 @@ namespace BeamBackend
 
         public override void Update()
         {
-            ApianGroup?.Update();
-            ApianClock?.Update();
+            if (ApianGroup.Intialized) // TODO: this is really just to prevent a not-joined GroupManager from updating and
+            {
+                ApianGroup?.Update();
+                ApianClock?.Update();
+            }
         }
 
         protected void AddApianPeer(string p2pId, string peerHelloData)
@@ -110,6 +109,12 @@ namespace BeamBackend
             BeamGroupMember member = BeamGroupMember.FromApianSerialized(memberDataJson);
             Logger.Info($"OnMemberJoinedGroup(): {member.PeerId}");
             Client.OnMemberJoined(member);
+        }
+
+        public override void OnGroupMemberStatus(string peerId, ApianGroupMember.Status newStatus)
+        {
+            Logger.Info($"OnGroupMemberStatus(): {peerId}");
+            Client.OnMemberStatus(peerId, newStatus);
         }
 
         protected void OnApianRequest(string fromId, string toId, ApianMessage msg, long delayMs)

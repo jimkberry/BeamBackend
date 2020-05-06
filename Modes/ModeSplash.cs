@@ -106,7 +106,7 @@ namespace BeamBackend
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
                 core.AddGameInstance(game);
                 // Dont need to check for groups in splash
-                apian.CreateGroup(ApianGroupId, ApianGroupName);
+                apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
                 apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
                 _CurrentState = ModeState.JoiningGroup;
