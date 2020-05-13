@@ -8,15 +8,15 @@ namespace BeamBackend
     //
     // Event args
     //
-    public struct MemberJoinedGroupArgs {
+    public struct PlayerJoinedArgs {
         public string gameChannel;
-        public BeamGroupMember member;
-        public MemberJoinedGroupArgs(string g, BeamGroupMember p) {gameChannel=g; member=p;}
+        public BeamPlayer player;
+        public PlayerJoinedArgs(string g, BeamPlayer p) {gameChannel=g; player=p;}
     }
-    public struct MemberLeftGroupArgs {
+    public struct PLyerLeftArgs {
         public string gameChannel;
         public string p2pId;
-        public MemberLeftGroupArgs(string g, string p) {gameChannel=g; p2pId=p;}
+        public PLyerLeftArgs(string g, string p) {gameChannel=g; p2pId=p;}
     }
 
     public struct BikeRemovedData {
@@ -36,7 +36,7 @@ namespace BeamBackend
     public interface IBeamGameInstance {
 
         // Events
-        event EventHandler MembersClearedEvt;
+        event EventHandler PlayersClearedEvt;
         event EventHandler<IBike> NewBikeEvt;
         event EventHandler<BikeRemovedData> BikeRemovedEvt;
         event EventHandler BikesClearedEvt;

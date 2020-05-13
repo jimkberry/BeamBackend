@@ -51,7 +51,7 @@ namespace BeamBackend
 		public override object End() {
             game.RespawnPlayerEvt -= OnRespawnPlayerEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
-            game.ClearMembers();
+            game.ClearPlayers();
             game.ClearBikes();
             game.ClearPlaces();
             return null;
@@ -90,7 +90,7 @@ namespace BeamBackend
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
             string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPlayer.Name, BikeDemoData.RandomTeam());
         }
 
         public void OnRespawnPlayerEvt(object sender, EventArgs args)

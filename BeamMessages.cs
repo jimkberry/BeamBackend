@@ -8,14 +8,13 @@ namespace BeamBackend
 {
     public class BeamMessage : ApianClientMsg
     {
-        public const string kApianMsg = "B101"; // An Apian-defined message
-        public const string kBikeCreateData = "B104";
-        public const string kBikeDataQuery = "B105";
-        public const string kBikeUpdate = "B106";
-        public const string kBikeTurnMsg = "B107";
-        public const string kBikeCommandMsg = "B108";
-        public const string kPlaceClaimMsg = "B109";
-        public const string kPlaceHitMsg = "B110";
+        public const string kNewPlayer = "Bnpl";
+        public const string kBikeCreateData = "Bbcd";
+        public const string kBikeDataQuery = "Bbdq"; // TODO: check if still exists/used
+        public const string kBikeTurnMsg = "Btrn";
+        public const string kBikeCommandMsg = "Bcmd";
+        public const string kPlaceClaimMsg = "Bplc";
+        public const string kPlaceHitMsg = "Bplh";
 
         // Data classes
         public class BikeState
@@ -73,6 +72,31 @@ namespace BeamBackend
     //
     //
 
+    public class NewPlayerMsg : BeamMessage
+    {
+        public BeamPlayer newPlayer;
+        public NewPlayerMsg(BeamPlayer _newPlayer) : base(kNewPlayer, 0) => newPlayer = _newPlayer;
+        public NewPlayerMsg() : base() {}
+    }
+
+    // BeamApian sees a GroupMember change to active and creates an "observation" and send it to the
+    // GroupManager (the GroupManager doesn;t know what a BeamPlayer is, or what the criteria for a new one is - but it
+    // DOES know whether or not it should send out a submitted observation as a Command)
+
+    public class ApianNewPlayerObservation : ApianObservation
+    {
+        public NewPlayerMsg newPlayerMsg;
+        public ApianNewPlayerObservation(string gid, NewPlayerMsg _newPlayerMsg) : base(gid, _newPlayerMsg) {newPlayerMsg=_newPlayerMsg;}
+        public ApianNewPlayerObservation() : base() {}
+        public override ApianCommand ToCommand(long seqNum) => new ApianNewPlayerCommand(seqNum, DestGroupId, newPlayerMsg);
+    }
+    public class ApianNewPlayerCommand : ApianCommand
+    {
+        public NewPlayerMsg newPlayerMsg;
+        public ApianNewPlayerCommand(long seqNum, string gid, NewPlayerMsg _newPlayerMsg) : base(seqNum, gid, _newPlayerMsg) {newPlayerMsg=_newPlayerMsg;}
+        public ApianNewPlayerCommand() : base() {}
+    }
+
     public class BikeCreateDataMsg : BeamMessage
     {
         public string bikeId;
@@ -123,33 +147,17 @@ namespace BeamBackend
         public BikeCreateDataMsg bikeCreateDataMsg;
         public ApianBikeCreateRequest(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateRequest() : base() {}
-        public override ApianCommand ToCommand() => new ApianBikeCreateCommand(DestGroupId, bikeCreateDataMsg);
+        public override ApianCommand ToCommand(long seqNum) => new ApianBikeCreateCommand(seqNum, DestGroupId, bikeCreateDataMsg);
     }
 
     public class ApianBikeCreateCommand : ApianCommand
     {
         public BikeCreateDataMsg bikeCreateDataMsg;
-        public ApianBikeCreateCommand(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
+        public ApianBikeCreateCommand(long seqNum, string gid, BikeCreateDataMsg _bikeCreateMsg) : base(seqNum, gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateCommand() : base() {}
 
     }
 
-    public class BikeDataQueryMsg : BeamMessage
-    {
-        public string bikeId;
-        public BikeDataQueryMsg(string _id) : base(kBikeDataQuery, 0) => bikeId = _id; // TimeStanp usnused
-        public BikeDataQueryMsg() : base() {}
-    }
-
-    // public class ApianBikeDataQueryRequest : ApianRequest // &&&& This message should not exist and does not fit at all with a real apian implementation
-    // {
-    //     // Asking a specific peer for a BikeCreateRequest for a particular bike
-    //     // Anyone who already has it will ignore the response.
-    //     // Should not ever happen in a REAL Apian implmentation (just a crutch for the Trusty pseudo-Apian-thingy)
-    //     public BikeDataQueryMsg bikeDataQueryMsg;
-    //     public ApianBikeDataQueryRequest(string gid, BikeDataQueryMsg _bikeDataQueryMsg) : base(gid, _bikeDataQueryMsg) {bikeDataQueryMsg=_bikeDataQueryMsg;}
-    //     public ApianBikeDataQueryRequest() : base() {}
-    // }
 
     public class BikeTurnMsg : BeamMessage
     {
@@ -179,12 +187,12 @@ namespace BeamBackend
         public ApianBikeTurnRequest(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnRequest() : base() {}
 
-        public override ApianCommand ToCommand() => new ApianBikeTurnCommand(DestGroupId, bikeTurnMsg);
+        public override ApianCommand ToCommand(long seqNum) => new ApianBikeTurnCommand(seqNum, DestGroupId, bikeTurnMsg);
     }
     public class ApianBikeTurnCommand : ApianCommand
     {
         public BikeTurnMsg bikeTurnMsg;
-        public ApianBikeTurnCommand(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
+        public ApianBikeTurnCommand(long seqNum, string gid, BikeTurnMsg _bikeTurnMsg) : base(seqNum, gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnCommand() : base() {}
     }
 
@@ -212,13 +220,13 @@ namespace BeamBackend
         public BikeCommandMsg bikeCommandMsg;
         public ApianBikeCommandRequest(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandRequest() : base() {}
-        public override ApianCommand ToCommand() => new ApianBikeCommandCommand(DestGroupId, bikeCommandMsg);
+        public override ApianCommand ToCommand(long seqNum) => new ApianBikeCommandCommand(seqNum, DestGroupId, bikeCommandMsg);
     }
 
     public class ApianBikeCommandCommand : ApianCommand  // Gee, no - that's not stupid-sounding at all]
     {
         public BikeCommandMsg bikeCommandMsg;
-        public ApianBikeCommandCommand(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
+        public ApianBikeCommandCommand(long seqNum, string gid, BikeCommandMsg _bikeCommandMsg) : base(seqNum, gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandCommand() : base() {}
     }
 
@@ -243,13 +251,13 @@ namespace BeamBackend
         public PlaceClaimMsg placeClaimMsg;
         public ApianPlaceClaimObservation(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimObservation() : base() {}
-        public override ApianCommand ToCommand() => new ApianPlaceClaimCommand(DestGroupId, placeClaimMsg);
+        public override ApianCommand ToCommand(long seqNum) => new ApianPlaceClaimCommand(seqNum, DestGroupId, placeClaimMsg);
     }
 
     public class ApianPlaceClaimCommand : ApianCommand
     {
         public PlaceClaimMsg placeClaimMsg;
-        public ApianPlaceClaimCommand(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
+        public ApianPlaceClaimCommand(long seqNum, string gid, PlaceClaimMsg _placeClaimMsg) : base(seqNum, gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimCommand() : base() {}
     }
 
@@ -274,12 +282,12 @@ namespace BeamBackend
         public PlaceHitMsg placeHitMsg;
         public ApianPlaceHitObservation(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitObservation() : base() {}
-        public override ApianCommand ToCommand() => new ApianPlaceHitCommand(DestGroupId, placeHitMsg);
+        public override ApianCommand ToCommand(long seqNum) => new ApianPlaceHitCommand(seqNum, DestGroupId, placeHitMsg);
     }
     public class ApianPlaceHitCommand : ApianCommand
     {
         public PlaceHitMsg placeHitMsg;
-        public ApianPlaceHitCommand(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
+        public ApianPlaceHitCommand(long seqNum, string gid, PlaceHitMsg _placeHitMsg) : base(seqNum, gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitCommand() : base() {}
     }
 
@@ -289,12 +297,14 @@ namespace BeamBackend
         //(prefereably without having to include class type info in the JSON)
         public static Dictionary<string, Func<string, ApianMessage>> beamDeserializers = new  Dictionary<string, Func<string, ApianMessage>>()
         {
+            {ApianMessage.CliObservation+BeamMessage.kNewPlayer, (s) => JsonConvert.DeserializeObject<ApianNewPlayerObservation>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },
 
+            {ApianMessage.CliCommand+BeamMessage.kNewPlayer, (s) => JsonConvert.DeserializeObject<ApianNewPlayerCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateCommand>(s) },

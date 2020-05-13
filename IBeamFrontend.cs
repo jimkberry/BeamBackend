@@ -27,7 +27,7 @@ namespace BeamBackend
         // Players
         void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs pa);
         void OnPeerLeftGameEvt(object sender, PeerLeftGameArgs pa);
-        void OnMembersClearedEvt(object sender, EventArgs e);
+        void OnPlayersClearedEvt(object sender, EventArgs e);
         // Bikes
         void OnNewBikeEvt(object sender, IBike ib);
         void OnBikeRemovedEvt(object sender, BikeRemovedData data);

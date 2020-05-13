@@ -74,7 +74,7 @@ namespace BeamBackend
 
 		public override object End() {
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
+            game.PlayerJoinedEvt -= OnPlayerJoinedEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -102,19 +102,20 @@ namespace BeamBackend
                 logger.Info("Splash game joined");
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
-                game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
-                BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
+                game.PlayerJoinedEvt += OnPlayerJoinedEvt;
+                // BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // This is the REAL one
+                BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // Just for quick tests of CreatorServer
                 core.AddGameInstance(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
-                BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
-                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
+                BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
                 _CurrentState = ModeState.JoiningGroup;
                 // waiting for OnGroupJoined()
             }
         }
 
-        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        public void OnPlayerJoinedEvt(object sender, PlayerJoinedArgs ga)
         {
             _CurrentState = ModeState.Playing;
             gameJoined = true;

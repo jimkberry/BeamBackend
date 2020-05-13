@@ -76,7 +76,7 @@ namespace BeamBackend
 		public override object End() {
             core.GameCreatedEvt -= OnGameCreatedEvt;
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
+            game.PlayerJoinedEvt -= OnPlayerJoinedEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -202,7 +202,6 @@ namespace BeamBackend
             gameId = parts.Count() < 1 ? null : parts[0]; // null means create a new game
 
             logger.Verbose($"{(ModeName())}: _ParseGameAndGroup() game: {gameId}, group: {apianGroupId}, mode: {groupCreateMode}");
-
         }
 
         private void _CreateGroup()
@@ -214,8 +213,8 @@ namespace BeamBackend
 
         private void _JoinGroup()
         {
-            BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
-            game.apian.JoinGroup(apianGroupId, mb.ApianSerialized());
+            BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+            game.apian.JoinGroup(apianGroupId, mb.ToBeamJson());
         }
 
         // Event handlers
@@ -241,7 +240,7 @@ namespace BeamBackend
                 {
                     // Create gameinstance and ApianInstance
                     game = new BeamGameInstance(core.frontend);
-                    game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
+                    game.PlayerJoinedEvt += OnPlayerJoinedEvt;
                     BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // TODO: make the groupMgr type run-time spec'ed
                     //BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // *** This should be commented out (or gone)
                     core.AddGameInstance(game);
@@ -259,14 +258,15 @@ namespace BeamBackend
         }
 
 
-        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        public void OnPlayerJoinedEvt(object sender, PlayerJoinedArgs ga)
         {
-            bool isLocal = ga.member.PeerId == core.LocalPeer.PeerId;
-            logger.Info($"{(ModeName())} - OnMemberJoinedGroupEvt() - {(isLocal?"Local":"Remote")} Member Joined: {ga.member.Name}, ID: {ga.member.PeerId}");
-            if (ga.member.PeerId == core.LocalPeer.PeerId)
+            bool isLocal = ga.player.PeerId == core.LocalPeer.PeerId;
+            logger.Info($"{(ModeName())} - OnPlayerJoinedEvt() - {(isLocal?"Local":"Remote")} Member Joined: {ga.player.Name}, ID: {ga.player.PeerId}");
+            if (ga.player.PeerId == core.LocalPeer.PeerId)
             {
                 game.RespawnPlayerEvt += OnRespawnPlayerEvt;
-                _SetState(kWaitingForMembers);
+                //_SetState(kWaitingForMembers);
+                _SetState(kPlaying);
             }
         }
 
@@ -308,7 +308,7 @@ namespace BeamBackend
             {
                 string scrName = game.frontend.GetUserSettings().screenName;
                 string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-                return CreateBaseBike(settings.localPlayerCtrlType, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+                return CreateBaseBike(settings.localPlayerCtrlType, game.LocalPeerId, game.LocalPlayer.Name, BikeDemoData.RandomTeam());
             }
             return null;
         }

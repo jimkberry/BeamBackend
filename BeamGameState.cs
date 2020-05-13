@@ -12,14 +12,14 @@ namespace BeamBackend
 {
     public class BeamGameData : IApianStateData
     {
-        public Dictionary<string, BeamGroupMember> Members { get; private set; } = null;
+        public Dictionary<string, BeamPlayer> Players { get; private set; } = null;
         public Dictionary<string, IBike> Bikes { get; private set; } = null;
 	    public Ground Ground { get; private set; } = null;
 
         protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
         public BeamGameData(IBeamFrontend fep)
         {
-            Members = new Dictionary<string, BeamGroupMember>();
+            Players = new Dictionary<string, BeamPlayer>();
             Bikes = new Dictionary<string, IBike>();
             Ground = new Ground(fep);
             _bikeIdsToRemoveAfterLoop = new List<string>();
@@ -27,7 +27,7 @@ namespace BeamBackend
 
         public void Init()
         {
-            Members.Clear();
+            Players.Clear();
             Bikes.Clear();
         }
 
@@ -43,7 +43,7 @@ namespace BeamBackend
 
         public string ApianSerialized()
         {
-            object[] peersData = Members.Values.OrderBy(p => p.PeerId).Select(p => p.ApianSerialized()).ToArray();
+            object[] peersData = Players.Values.OrderBy(p => p.PeerId).Select(p => p.ToBeamJson()).ToArray();
             object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId).Select(ib => ib.ApianSerialized()).ToArray();
             return  JsonConvert.SerializeObject(new object[]{
                 peersData,
@@ -53,9 +53,9 @@ namespace BeamBackend
 
         }
 
-        public BeamGroupMember GetMember(string peerId)
+        public BeamPlayer GetMember(string peerId)
         {
-            try { return Members[peerId];} catch (KeyNotFoundException){ return null;}
+            try { return Players[peerId];} catch (KeyNotFoundException){ return null;}
         }
 
         public BaseBike GetBaseBike(string bikeId)

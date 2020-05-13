@@ -1,4 +1,5 @@
 
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Reflection.Emit;
 using System;
@@ -14,6 +15,8 @@ namespace BeamBackend
    public interface IBeamApianClient : IApianClientApp
     {
         // What Apian expects to call in the app instance
+        void OnNewPlayer(NewPlayerMsg msg, long msgDelay);
+        void OnPlayerLeft(string peerId);
         void OnCreateBike(BikeCreateDataMsg msg, long msgDelay);
         void OnPlaceHit(PlaceHitMsg msg, long msgDelay);
         void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay); // delay since the claim was originally made
@@ -57,6 +60,7 @@ namespace BeamBackend
             ApMsgHandlers[ApianMessage.ApianClockOffset] = (f,t,m,d) => this.OnApianClockOffsetMsg(f,t,m,d);
 
             CommandHandlers = new Dictionary<string, Action<ApianCommand,string, string>>() {
+                {BeamMessage.kNewPlayer, (m,f,g) => OnNewPlayerCmd(m as ApianNewPlayerCommand,f,g) },
                 {BeamMessage.kBikeCommandMsg, (m,f,g) => OnBikeCommandCmd(m as ApianBikeCommandCommand,f,g) },
                 {BeamMessage.kBikeTurnMsg, (m,f,g) => OnBikeTurnCmd(m as ApianBikeTurnCommand,f,g) },
                 {BeamMessage.kBikeCreateData, (m,f,g) => OnBikeCreateCmd(m as ApianBikeCreateCommand, f, g) },
@@ -64,16 +68,6 @@ namespace BeamBackend
                 {BeamMessage.kPlaceHitMsg, (m,f,g) => OnPlaceHitCmd(m as ApianPlaceHitCommand,f,g) },
             };
 
-        }
-
-        public override void SendApianMessage(string toChannel, ApianMessage msg)
-        {
-            BeamGameNet.SendApianMessage(toChannel, msg);
-        }
-
-        public override void OnApianMessage(string fromId, string toId, ApianMessage msg, long lagMs)
-        {
-            ApMsgHandlers[msg.MsgType](fromId, toId, msg, lagMs);
         }
 
         public override void Update()
@@ -91,7 +85,59 @@ namespace BeamBackend
             apianPeers[p2pId] = p;
         }
 
+        // Send/Handle ApianMessages
 
+        public override void SendApianMessage(string toChannel, ApianMessage msg)
+        {
+            Logger.Verbose($"SendApianMsg() To: {toChannel} MsgType: {msg.MsgType} {((msg.MsgType==ApianMessage.GroupMessage)? "GrpMsgTYpe: "+(msg as ApianGroupMessage).GroupMsgType:"")}");
+            BeamGameNet.SendApianMessage(toChannel, msg);
+        }
+
+        public override void OnApianMessage(string fromId, string toId, ApianMessage msg, long lagMs)
+        {
+            ApMsgHandlers[msg.MsgType](fromId, toId, msg, lagMs);
+        }
+
+        // Called FROM GroupManager
+        public override void OnGroupMemberJoined(ApianGroupMember member) // ATM Beam doesn't care
+        {
+            // TODO: does this need to get reported up to gamenet to tell GameManager/Core?
+            //&& Current it only gets peer-level info about join/leave which might having nothing to do with this group/gameInstance
+            Logger.Warn("BeamApian.OnGroupMemberJoined() - this does NOTHING");
+        }
+        public override void OnGroupMemberStatusChange(ApianGroupMember member, ApianGroupMember.Status prevStatus)
+        {
+            Logger.Info($"OnGroupMemberStatusChange(): {member.PeerId} went from {prevStatus} to {member.CurStatus}");
+
+            // Beam-specific handling.
+            // Joining->Active : PlayerJoined
+            // Active->Removed : PlayerLeft
+            // TODO: Deal with "missing" (future work)
+            switch(prevStatus)
+            {
+            case ApianGroupMember.Status.Joining:
+                if (member.CurStatus == ApianGroupMember.Status.Active)
+                {
+                    // This is the criterion for a player join
+                    // NOTE: currently GroupMgr cn;t send this directly because BeamPlayerJoined is a BEAM message
+                    // and the GroupMgrs don;t know about beam stuff. THIS INCLUDEs PLAYER JOIN CRITERIA!
+                    // TODO: This is really awkward because:
+                    //      a) We can't have the group manager isntances knowing about the client app
+                    //      b) we can't create a command without a "next sequence number")
+
+                    // Try this: it's an OBSERVATION! So it'll get routed to GroupMgr, which will send a command
+                    // when appropriate.
+                    SendNewPlayerObs(BeamPlayer.FromBeamJson(member.AppDataJson));
+                }
+                break;
+            case ApianGroupMember.Status.Active:
+                if (member.CurStatus == ApianGroupMember.Status.Removed)
+                    (Client as IBeamApianClient).OnPlayerLeft(member.PeerId); // TODO: needs an ApianCommand
+                break;
+            }
+        }
+
+        // Incoming ApianMessage handlers
         public void OnApianClockOffsetMsg(string fromId, string toId, ApianMessage msg, long lagMs)
         {
             ApianClock?.OnApianClockOffset(fromId, (msg as ApianClockOffsetMsg).ClockOffset);
@@ -101,20 +147,6 @@ namespace BeamBackend
         {
             Logger.Debug($"OnApianGroupMessage(): {((msg as ApianGroupMessage).GroupMsgType)}");
             ApianGroup.OnApianMessage(msg, fromId, toId);
-        }
-
-
-        public override void OnGroupMemberJoined(string memberDataJson)
-        {
-            BeamGroupMember member = BeamGroupMember.FromApianSerialized(memberDataJson);
-            Logger.Info($"OnMemberJoinedGroup(): {member.PeerId}");
-            Client.OnMemberJoined(member);
-        }
-
-        public override void OnGroupMemberStatus(string peerId, ApianGroupMember.Status newStatus)
-        {
-            Logger.Info($"OnGroupMemberStatus(): {peerId}");
-            Client.OnMemberStatus(peerId, newStatus);
         }
 
         protected void OnApianRequest(string fromId, string toId, ApianMessage msg, long delayMs)
@@ -130,12 +162,20 @@ namespace BeamBackend
        protected void OnApianCommand(string fromId, string toId, ApianMessage msg, long delayMs)
         {
             ApianCommand cmd = msg as ApianCommand;
-            if (ApianGroup.ValidateCommand(cmd, fromId, toId))
+            if (ApianGroup.ValidateCommand(cmd, fromId, toId)) // mostly validate that the source is correct
             {
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 CommandHandlers[cmd.CliMsgType](cmd, fromId, toId);
             }
+            else
+                Logger.Error($"BeamApian.OnApianCommand(): BAD COMMAND SOURCE: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
         }
 
+        // Beam command handlers
+        public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)
+        {
+            client.OnNewPlayer(cmd.newPlayerMsg, 0);
+        }
 
         public void OnBikeCommandCmd(ApianBikeCommandCommand cmd, string srcId, string groupChan)
         {
@@ -165,6 +205,13 @@ namespace BeamBackend
         }
 
         // - - - - -
+
+        public void SendNewPlayerObs(BeamPlayer newPlayer)
+        {
+            NewPlayerMsg msg = new NewPlayerMsg( newPlayer);
+            ApianNewPlayerObservation obs = new ApianNewPlayerObservation(ApianGroup?.GroupId, msg);
+            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);
+        }
 
         public void SendPlaceHitObs(IBike bike, int xIdx, int zIdx)
         {

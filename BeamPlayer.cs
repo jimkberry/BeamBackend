@@ -6,24 +6,28 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class BeamGroupMember : ApianClientMemberData
+    public class BeamPlayer
     {
+        public string PeerId { get; private set;}
         public string Name { get; private set;}
 
-        public BeamGroupMember(string peerId, string name) : base(peerId)
+        public BeamPlayer(string peerId, string name)
         {
+            PeerId = peerId;
             Name = name;
         }
 
-        public static BeamGroupMember FromApianSerialized(string jsonData)
+        // Custom compact json
+        // TODO: set up params to make more compact.
+        public static BeamPlayer FromBeamJson(string jsonData)
         {
             object[] data = JsonConvert.DeserializeObject<object[]>(jsonData);
-            return new BeamGroupMember(
+            return new BeamPlayer(
                 data[0] as string,
                 data[1] as string);
         }
 
-        public override string ApianSerialized()
+        public string ToBeamJson()
         {
             return  JsonConvert.SerializeObject(new object[]{
                 PeerId,

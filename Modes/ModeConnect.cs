@@ -60,7 +60,7 @@ namespace BeamBackend
 
             settings = game.frontend.GetUserSettings();
 
-            game.ClearMembers();
+            game.ClearPlayers();
             game.ClearBikes();
             game.ClearPlaces();
 
@@ -208,7 +208,7 @@ namespace BeamBackend
                  _localBikesToCreate++;
                 string scrName = game.frontend.GetUserSettings().screenName;
                 string bikeId = string.Format("{0:X8}", (scrName + game.LocalPeerId).GetHashCode());
-                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+                BaseBike bb =  game.CreateBaseBike(bikeCtrlType, game.LocalPeerId, game.LocalPlayer.Name, BikeDemoData.RandomTeam());
                 game.PostBikeCreateData(bb); // will result in OnBikeInfo()
             }
         }

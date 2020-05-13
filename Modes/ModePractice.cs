@@ -62,7 +62,7 @@ namespace BeamBackend
 
 		public override object End() {
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
-            game.MemberJoinedGroupEvt -= OnMemberJoinedGroupEvt;
+            game.PlayerJoinedEvt -= OnMemberJoinedGroupEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -84,7 +84,7 @@ namespace BeamBackend
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalMember.Name, BikeDemoData.RandomTeam());
+            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPlayer.Name, BikeDemoData.RandomTeam());
         }
 
         protected string SpawnAIBike(string name = null, Team team = null)
@@ -114,18 +114,18 @@ namespace BeamBackend
                 logger.Info("practice game joined");
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
-                game.MemberJoinedGroupEvt += OnMemberJoinedGroupEvt;
+                game.PlayerJoinedEvt += OnMemberJoinedGroupEvt;
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
                 core.AddGameInstance(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
-                BeamGroupMember mb = new BeamGroupMember(core.LocalPeer.PeerId, core.LocalPeer.Name);
-                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
+                BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
                 // waiting for OnGroupJoined()
             }
         }
 
-        public void OnMemberJoinedGroupEvt(object sender, MemberJoinedGroupArgs ga)
+        public void OnMemberJoinedGroupEvt(object sender, PlayerJoinedArgs ga)
         {
             game.RespawnPlayerEvt += OnRespawnPlayerEvt;
             gameJoined = true;
