@@ -12,7 +12,6 @@ namespace BeamBackend
         public BeamApianSinglePeer(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
         {
             ApianGroup = new SinglePeerGroupManager(this);
-            ApianClock.Set(0); // Need to start it running
         }
 
 

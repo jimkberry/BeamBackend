@@ -16,13 +16,12 @@ namespace BeamBackend
         protected const float kRespawnCheckInterval = 1.3f;
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
         public BeamGameInstance game = null;
-        protected bool gameJoined;
         protected bool bikesCreated;
+        protected bool localPlayerJoined;
 
         private enum ModeState {
             JoiningGame = 1,
-            JoiningGroup,
-            CreatingBikes,
+            JoiningGroup, // really ends with OnNewPlayer(local player)
             Playing
         }
 
@@ -47,8 +46,9 @@ namespace BeamBackend
 
 		public override void Loop(float frameSecs)
         {
-            if (gameJoined && !bikesCreated)
+            if (localPlayerJoined && !bikesCreated)
             {
+                logger.Info($"{this.ModeName()}: Loop() Creating bikes!");
                 string cameraTargetBikeId = CreateADemoBike();
                 for( int i=1;i<kSplashBikeCount; i++)
                     CreateADemoBike();
@@ -57,6 +57,7 @@ namespace BeamBackend
                 // This robably needs to happen differently
                 game.frontend?.OnStartMode(BeamModeFactory.kSplash, new TargetIdParams{targetId = cameraTargetBikeId} );
                 bikesCreated = true;
+                _CurrentState = ModeState.Playing;
             }
 
             if (bikesCreated)
@@ -75,6 +76,7 @@ namespace BeamBackend
 		public override object End() {
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PlayerJoinedEvt -= OnPlayerJoinedEvt;
+            game.GroupJoinedEvt -= OnGroupJoinedEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -103,22 +105,30 @@ namespace BeamBackend
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
                 game.PlayerJoinedEvt += OnPlayerJoinedEvt;
-                // BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // This is the REAL one
-                BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // Just for quick tests of CreatorServer
+                BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // This is the REAL one
+                // BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // Just for quick tests of CreatorServer
                 core.AddGameInstance(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                game.GroupJoinedEvt += OnGroupJoinedEvt;
                 apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
                 _CurrentState = ModeState.JoiningGroup;
-                // waiting for OnGroupJoined()
+                // waiting for OnPlayerJoined(localplayer)
             }
+        }
+
+        public void OnGroupJoinedEvt(object sender, string groupId)
+        {
+            // Nothing results from this
+            logger.Info($"{this.ModeName()}: Group {groupId} joined");
         }
 
         public void OnPlayerJoinedEvt(object sender, PlayerJoinedArgs ga)
         {
             _CurrentState = ModeState.Playing;
-            gameJoined = true;
+            localPlayerJoined = true;
+            logger.Info("Player joined!!!");
         }
 
     }

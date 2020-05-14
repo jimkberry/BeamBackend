@@ -15,6 +15,7 @@ namespace BeamBackend
    public interface IBeamApianClient : IApianClientApp
     {
         // What Apian expects to call in the app instance
+        void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
         void OnNewPlayer(NewPlayerMsg msg, long msgDelay);
         void OnPlayerLeft(string peerId);
         void OnCreateBike(BikeCreateDataMsg msg, long msgDelay);
@@ -49,7 +50,7 @@ namespace BeamBackend
             client = _client as BeamGameInstance;
             gameData = client.GameData;
             ApianClock = new DefaultApianClock(this);
-           apianPeers = new Dictionary<string, BeamApianPeer>();
+            apianPeers = new Dictionary<string, BeamApianPeer>();
 
             // Add BeamApian-level ApianMsg handlers here
             // params are:  from, to, apMsg, msSinceSent
@@ -101,9 +102,11 @@ namespace BeamBackend
         // Called FROM GroupManager
         public override void OnGroupMemberJoined(ApianGroupMember member) // ATM Beam doesn't care
         {
-            // TODO: does this need to get reported up to gamenet to tell GameManager/Core?
-            //&& Current it only gets peer-level info about join/leave which might having nothing to do with this group/gameInstance
-            Logger.Warn("BeamApian.OnGroupMemberJoined() - this does NOTHING");
+            // Only care about local peer's group membership status
+            if (member.PeerId == GameNet.LocalP2pId())
+            {
+                client.OnGroupJoined(ApianGroup.GroupId);
+            }
         }
         public override void OnGroupMemberStatusChange(ApianGroupMember member, ApianGroupMember.Status prevStatus)
         {

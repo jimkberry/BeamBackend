@@ -36,6 +36,7 @@ namespace BeamBackend
     public interface IBeamGameInstance {
 
         // Events
+        event EventHandler<string> GroupJoinedEvt;
         event EventHandler PlayersClearedEvt;
         event EventHandler<IBike> NewBikeEvt;
         event EventHandler<BikeRemovedData> BikeRemovedEvt;

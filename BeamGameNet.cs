@@ -58,12 +58,6 @@ namespace BeamBackend
             return BeamApianMessageDeserializer.FromJSON(msgType, msgJSON);
         }
 
-        // public override void  CreateGame<GameCreationData>(GameCreationData data)
-        // {
-        //     logger.Verbose($"CreateGame()");
-        //     _SyncTrivialNewGame(); // Creates/sets an ID and enqueues OnGameCreated()
-        // }
-
     }
 
 }

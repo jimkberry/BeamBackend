@@ -14,6 +14,7 @@ namespace BeamBackend
     public class BeamGameInstance : IGameInstance, IBeamGameInstance, IBeamApianClient
     {
 
+        public event EventHandler<string> GroupJoinedEvt;
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
         public event EventHandler<PLyerLeftArgs> PlayerLeftEvt;
 
@@ -115,6 +116,12 @@ namespace BeamBackend
         //     return  JsonConvert.SerializeObject( LocalPeer);
         // }
 
+
+        public void OnGroupJoined(string groupId)
+        {
+            logger.Info($"OnGroupJoined({groupId}) - local peer joined");
+            GroupJoinedEvt?.Invoke(this, groupId);
+        }
 
         public void OnNewPlayer(NewPlayerMsg msg, long msgDelay)
         {
@@ -291,7 +298,10 @@ namespace BeamBackend
         {
             logger.Debug($"_AddPlayer(). Name: {p.Name} ID: {p.PeerId}");
             if  ( GameData.Players.ContainsKey(p.PeerId))
+            {
+                logger.Warn($"_AddPlayer(). Player already exists!!!!");
                 return false;
+            }
 
             GameData.Players[p.PeerId] = p;
             if (p.PeerId == LocalPeerId )
