@@ -130,6 +130,8 @@ namespace BeamBackend
         // Called FROM GroupManager
         public override void OnGroupMemberJoined(ApianGroupMember member) // ATM Beam doesn't care
         {
+            base.OnGroupMemberJoined(member);
+
             // Only care about local peer's group membership status
             if (member.PeerId == GameNet.LocalP2pId())
             {
