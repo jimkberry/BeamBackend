@@ -26,11 +26,11 @@ namespace BeamBackend
         public string LocalPeerId => apian?.GameNet.LocalP2pId(); // TODO: make LocalP2pId a property?
         public string CurrentGameId  { get; private set; }
 
-        public long CurGameTime {get => apian.ApianClock.CurrentTime; }
+        public long CurGameTime {get => apian.CurrentApianTime(); }
 
         // Not sure where this oughta be. The Loop() methd gets passed a "frameSecs" float that is based on
         // Whatever clck the driver is using. We want everything in the GameInstance to be based on the shared "ApianClock"
-        // So - when Loop() is called we are going to read GameNet.CurrentApianTime() and stash that value to use "next fraem"
+        // So - when Loop() is called we are going to read Apian.CurrentApianTime and stash that value to use "next frame"
         // to determine the ApianClock time between frames.
         public long FrameApianTime {get; private set;} = -1;
 
@@ -140,13 +140,12 @@ namespace BeamBackend
         {
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);
-
-            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
-            logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
-            ib.Loop(elapsedSecs); // project to NOW
-
             if (_AddBike(ib))
             {
+                float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
+                logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
+                ib.Loop(elapsedSecs); // project to NOW
+
                 foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
                 {
                     if (GameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)

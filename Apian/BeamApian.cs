@@ -34,15 +34,22 @@ namespace BeamBackend
 
     public abstract class BeamApian : ApianBase
     {
+        protected enum SyncOrLiveCmd {
+            kSync,
+            kLive
+        }
 
         protected Dictionary<string, Action<ApianCommand,string, string>> CommandHandlers;
-        // Args are ClientMsg, fromId, groupChan
+        //protected Dictionary<string, Action<ApianCommand,string, string, SyncOrLiveCmd>> CommandHandlers;
+        // Args are Command, fromId, groupChan, SyncOrLive ( set ApianClockVal before applying?)
 
         public Dictionary<string, BeamApianPeer> apianPeers;
         public IBeamGameNet BeamGameNet {get; private set;}
         protected BeamGameInstance client;
         protected BeamGameData gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed
                                         // TODO: ALSO - this is currently only ever referenced when set. ie - it's not used. Maybe make it go away?
+
+        protected bool LocalPeerIsActive {get => (ApianGroup != null) && (ApianGroup.LocalMember?.CurStatus == ApianGroupMember.Status.Active); }
 
         public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn, _client)
         {
@@ -71,13 +78,34 @@ namespace BeamBackend
 
         }
 
+
+        protected long FakeSyncApianTime { get; set;}
+        public long CurrentApianTime()
+        {
+            // This is for BeamGameInstance, if the peer is active and running will just return the current ApianClock time
+            // If the peer is not active then it returns a ratchect-forward-only value that gets set as each command
+            // is Applied (it's read from the BeamMessage contained in the command)
+            if (LocalPeerIsActive)
+                return ApianClock.CurrentTime;
+            else
+                return FakeSyncApianTime;
+
+        }
+
+        private void SetFakeSyncApianTime(long newTime)
+        {
+            // Expected to be called with ApianTime values from BeamMessages wrapped as ApianCoMmands
+            // while the local peer is syncing and applying commands to catch up.
+            // Only logic here is that it cannot go backwards
+            // It's entirely possible - ad ok - for the ApianTime fields in BeamMessages not to respect the
+            // ApianCommand SequenceNumber order.
+            FakeSyncApianTime = Math.Max(FakeSyncApianTime, newTime);
+        }
+
         public override void Update()
         {
-            if (ApianGroup.Intialized) // TODO: this is really just to prevent a not-joined GroupManager from updating and
-            {
-                ApianGroup?.Update();
-                ApianClock?.Update();
-            }
+            ApianGroup?.Update();
+            ApianClock?.Update();
         }
 
         protected void AddApianPeer(string p2pId, string peerHelloData)
@@ -133,6 +161,12 @@ namespace BeamBackend
                     SendNewPlayerObs(BeamPlayer.FromBeamJson(member.AppDataJson));
                 }
                 break;
+            case ApianGroupMember.Status.Syncing:
+                if (member.CurStatus == ApianGroupMember.Status.Active)
+                {
+                    SendNewPlayerObs(BeamPlayer.FromBeamJson(member.AppDataJson));
+                }
+                break;
             case ApianGroupMember.Status.Active:
                 if (member.CurStatus == ApianGroupMember.Status.Removed)
                     (Client as IBeamApianClient).OnPlayerLeft(member.PeerId); // TODO: needs an ApianCommand
@@ -140,9 +174,18 @@ namespace BeamBackend
             }
         }
 
+        public override void ApplyApianCommand(ApianCommand cmd)
+        {
+
+            Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+            SetFakeSyncApianTime((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
+            CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
+        }
+
         // Incoming ApianMessage handlers
         public void OnApianClockOffsetMsg(string fromId, string toId, ApianMessage msg, long lagMs)
         {
+            Logger.Verbose($"OnApianClockOffsetMsg(): from {fromId}");
             ApianClock?.OnApianClockOffset(fromId, (msg as ApianClockOffsetMsg).ClockOffset);
         }
 
@@ -165,13 +208,25 @@ namespace BeamBackend
        protected void OnApianCommand(string fromId, string toId, ApianMessage msg, long delayMs)
         {
             ApianCommand cmd = msg as ApianCommand;
-            if (ApianGroup.ValidateCommand(cmd, fromId, toId)) // mostly validate that the source is correct
+            ApianCommandStatus cmdStat = ApianGroup.EvaluateCommand(cmd, fromId, toId);
+
+            switch (cmdStat)
             {
-                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+            case ApianCommandStatus.kLocalPeerNotReady:
+                Logger.Verbose($"BeamApian.OnApianCommand(): Local peer not a group member yet");
+                break;
+            case ApianCommandStatus.kShouldApply:
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 CommandHandlers[cmd.CliMsgType](cmd, fromId, toId);
-            }
-            else
+                break;
+            case ApianCommandStatus.kStashedForSync:
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Stashing Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                break;
+            case ApianCommandStatus.kBadSource:
+            default:
                 Logger.Error($"BeamApian.OnApianCommand(): BAD COMMAND SOURCE: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                break;
+            }
         }
 
         // Beam command handlers
