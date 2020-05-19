@@ -266,11 +266,25 @@ namespace BeamBackend
 
         // - - - - -
 
+        protected void SendRequestOrObservation(string destCh, ApianMessage msg)
+        {
+            // This func is just to make sure these only get sent out if we are ACTIVE.
+            // It wouldn't happen anyway, since the groupmgr would not make it into a command
+            // after seeing we aren;t active - but there's a lot of message traffic between the 2
+            if (ApianGroup.LocalMember.CurStatus != ApianGroupMember.Status.Active)
+            {
+                Logger.Warn($"SendRequestOrObservation() - outgoing message IGNORED: We are not ACTIVE.");
+                return;
+            }
+            BeamGameNet.SendApianMessage(destCh, msg);
+        }
+
         public void SendNewPlayerObs(BeamPlayer newPlayer)
         {
+            Logger.Debug($"SendPlaceHitObs()");
             NewPlayerMsg msg = new NewPlayerMsg( newPlayer);
             ApianNewPlayerObservation obs = new ApianNewPlayerObservation(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
         public void SendPlaceHitObs(IBike bike, int xIdx, int zIdx)
@@ -278,7 +292,7 @@ namespace BeamBackend
             Logger.Debug($"SendPlaceHitObs()");
             PlaceHitMsg msg = new PlaceHitMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, xIdx, zIdx);
             ApianPlaceHitObservation obs = new ApianPlaceHitObservation(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
         public  void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
@@ -286,14 +300,14 @@ namespace BeamBackend
             Logger.Debug($"SendBikeTurnReq) Bike: {bike.bikeId}");
             BikeTurnMsg msg = new BikeTurnMsg(ApianClock.CurrentTime, bike, dir, nextPt);
             ApianBikeTurnRequest req = new ApianBikeTurnRequest(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(ApianGroup.GroupId, req);
+            SendRequestOrObservation(ApianGroup.GroupId, req);
         }
         public  void SendBikeCommandReq(IBike bike, BikeCommand cmd, Vector2 nextPt)
         {
             Logger.Debug($"BeamGameNet.SendBikeCommand() Bike: {bike.bikeId}");
             BikeCommandMsg msg = new BikeCommandMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, cmd, nextPt);
             ApianBikeCommandRequest req = new ApianBikeCommandRequest(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(ApianGroup.GroupId, req);
+            SendRequestOrObservation(ApianGroup.GroupId, req);
         }
         public  void SendBikeCreateReq(IBike ib, List<Ground.Place> ownedPlaces, string destId = null)
         {
@@ -301,7 +315,7 @@ namespace BeamBackend
             // Broadcast this to send it to everyone
             BikeCreateDataMsg msg = new BikeCreateDataMsg(ApianClock.CurrentTime, ib, ownedPlaces);
             ApianBikeCreateRequest req = new ApianBikeCreateRequest(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(destId ?? ApianGroup.GroupId, req);
+            SendRequestOrObservation(destId ?? ApianGroup.GroupId, req);
         }
 
         public  void SendPlaceClaimObs(IBike bike, int xIdx, int zIdx)
@@ -309,7 +323,7 @@ namespace BeamBackend
             Logger.Debug($"SendPlaceClaimObs()");
             PlaceClaimMsg msg = new PlaceClaimMsg(ApianClock.CurrentTime, bike.bikeId, bike.peerId, xIdx, zIdx);
             ApianPlaceClaimObservation obs = new ApianPlaceClaimObservation(ApianGroup?.GroupId, msg);
-            BeamGameNet.SendApianMessage(ApianGroup.GroupId, obs);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
 
