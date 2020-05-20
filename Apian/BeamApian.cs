@@ -82,7 +82,7 @@ namespace BeamBackend
         protected long FakeSyncApianTime { get; set;}
         public long CurrentApianTime()
         {
-            // This is for BeamGameInstance, if the peer is active and running will just return the current ApianClock time
+            // This is for BeamGameInstance, if the peer is active and running it will just return the current ApianClock time
             // If the peer is not active then it returns a ratchect-forward-only value that gets set as each command
             // is Applied (it's read from the BeamMessage contained in the command)
             if (LocalPeerIsActive)
@@ -152,7 +152,7 @@ namespace BeamBackend
                 if (member.CurStatus == ApianGroupMember.Status.Active)
                 {
                     // This is the criterion for a player join
-                    // NOTE: currently GroupMgr cn;t send this directly because BeamPlayerJoined is a BEAM message
+                    // NOTE: currently GroupMgr cant send this directly because BeamPlayerJoined is a BEAM message
                     // and the GroupMgrs don;t know about beam stuff. THIS INCLUDEs PLAYER JOIN CRITERIA!
                     // TODO: This is really awkward because:
                     //      a) We can't have the group manager isntances knowing about the client app
@@ -176,10 +176,9 @@ namespace BeamBackend
             }
         }
 
-        public override void ApplyApianCommand(ApianCommand cmd)
+        public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
-
-            Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+            Logger.Info($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
             SetFakeSyncApianTime((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
             CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
         }
@@ -215,19 +214,22 @@ namespace BeamBackend
             switch (cmdStat)
             {
             case ApianCommandStatus.kLocalPeerNotReady:
-                Logger.Verbose($"BeamApian.OnApianCommand(): Local peer not a group member yet");
+                Logger.Warn($"BeamApian.OnApianCommand(): Local peer not a group member yet");
                 break;
             case ApianCommandStatus.kShouldApply:
-                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                Logger.Info($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 CommandHandlers[cmd.CliMsgType](cmd, fromId, toId);
                 break;
-            case ApianCommandStatus.kStashedForSync:
+            case ApianCommandStatus.kStashedInQueued:
                 Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Stashing Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 break;
-            case ApianCommandStatus.kBadSource:
+            case ApianCommandStatus.kAlreadyReceived:
+                Logger.Error($"BeamApian.OnApianCommand(): Command Already Received: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                break;
             default:
                 Logger.Error($"BeamApian.OnApianCommand(): BAD COMMAND SOURCE: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 break;
+
             }
         }
 
@@ -271,7 +273,7 @@ namespace BeamBackend
             // This func is just to make sure these only get sent out if we are ACTIVE.
             // It wouldn't happen anyway, since the groupmgr would not make it into a command
             // after seeing we aren;t active - but there's a lot of message traffic between the 2
-            if (ApianGroup.LocalMember.CurStatus != ApianGroupMember.Status.Active)
+            if (ApianGroup.LocalMember?.CurStatus != ApianGroupMember.Status.Active)
             {
                 Logger.Warn($"SendRequestOrObservation() - outgoing message IGNORED: We are not ACTIVE.");
                 return;
