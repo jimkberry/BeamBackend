@@ -186,10 +186,12 @@ namespace BeamBackend
                 Ground.Place p = GameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx);
                 if (p != null)
                 {
+                    logger.Verbose($"OnPlaceClaim() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
+                    logger.Verbose($"               FrameApianTime: {FrameApianTime} ");
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {
-                    logger.Warn($"OnPlaceClaimed() failed. Place already claimed.");
+                    logger.Warn($"OnPlaceClaim()) failed. Place already claimed.");
                 }
 
             } else {
@@ -204,6 +206,7 @@ namespace BeamBackend
             Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
             Ground.Place p = GameData.Ground.GetPlace(pos);
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
+            logger.Verbose($"OnPlaceHit() Bike: {hittingBike?.bikeId} hit ({p?.xIdx},{p?.zIdx})");
             OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
         }
