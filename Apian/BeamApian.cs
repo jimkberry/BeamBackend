@@ -202,7 +202,7 @@ namespace BeamBackend
 
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
-            Logger.Info($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+            Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
             _AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
             CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
         }
@@ -241,7 +241,7 @@ namespace BeamBackend
                 Logger.Warn($"BeamApian.OnApianCommand(): Local peer not a group member yet");
                 break;
             case ApianCommandStatus.kShouldApply:
-                Logger.Info($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
                 CommandHandlers[cmd.CliMsgType](cmd, fromId, toId);
                 break;
             case ApianCommandStatus.kStashedInQueued:
