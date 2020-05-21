@@ -270,6 +270,7 @@ namespace BeamBackend
             }
         }
 
+
         public void OnRespawnPlayerEvt(object sender, EventArgs args)
         {
             logger.Info("Respawning Player");

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System;
 using System.Linq;
 using GameModeMgr;
@@ -28,6 +29,7 @@ namespace BeamBackend
             // Setup/connect fake network
             core.ConnectToNetwork("p2ploopback");
             core.JoinNetworkGame(GameName);
+
             // Now wait for OnPeerJoinedGame()
         }
 
@@ -43,7 +45,6 @@ namespace BeamBackend
                     // ...or do it when respawn gets called
                     SpawnAIBike();
                 }
-                game.frontend?.OnStartMode(BeamModeFactory.kPractice, new TargetIdParams{targetId = playerBikeId} );
                 bikesCreated = true;
             }
 
@@ -98,6 +99,7 @@ namespace BeamBackend
             return CreateBaseBike(BikeFactory.AiCtrl, game.LocalPeerId, name, team);
         }
 
+
         public void OnRespawnPlayerEvt(object sender, EventArgs args)
         {
             logger.Info("Respawning Player");
@@ -115,12 +117,15 @@ namespace BeamBackend
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
                 game.PlayerJoinedEvt += OnMemberJoinedGroupEvt;
+
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
                 core.AddGameInstance(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
                 apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
+
+                game.frontend?.OnStartMode(BeamModeFactory.kPractice, null);
                 // waiting for OnGroupJoined()
             }
         }
