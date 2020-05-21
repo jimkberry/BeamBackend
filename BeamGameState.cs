@@ -31,11 +31,11 @@ namespace BeamBackend
             Bikes.Clear();
         }
 
-        public void Loop(float frameSecs)
+        public void Loop(long nowMs, long frameMs)
         {
-            Ground.Loop(frameSecs);
+            Ground.Loop(nowMs);
             foreach( IBike ib in Bikes.Values)
-                ib.Loop(frameSecs);  // Bike "ib" might get destroyed here and need to be removed
+                ib.Loop(frameMs * .001f);  // Bike "ib" might get destroyed here and need to be removed
 
             _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
 

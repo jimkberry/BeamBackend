@@ -85,7 +85,9 @@ namespace BeamBackend
         {
             apian.Update();
 
-            // Ignore passed in framesecs.
+            //
+            // Ignore passed in frameSecs.
+            //
             long prevFrameApianTime = FrameApianTime;
             FrameApianTime = CurGameTime;
             if (prevFrameApianTime < 0)
@@ -94,9 +96,9 @@ namespace BeamBackend
                 return true;
             }
 
-            float apianFrameSecs = (FrameApianTime - prevFrameApianTime) / 1000f;
+            long apianFrameMs = FrameApianTime - prevFrameApianTime;
             //logger.Debug("Loop()");
-            GameData.Loop(apianFrameSecs);
+            GameData.Loop(FrameApianTime, apianFrameMs);
 
             return true;
         }
@@ -146,11 +148,12 @@ namespace BeamBackend
                 logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
                 ib.Loop(elapsedSecs); // project to NOW
 
-                foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
-                {
-                    if (GameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
-                        logger.Warn($"OnBikeCreateData() Claimplace() failed");
-                }
+                // &&&& Don;t do this anymore
+                // foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
+                // {
+                //     if (GameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
+                //         logger.Warn($"OnBikeCreateData() Claimplace() failed");
+                // }
             }
         }
 
@@ -183,7 +186,7 @@ namespace BeamBackend
             if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
                 // Claim it
-                Ground.Place p = GameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx);
+                Ground.Place p = GameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+Ground.kPlaceLifeTimeMs);
                 if (p != null)
                 {
                     logger.Verbose($"OnPlaceClaim() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");

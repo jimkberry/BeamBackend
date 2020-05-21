@@ -51,14 +51,14 @@ namespace BeamBackend
         {
             public int xIdx;
             public int zIdx;
-            public float secsLeft;
+            public long expireTimeMs;
 
             public PlaceCreateData() {} // need a default ctor to deserialize
             public PlaceCreateData(Ground.Place p)
             {
                 xIdx = p.xIdx;
                 zIdx = p.zIdx;
-                secsLeft = p.secsLeft;
+                expireTimeMs = p.expirationTimeMs;
             }
         }
 
