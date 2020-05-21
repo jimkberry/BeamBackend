@@ -188,13 +188,14 @@ namespace BeamBackend
             for (int i=0;i<loops;i++)
             {
                 SetFakeSyncApianTime(FakeSyncApianTime + msPerLoop);
-                client.Loop(.04f); // sim doesn;t use passed-in time
+                client.GameData.Loop(FakeSyncApianTime, msPerLoop);
             }
 
             if (newApianTime > FakeSyncApianTime)
             {
+                long msLeft =  newApianTime-FakeSyncApianTime;
                 SetFakeSyncApianTime(newApianTime);
-                client.Loop(newApianTime-FakeSyncApianTime*.001f);
+                client.GameData.Loop(newApianTime, msLeft);
             }
         }
 
