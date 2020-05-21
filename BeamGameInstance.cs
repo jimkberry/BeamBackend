@@ -190,7 +190,7 @@ namespace BeamBackend
                 if (p != null)
                 {
                     logger.Verbose($"OnPlaceClaim() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
-                    logger.Verbose($"               FrameApianTime: {FrameApianTime} ");
+                    logger.Debug($"               FrameApianTime: {FrameApianTime} ");
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {

@@ -176,10 +176,34 @@ namespace BeamBackend
             }
         }
 
+
+        private void _AdvanceStateTo(long newApianTime)
+        {
+            if (FakeSyncApianTime > newApianTime)
+                return;
+
+            // TODO: come up with better way to set nominal frame advance time
+            long msPerLoop = 40;
+            long frameMs = (newApianTime - FakeSyncApianTime) / msPerLoop; // 40 ms == 25 fps
+            long loops = (newApianTime - FakeSyncApianTime) / frameMs; // there will be some time left
+            for (int i=0;i<loops;i++)
+            {
+                SetFakeSyncApianTime(FakeSyncApianTime + msPerLoop);
+                client.Loop(.04f); // sim doesn;t use passed-in time
+            }
+
+            if (newApianTime > FakeSyncApianTime)
+            {
+                SetFakeSyncApianTime(newApianTime);
+                client.Loop(newApianTime-FakeSyncApianTime*.001f);
+            }
+
+        }
+
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
             Logger.Info($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
-            SetFakeSyncApianTime((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
+            _AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
             CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
         }
 
