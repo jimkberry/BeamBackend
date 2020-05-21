@@ -183,9 +183,8 @@ namespace BeamBackend
                 return;
 
             // TODO: come up with better way to set nominal frame advance time
-            long msPerLoop = 40;
-            long frameMs = (newApianTime - FakeSyncApianTime) / msPerLoop; // 40 ms == 25 fps
-            long loops = (newApianTime - FakeSyncApianTime) / frameMs; // there will be some time left
+            long msPerLoop = 40; // 40 ms == 25 fps
+            long loops = (newApianTime - FakeSyncApianTime) / msPerLoop; // there will be some time left
             for (int i=0;i<loops;i++)
             {
                 SetFakeSyncApianTime(FakeSyncApianTime + msPerLoop);
@@ -197,13 +196,13 @@ namespace BeamBackend
                 SetFakeSyncApianTime(newApianTime);
                 client.Loop(newApianTime-FakeSyncApianTime*.001f);
             }
-
         }
 
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
             Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
-            _AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
+            //_AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
+            SetFakeSyncApianTime((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
             CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
         }
 
