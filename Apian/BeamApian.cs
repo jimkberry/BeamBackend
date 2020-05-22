@@ -182,7 +182,10 @@ namespace BeamBackend
         private void _AdvanceStateTo(long newApianTime)
         {
             if (FakeSyncApianTime > newApianTime)
-                return;
+                return; // never move the clock backwards
+
+            if (ApianGroup?.LocalMember?.CurStatus == ApianGroupMember.Status.Active)
+                return; // If peer is active and using the real clock and advancing its own state, dont do anything.
 
             // TODO: come up with better way to set nominal frame advance time
             long msPerLoop = 40; // 40 ms == 25 fps
