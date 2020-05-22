@@ -202,8 +202,7 @@ namespace BeamBackend
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
             Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
-            //_AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
-            SetFakeSyncApianTime((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
+            _AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
             CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
         }
 
