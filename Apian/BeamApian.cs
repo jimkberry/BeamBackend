@@ -102,10 +102,12 @@ namespace BeamBackend
             FakeSyncApianTime = Math.Max(FakeSyncApianTime, newTime);
         }
 
-        public override void Update()
+        public override bool Update()
         {
+            // Returns TRUE is local peer is "active"
             ApianGroup?.Update();
             ApianClock?.Update();
+            return ApianGroup?.LocalMember?.CurStatus == ApianGroupMember.Status.Active;
         }
 
         protected void AddApianPeer(string p2pId, string peerHelloData)

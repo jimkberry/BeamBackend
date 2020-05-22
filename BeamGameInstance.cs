@@ -83,7 +83,7 @@ namespace BeamBackend
         }
         public bool Loop(float frameSecs)
         {
-            apian.Update();
+            bool isActive = apian.Update();  // returns "True" if Active
 
             //
             // Ignore passed in frameSecs.
@@ -96,9 +96,12 @@ namespace BeamBackend
                 return true;
             }
 
-            long apianFrameMs = FrameApianTime - prevFrameApianTime;
-            //logger.Debug("Loop()");
-            GameData.Loop(FrameApianTime, apianFrameMs);
+            if (isActive)
+            {
+                // Don;t call loop if not active
+                long apianFrameMs = FrameApianTime - prevFrameApianTime;
+                GameData.Loop(FrameApianTime, apianFrameMs);
+            }
 
             return true;
         }
