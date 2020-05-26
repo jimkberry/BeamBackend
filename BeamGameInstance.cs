@@ -47,7 +47,7 @@ namespace BeamBackend
         public event EventHandler ReadyToPlayEvt;
         public event EventHandler RespawnPlayerEvt;
 
-        protected Dictionary<string, Action<BeamMessage, long>> assertionHandlers;
+        protected Dictionary<string, Action<BeamMessage>> commandHandlers;
 
         public BeamGameInstance(IBeamFrontend fep)
         {
@@ -56,14 +56,13 @@ namespace BeamBackend
             frontend = fep;
             GameData = new BeamGameData(frontend);
 
-            assertionHandlers = new  Dictionary<string, Action<BeamMessage, long>>()
+            commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
-                [BeamMessage.kBikeCreateData] = (msg,dly) => this.OnCreateBike(msg as BikeCreateDataMsg, dly),
-                [BeamMessage.kBikeTurnMsg] = (msg,dly) => this.OnBikeTurn(msg as BikeTurnMsg, dly),
-                [BeamMessage.kBikeCommandMsg] =(msg,dly) => this.OnBikeCommand(msg as BikeCommandMsg, dly),
-                [BeamMessage.kPlaceClaimMsg] = (msg,dly) => this.OnPlaceClaim(msg as PlaceClaimMsg, dly),
-                [BeamMessage.kPlaceHitMsg] = (msg,dly) => this.OnPlaceHit(msg as PlaceHitMsg, dly),
-
+                [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBike(msg as BikeCreateDataMsg),
+                [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurn(msg as BikeTurnMsg),
+                [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommand(msg as BikeCommandMsg),
+                [BeamMessage.kPlaceClaimMsg] = (msg) => this.OnPlaceClaim(msg as PlaceClaimMsg),
+                [BeamMessage.kPlaceHitMsg] = (msg) => this.OnPlaceHit(msg as PlaceHitMsg),
             };
         }
 
@@ -128,7 +127,7 @@ namespace BeamBackend
             GroupJoinedEvt?.Invoke(this, groupId);
         }
 
-        public void OnNewPlayer(NewPlayerMsg msg, long msgDelay)
+        public void OnNewPlayer(NewPlayerMsg msg)
         {
             BeamPlayer newPlayer = msg.newPlayer;
             logger.Info($"OnNewPlayer() {((newPlayer.PeerId == LocalPeerId)?"Local":"Remote")} name: {newPlayer.Name}");
@@ -141,19 +140,20 @@ namespace BeamBackend
             _RemovePlayer(p2pId);
         }
 
-        public void OnCreateBike(BikeCreateDataMsg msg, long msgDelay)
+        public void OnCreateBike(BikeCreateDataMsg msg)
         {
             logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);
             if (_AddBike(ib))
             {
-                float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
-                logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
-                ib.Loop(elapsedSecs); // project to NOW
+                // *** Bikes are created stationary now - so there's no need to correct for creation time delay
+                //float elapsedSecs = (CurGameTime - msg.TimeStamp) * .001f;
+                logger.Verbose($"OnCreateBike() created {ib.bikeId}");
+                //ib.Loop(elapsedSecs); // project to NOW
             }
         }
 
-        public void OnBikeCommand(BikeCommandMsg msg, long msgDelay)
+        public void OnBikeCommand(BikeCommandMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Caller (Apian) checks the bike and message sourcevalidity
@@ -164,7 +164,7 @@ namespace BeamBackend
             bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
-        public void OnBikeTurn(BikeTurnMsg msg, long msgDelay)
+        public void OnBikeTurn(BikeTurnMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Code (Apian) checks bike and source validity
@@ -175,7 +175,7 @@ namespace BeamBackend
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
-        public void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay)
+        public void OnPlaceClaim(PlaceClaimMsg msg)
         {
             // Apian has said this message is authoritative
             BaseBike b = GameData.GetBaseBike(msg.bikeId);
@@ -199,7 +199,7 @@ namespace BeamBackend
             }
         }
 
-        public void OnPlaceHit(PlaceHitMsg msg, long msgDelay)
+        public void OnPlaceHit(PlaceHitMsg msg)
         {
             // Apian has already checked the the place is claimed and the bike exists
             Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);

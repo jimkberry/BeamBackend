@@ -16,13 +16,13 @@ namespace BeamBackend
     {
         // What Apian expects to call in the app instance
         void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
-        void OnNewPlayer(NewPlayerMsg msg, long msgDelay);
+        void OnNewPlayer(NewPlayerMsg msg);
         void OnPlayerLeft(string peerId);
-        void OnCreateBike(BikeCreateDataMsg msg, long msgDelay);
-        void OnPlaceHit(PlaceHitMsg msg, long msgDelay);
-        void OnPlaceClaim(PlaceClaimMsg msg, long msgDelay); // delay since the claim was originally made
-        void OnBikeCommand(BikeCommandMsg msg, long msgDelay);
-        void OnBikeTurn(BikeTurnMsg msg, long msgDelay);
+        void OnCreateBike(BikeCreateDataMsg msg);
+        void OnPlaceHit(PlaceHitMsg msg);
+        void OnPlaceClaim(PlaceClaimMsg msg); // delay since the claim was originally made
+        void OnBikeCommand(BikeCommandMsg msg);
+        void OnBikeTurn(BikeTurnMsg msg);
     }
 
 
@@ -264,34 +264,34 @@ namespace BeamBackend
         // Beam command handlers
         public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)
         {
-            client.OnNewPlayer(cmd.newPlayerMsg, 0);
+            client.OnNewPlayer(cmd.newPlayerMsg);
         }
 
         public void OnBikeCommandCmd(ApianBikeCommandCommand cmd, string srcId, string groupChan)
         {
-            client.OnBikeCommand(cmd.bikeCommandMsg, 0);
+            client.OnBikeCommand(cmd.bikeCommandMsg);
         }
 
         public void OnBikeTurnCmd(ApianBikeTurnCommand cmd, string srcId, string groupChan)
         {
             Logger.Debug($"OnBikeTurnReq() - bike: {cmd.bikeTurnMsg.bikeId}");
-            client.OnBikeTurn(cmd.bikeTurnMsg, 0);
+            client.OnBikeTurn(cmd.bikeTurnMsg);
         }
 
         public void OnBikeCreateCmd(ApianBikeCreateCommand cmd, string srcId, string groupChan)
         {
-            client.OnCreateBike(cmd.bikeCreateDataMsg, 0);
+            client.OnCreateBike(cmd.bikeCreateDataMsg);
         }
 
         public void OnPlaceClaimCmd(ApianPlaceClaimCommand cmd, string srcId, string groupChan)
         {
-            client.OnPlaceClaim(cmd.placeClaimMsg, 0);
+            client.OnPlaceClaim(cmd.placeClaimMsg);
         }
 
         public void OnPlaceHitCmd(ApianPlaceHitCommand cmd, string srcId, string groupChan)
         {
             Logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");
-            client.OnPlaceHit(cmd.placeHitMsg, 0);
+            client.OnPlaceHit(cmd.placeHitMsg);
         }
 
         // - - - - -

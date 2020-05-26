@@ -76,6 +76,10 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command
             // is valid before it even makes it here. Or... we might have to "fix things up"
+
+            if (commandDelaySecs > 0)
+                logger.Verbose($"ApplyTurn(): rolling back {commandDelaySecs} to turn {bikeId} {dir}");
+
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
             // Just shove it in
@@ -113,6 +117,9 @@ namespace BeamBackend
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command
             // is valid before it even makes it here. Or... we might have to "fix things up"
+            if (commandDelaySecs > 0)
+                logger.Verbose($"ApplyCommand(): rolling back {commandDelaySecs} to apply {cmd} to {bikeId}");
+
             float rollbackSecs = _rollbackTime(commandDelaySecs);
 
             if (!UpcomingGridPoint().Equals(nextPt))
@@ -134,31 +141,6 @@ namespace BeamBackend
             _updatePosition(rollbackSecs);
         }
 
-        // public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
-        // {
-        //     // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
-
-        //     speed = newSpeed;
-        //     heading = newHeading;
-
-        //     // project reported pos to now.
-        //     long lagMs = gameInst.CurGameTime - msgTime;
-        //     //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");
-        //     logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
-
-        //     newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
-        //     score = newScore; // TODO: this might be problematic
-
-        //     // Make sure the bike is on a grid line...
-        //     Vector2 ptPos = Ground.NearestGridPoint(newPos);
-        //     if (heading == Heading.kEast || heading == Heading.kWest)
-        //     {
-        //         newPos.y = ptPos.y;
-        //     } else {
-        //         newPos.x = ptPos.x;
-        //     }
-        //     position = newPos;
-        // }
 
         private void _updatePosition(float secs)
         {
@@ -196,7 +178,7 @@ namespace BeamBackend
             // call bike.update(rolledBackTime) to have effectively back-applied the command.
             // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
             // It returns the amount of time rolled back as a positive float.
-            if (speed == 0)
+            if (speed == 0 || secs <= 0)
                 return 0;
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
