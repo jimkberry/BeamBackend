@@ -150,13 +150,6 @@ namespace BeamBackend
                 float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
                 logger.Verbose($"OnCreateBike() projecting bike {ib.bikeId} forward {elapsedSecs} secs.");
                 ib.Loop(elapsedSecs); // project to NOW
-
-                // &&&& Don;t do this anymore
-                // foreach ( BikeCreateDataMsg.PlaceCreateData pData in msg.ownedPlaces)
-                // {
-                //     if (GameData.Ground.ClaimPlace(ib, pData.xIdx, pData.zIdx, pData.secsLeft) == null)
-                //         logger.Warn($"OnBikeCreateData() Claimplace() failed");
-                // }
             }
         }
 
@@ -238,9 +231,8 @@ namespace BeamBackend
 
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
-            List<Ground.Place> places = GameData.Ground.PlacesForBike(ib);
-            logger.Info($"PostBikeCreateData(): {places.Count} places for {ib.bikeId}");
-            apian.SendBikeCreateReq(ib, places, destId);
+            logger.Info($"PostBikeCreateData(): {ib.bikeId}");
+            apian.SendBikeCreateReq(ib, destId);
         }
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
@@ -345,7 +337,7 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( this.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
-            return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
+            return  new BaseBike(this, bikeId, peerId, name, t, ctrlType, pos, heading);
         }
 
         public bool _AddBike(IBike ib)

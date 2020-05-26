@@ -77,6 +77,7 @@ namespace BeamBackend
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PlayerJoinedEvt -= OnPlayerJoinedEvt;
             game.GroupJoinedEvt -= OnGroupJoinedEvt;
+            game.NewBikeEvt -= OnNewBikeEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -90,7 +91,7 @@ namespace BeamBackend
             Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
-                BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
+                BikeFactory.AiCtrl, pos, heading);
             game.PostBikeCreateData(ib);
             logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.
@@ -105,6 +106,7 @@ namespace BeamBackend
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
                 game.PlayerJoinedEvt += OnPlayerJoinedEvt;
+                game.NewBikeEvt += OnNewBikeEvt;
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // This is the REAL one
                 // BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // Just for quick tests of CreatorServer
                 core.AddGameInstance(game);
@@ -129,6 +131,17 @@ namespace BeamBackend
             _CurrentState = ModeState.Playing;
             localPlayerJoined = true;
             logger.Info("Player joined!!!");
+        }
+
+        public void OnNewBikeEvt(object sender, IBike newBike)
+        {
+            // If it's local we need to tell it to Go!
+            bool isLocal = newBike.peerId == core.LocalPeer.PeerId;
+            logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId} Sending GO! command");
+            if (isLocal)
+            {
+                game.PostBikeCommand(newBike, BikeCommand.kGo);
+            }
         }
 
     }

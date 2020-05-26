@@ -220,7 +220,7 @@ namespace BeamBackend
             Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
             IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
-                BikeFactory.AiCtrl, pos, heading, BaseBike.defaultSpeed);
+                BikeFactory.AiCtrl, pos, heading);
             game.PostBikeCreateData(ib);
             logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
             return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.

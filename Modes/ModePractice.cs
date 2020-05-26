@@ -64,6 +64,7 @@ namespace BeamBackend
 		public override object End() {
             core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PlayerJoinedEvt -= OnMemberJoinedGroupEvt;
+            game.NewBikeEvt -= OnNewBikeEvt;
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
@@ -76,7 +77,7 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
-            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading, BaseBike.defaultSpeed);
+            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading);
             game.PostBikeCreateData(bb);
             return bb.bikeId;
         }
@@ -108,6 +109,17 @@ namespace BeamBackend
             // will catch and deal with. Maybe it'll point a camera at the new bike or whatever.
         }
 
+        public void OnNewBikeEvt(object sender, IBike newBike)
+        {
+            // If it's local we need to tell it to Go!
+            bool isLocal = newBike.peerId == core.LocalPeer.PeerId;
+            logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId} Sending GO! command");
+            if (isLocal)
+            {
+                game.PostBikeCommand(newBike, BikeCommand.kGo);
+            }
+        }
+
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {
             bool isLocal = ga.peer.PeerId == core.LocalPeer.PeerId;
@@ -117,6 +129,7 @@ namespace BeamBackend
                 // Create gameInstance and associated Apian
                 game = new BeamGameInstance(core.frontend);
                 game.PlayerJoinedEvt += OnMemberJoinedGroupEvt;
+                game.NewBikeEvt += OnNewBikeEvt;
 
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
                 core.AddGameInstance(game);

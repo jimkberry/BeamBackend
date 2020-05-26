@@ -339,11 +339,11 @@ namespace BeamBackend
             ApianBikeCommandRequest req = new ApianBikeCommandRequest(ApianGroup?.GroupId, msg);
             SendRequestOrObservation(ApianGroup.GroupId, req);
         }
-        public  void SendBikeCreateReq(IBike ib, List<Ground.Place> ownedPlaces, string destId = null)
+        public  void SendBikeCreateReq(IBike ib, string destId = null)
         {
             Logger.Debug($"SendBikeCreateReq() - dest: {(destId??"bcast")}");
             // Broadcast this to send it to everyone
-            BikeCreateDataMsg msg = new BikeCreateDataMsg(ApianClock.CurrentTime, ib, ownedPlaces);
+            BikeCreateDataMsg msg = new BikeCreateDataMsg(ApianClock.CurrentTime, ib);
             ApianBikeCreateRequest req = new ApianBikeCreateRequest(ApianGroup?.GroupId, msg);
             SendRequestOrObservation(destId ?? ApianGroup.GroupId, req);
         }

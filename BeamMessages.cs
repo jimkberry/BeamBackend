@@ -108,12 +108,8 @@ namespace BeamBackend
         public float xPos;
         public float yPos;
         public Heading heading;
-        public TurnDir pendingTurn;
-        public float speed;
 
-        public List<PlaceCreateData> ownedPlaces;
-
-        public BikeCreateDataMsg(long ts, IBike ib, List<Ground.Place> places = null) : base(kBikeCreateData, ts)
+        public BikeCreateDataMsg(long ts, IBike ib) : base(kBikeCreateData, ts)
         {
             bikeId = ib.bikeId;
             peerId = ib.peerId;
@@ -124,12 +120,6 @@ namespace BeamBackend
             xPos = ib.position.x;
             yPos = ib.position.y;
             heading = ib.heading;
-            pendingTurn = ib.pendingTurn;
-            speed = ib.speed;
-            ownedPlaces = new List<PlaceCreateData>();
-            if (places != null)
-                foreach (Ground.Place p in places)
-                    ownedPlaces.Add(new PlaceCreateData(p));
         }
 
         public BikeCreateDataMsg() : base() {}
@@ -138,7 +128,7 @@ namespace BeamBackend
         {
             // Remote bikes always get control type: BikeFactory.RemoteCrtl
             return new BaseBike(gi, bikeId, peerId , name, team, peerId != gi.LocalPeerId ? BikeFactory.RemoteCtrl : ctrlType,
-                                new Vector2(xPos, yPos), heading, speed, pendingTurn);
+                                new Vector2(xPos, yPos), heading);
         }
     }
 

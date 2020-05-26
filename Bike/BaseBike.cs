@@ -28,7 +28,7 @@ namespace BeamBackend
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head, float _speed, TurnDir _pendingTurn=TurnDir.kUnset)
+        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head)
         {
             gameInst = gi;
             bikeId = _id;
@@ -36,9 +36,7 @@ namespace BeamBackend
             name = _name;
             team = _team;
             position = initialPos;
-            speed = _speed;
             heading = head;
-            pendingTurn = _pendingTurn;
             ctrlType = ctrl;
             score = kStartScore;
             logger = UniLogger.GetLogger("BaseBike");
@@ -56,8 +54,7 @@ namespace BeamBackend
                     position.y,
                     heading,
                     speed,
-                    score,
-                    pendingTurn
+                    score
                  });
         }
 
@@ -137,31 +134,31 @@ namespace BeamBackend
             _updatePosition(rollbackSecs);
         }
 
-        public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
-        {
-            // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
+        // public void ApplyUpdate(Vector2 newPos, float newSpeed, Heading newHeading, int newScore, long msgTime)
+        // {
+        //     // STOOOPID 2nd cut - just dump the data in there... no attempt at smoothing
 
-            speed = newSpeed;
-            heading = newHeading;
+        //     speed = newSpeed;
+        //     heading = newHeading;
 
-            // project reported pos to now.
-            long lagMs = gameInst.CurGameTime - msgTime;
-            //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");
-            logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
+        //     // project reported pos to now.
+        //     long lagMs = gameInst.CurGameTime - msgTime;
+        //     //logger.Info($"ApplyUpdate(): msgTime: {msgTime}");
+        //     logger.Debug($"ApplyUpdate(): lagMs: {lagMs}");
 
-            newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
-            score = newScore; // TODO: this might be problematic
+        //     newPos = newPos +  GameConstants.UnitOffset2ForHeading(heading) * (speed * lagMs / 1000.0f );
+        //     score = newScore; // TODO: this might be problematic
 
-            // Make sure the bike is on a grid line...
-            Vector2 ptPos = Ground.NearestGridPoint(newPos);
-            if (heading == Heading.kEast || heading == Heading.kWest)
-            {
-                newPos.y = ptPos.y;
-            } else {
-                newPos.x = ptPos.x;
-            }
-            position = newPos;
-        }
+        //     // Make sure the bike is on a grid line...
+        //     Vector2 ptPos = Ground.NearestGridPoint(newPos);
+        //     if (heading == Heading.kEast || heading == Heading.kWest)
+        //     {
+        //         newPos.y = ptPos.y;
+        //     } else {
+        //         newPos.x = ptPos.x;
+        //     }
+        //     position = newPos;
+        // }
 
         private void _updatePosition(float secs)
         {
@@ -199,6 +196,8 @@ namespace BeamBackend
             // call bike.update(rolledBackTime) to have effectively back-applied the command.
             // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
             // It returns the amount of time rolled back as a positive float.
+            if (speed == 0)
+                return 0;
             Vector2 upcomingPoint = UpcomingGridPoint();
             float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
             float timeSinceLastPoint = Mathf.Max(0,((Ground.gridSize * .8f) / speed) - timeToNextPoint); // Note QUITE all the way back
@@ -261,7 +260,7 @@ namespace BeamBackend
             // it's either the current closest point (if direction to it is the same as heading)
             // or is the closest point + gridSize*unitOffsetForHeading[curHead] if closest point is behind us
             Vector2 point = NearestGridPoint( pos);
-            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(head), point - pos) < 0)
+            if (Vector2.Dot(GameConstants.UnitOffset2ForHeading(head), point - pos) <= 0)
             {
                 point += GameConstants.UnitOffset2ForHeading(head) * Ground.gridSize;
             }
