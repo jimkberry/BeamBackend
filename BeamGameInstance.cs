@@ -58,6 +58,7 @@ namespace BeamBackend
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
+                [BeamMessage.kNewPlayer] = (msg) => OnNewPlayer(msg as NewPlayerMsg),
                 [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBike(msg as BikeCreateDataMsg),
                 [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurn(msg as BikeTurnMsg),
                 [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommand(msg as BikeCommandMsg),
