@@ -85,6 +85,7 @@ namespace BeamBackend
 
     public class ApianNewPlayerObservation : ApianObservation
     {
+        public override ApianClientMsg ClientMsg {get => newPlayerMsg;}
         public NewPlayerMsg newPlayerMsg;
         public ApianNewPlayerObservation(string gid, NewPlayerMsg _newPlayerMsg) : base(gid, _newPlayerMsg) {newPlayerMsg=_newPlayerMsg;}
         public ApianNewPlayerObservation() : base() {}
@@ -92,6 +93,7 @@ namespace BeamBackend
     }
     public class ApianNewPlayerCommand : ApianCommand
     {
+        public override ApianClientMsg ClientMsg {get => newPlayerMsg;}
         public NewPlayerMsg newPlayerMsg;
         public ApianNewPlayerCommand(long seqNum, string gid, NewPlayerMsg _newPlayerMsg) : base(seqNum, gid, _newPlayerMsg) {newPlayerMsg=_newPlayerMsg;}
         public ApianNewPlayerCommand() : base() {}
@@ -134,6 +136,7 @@ namespace BeamBackend
 
     public class ApianBikeCreateRequest : ApianRequest
     {
+        public override ApianClientMsg ClientMsg {get => bikeCreateDataMsg;}
         public BikeCreateDataMsg bikeCreateDataMsg;
         public ApianBikeCreateRequest(string gid, BikeCreateDataMsg _bikeCreateMsg) : base(gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateRequest() : base() {}
@@ -142,6 +145,7 @@ namespace BeamBackend
 
     public class ApianBikeCreateCommand : ApianCommand
     {
+        public override ApianClientMsg ClientMsg {get => bikeCreateDataMsg;}
         public BikeCreateDataMsg bikeCreateDataMsg;
         public ApianBikeCreateCommand(long seqNum, string gid, BikeCreateDataMsg _bikeCreateMsg) : base(seqNum, gid, _bikeCreateMsg) {bikeCreateDataMsg=_bikeCreateMsg;}
         public ApianBikeCreateCommand() : base() {}
@@ -173,6 +177,7 @@ namespace BeamBackend
 
     public class ApianBikeTurnRequest : ApianRequest
     {
+        public override ApianClientMsg ClientMsg {get => bikeTurnMsg;}
         public BikeTurnMsg bikeTurnMsg;
         public ApianBikeTurnRequest(string gid, BikeTurnMsg _bikeTurnMsg) : base(gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnRequest() : base() {}
@@ -181,6 +186,7 @@ namespace BeamBackend
     }
     public class ApianBikeTurnCommand : ApianCommand
     {
+        public override ApianClientMsg ClientMsg {get => bikeTurnMsg;}
         public BikeTurnMsg bikeTurnMsg;
         public ApianBikeTurnCommand(long seqNum, string gid, BikeTurnMsg _bikeTurnMsg) : base(seqNum, gid, _bikeTurnMsg) {bikeTurnMsg=_bikeTurnMsg;}
         public ApianBikeTurnCommand() : base() {}
@@ -207,6 +213,7 @@ namespace BeamBackend
 
     public class ApianBikeCommandRequest : ApianRequest
     {
+        public override ApianClientMsg ClientMsg {get => bikeCommandMsg;}
         public BikeCommandMsg bikeCommandMsg;
         public ApianBikeCommandRequest(string gid, BikeCommandMsg _bikeCommandMsg) : base(gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandRequest() : base() {}
@@ -215,6 +222,7 @@ namespace BeamBackend
 
     public class ApianBikeCommandCommand : ApianCommand  // Gee, no - that's not stupid-sounding at all]
     {
+        public override ApianClientMsg ClientMsg {get => bikeCommandMsg;}
         public BikeCommandMsg bikeCommandMsg;
         public ApianBikeCommandCommand(long seqNum, string gid, BikeCommandMsg _bikeCommandMsg) : base(seqNum, gid, _bikeCommandMsg) {bikeCommandMsg=_bikeCommandMsg;}
         public ApianBikeCommandCommand() : base() {}
@@ -238,6 +246,7 @@ namespace BeamBackend
 
     public class ApianPlaceClaimObservation : ApianObservation
     {
+        public override ApianClientMsg ClientMsg {get => placeClaimMsg;}
         public PlaceClaimMsg placeClaimMsg;
         public ApianPlaceClaimObservation(string gid, PlaceClaimMsg _placeClaimMsg) : base(gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimObservation() : base() {}
@@ -246,6 +255,7 @@ namespace BeamBackend
 
     public class ApianPlaceClaimCommand : ApianCommand
     {
+        public override ApianClientMsg ClientMsg {get => placeClaimMsg;}
         public PlaceClaimMsg placeClaimMsg;
         public ApianPlaceClaimCommand(long seqNum, string gid, PlaceClaimMsg _placeClaimMsg) : base(seqNum, gid, _placeClaimMsg) {placeClaimMsg=_placeClaimMsg;}
         public ApianPlaceClaimCommand() : base() {}
@@ -269,6 +279,7 @@ namespace BeamBackend
 
     public class ApianPlaceHitObservation : ApianObservation
     {
+        public override ApianClientMsg ClientMsg {get => placeHitMsg;}
         public PlaceHitMsg placeHitMsg;
         public ApianPlaceHitObservation(string gid, PlaceHitMsg _placeHitMsg) : base(gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitObservation() : base() {}
@@ -276,6 +287,7 @@ namespace BeamBackend
     }
     public class ApianPlaceHitCommand : ApianCommand
     {
+        public override ApianClientMsg ClientMsg {get => placeHitMsg;}
         public PlaceHitMsg placeHitMsg;
         public ApianPlaceHitCommand(long seqNum, string gid, PlaceHitMsg _placeHitMsg) : base(seqNum, gid, _placeHitMsg) {placeHitMsg=_placeHitMsg;}
         public ApianPlaceHitCommand() : base() {}
