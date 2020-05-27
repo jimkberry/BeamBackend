@@ -13,5 +13,17 @@ namespace BeamBackend
         {
             ApianGroup = new CreatorServerGroupManager(this);
         }
+
+        protected override void SendRequestOrObservation(string destCh, ApianMessage msg)
+        {
+            if ((msg.MsgType == ApianMessage.CliObservation)
+                && (ApianGroup?.GroupCreatorId != GameNet.LocalP2pId()))
+            {
+                Logger.Debug($"SendRequestOrObservation() We are not server, so don't send observations.");
+                return;
+            }
+            base.SendRequestOrObservation(destCh, msg); // let this filter it too
+        }
+
     }
 }
