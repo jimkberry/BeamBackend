@@ -14,6 +14,8 @@ namespace BeamBackend
 {
    public interface IBeamApianClient : IApianClientApp
     {
+        void OnApianCommand(ApianCommand cmd);
+
         // What Apian expects to call in the app instance
         void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
         void OnNewPlayer(NewPlayerMsg msg);
@@ -39,8 +41,7 @@ namespace BeamBackend
             kLive
         }
 
-        protected Dictionary<string, Action<ApianCommand,string, string>> CommandHandlers;
-        //protected Dictionary<string, Action<ApianCommand,string, string, SyncOrLiveCmd>> CommandHandlers;
+        //protected Dictionary<string, Action<ApianCommand,string, string>> CommandHandlers;
         // Args are Command, fromId, groupChan, SyncOrLive ( set ApianClockVal before applying?)
 
         public Dictionary<string, BeamApianPeer> apianPeers;
@@ -67,14 +68,14 @@ namespace BeamBackend
             ApMsgHandlers[ApianMessage.GroupMessage] = (f,t,m,d) => this.OnApianGroupMessage(f,t,m,d);
             ApMsgHandlers[ApianMessage.ApianClockOffset] = (f,t,m,d) => this.OnApianClockOffsetMsg(f,t,m,d);
 
-            CommandHandlers = new Dictionary<string, Action<ApianCommand,string, string>>() {
-                {BeamMessage.kNewPlayer, (m,f,g) => OnNewPlayerCmd(m as ApianNewPlayerCommand,f,g) },
-                {BeamMessage.kBikeCommandMsg, (m,f,g) => OnBikeCommandCmd(m as ApianBikeCommandCommand,f,g) },
-                {BeamMessage.kBikeTurnMsg, (m,f,g) => OnBikeTurnCmd(m as ApianBikeTurnCommand,f,g) },
-                {BeamMessage.kBikeCreateData, (m,f,g) => OnBikeCreateCmd(m as ApianBikeCreateCommand, f, g) },
-                {BeamMessage.kPlaceClaimMsg, (m,f,g) =>  OnPlaceClaimCmd(m as ApianPlaceClaimCommand,f,g) },
-                {BeamMessage.kPlaceHitMsg, (m,f,g) => OnPlaceHitCmd(m as ApianPlaceHitCommand,f,g) },
-            };
+            // CommandHandlers = new Dictionary<string, Action<ApianCommand,string, string>>() {
+            //     {BeamMessage.kNewPlayer, (m,f,g) => OnNewPlayerCmd(m as ApianNewPlayerCommand,f,g) },
+            //     {BeamMessage.kBikeCommandMsg, (m,f,g) => OnBikeCommandCmd(m as ApianBikeCommandCommand,f,g) },
+            //     {BeamMessage.kBikeTurnMsg, (m,f,g) => OnBikeTurnCmd(m as ApianBikeTurnCommand,f,g) },
+            //     {BeamMessage.kBikeCreateData, (m,f,g) => OnBikeCreateCmd(m as ApianBikeCreateCommand, f, g) },
+            //     {BeamMessage.kPlaceClaimMsg, (m,f,g) =>  OnPlaceClaimCmd(m as ApianPlaceClaimCommand,f,g) },
+            //     {BeamMessage.kPlaceHitMsg, (m,f,g) => OnPlaceHitCmd(m as ApianPlaceHitCommand,f,g) },
+            // };
 
         }
 
@@ -172,6 +173,7 @@ namespace BeamBackend
                 }
                 break;
             case ApianGroupMember.Status.Active:
+                // TODO: NOOO!!!! Needs OBS/Cmd
                 if (member.CurStatus == ApianGroupMember.Status.Removed)
                     (Client as IBeamApianClient).OnPlayerLeft(member.PeerId); // TODO: needs an ApianCommand
                 break;
@@ -181,11 +183,11 @@ namespace BeamBackend
 
         private void _AdvanceStateTo(long newApianTime)
         {
-            if (FakeSyncApianTime > newApianTime)
-                return; // never move the clock backwards
-
             if (ApianGroup?.LocalMember?.CurStatus == ApianGroupMember.Status.Active)
                 return; // If peer is active and using the real clock and advancing its own state, dont do anything.
+
+            if (FakeSyncApianTime > newApianTime)
+                return; // never move the clock backwards
 
             // TODO: come up with better way to set nominal frame advance time
             long msPerLoop = 40; // 40 ms == 25 fps
@@ -206,9 +208,10 @@ namespace BeamBackend
 
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
-            Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
-            _AdvanceStateTo((cmd as ApianWrappedClientMessage).CliMsgTimeStamp);
-            CommandHandlers[cmd.CliMsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
+            Logger.Verbose($"BeamApian.ApplyApianCommand() Group: {cmd.DestGroupId}, Applying STASHED Seq#: {cmd.SequenceNum} Type: {cmd.ClientMsg.MsgType} TS: {cmd.ClientMsg.TimeStamp}");
+            _AdvanceStateTo((cmd as ApianWrappedClientMessage).ClientMsg.TimeStamp);
+            //CommandHandlers[cmd.ClientMsg.MsgType](cmd, ApianGroup.GroupCreatorId, GroupId);
+            client.OnApianCommand(cmd);
         }
 
         // Incoming ApianMessage handlers
@@ -245,65 +248,70 @@ namespace BeamBackend
                 Logger.Warn($"BeamApian.OnApianCommand(): Local peer not a group member yet");
                 break;
             case ApianCommandStatus.kShouldApply:
-                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
-                CommandHandlers[cmd.CliMsgType](cmd, fromId, toId);
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Applying Seq#: {cmd.SequenceNum} Type: {cmd.ClientMsg.MsgType}");
+                //CommandHandlers[cmd.ClientMsg.MsgType](cmd, fromId, toId);
+                client.OnApianCommand(cmd);
                 break;
             case ApianCommandStatus.kStashedInQueued:
-                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Stashing Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                Logger.Verbose($"BeamApian.OnApianCommand() Group: {cmd.DestGroupId}, Stashing Seq#: {cmd.SequenceNum} Type: {cmd.ClientMsg.MsgType}");
                 break;
             case ApianCommandStatus.kAlreadyReceived:
-                Logger.Error($"BeamApian.OnApianCommand(): Command Already Received: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                Logger.Error($"BeamApian.OnApianCommand(): Command Already Received: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.ClientMsg.MsgType}");
                 break;
             default:
-                Logger.Error($"BeamApian.OnApianCommand(): BAD COMMAND SOURCE: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.CliMsgType}");
+                Logger.Error($"BeamApian.OnApianCommand(): BAD COMMAND SOURCE: {fromId} Group: {cmd.DestGroupId}, Seq#: {cmd.SequenceNum} Type: {cmd.ClientMsg.MsgType}");
                 break;
 
             }
         }
 
         // Beam command handlers
-        public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)
-        {
-            client.OnNewPlayer(cmd.newPlayerMsg);
-        }
+        // public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)
+        // {
+        //     client.OnNewPlayer(cmd.newPlayerMsg);
+        // }
 
-        public void OnBikeCommandCmd(ApianBikeCommandCommand cmd, string srcId, string groupChan)
-        {
-            client.OnBikeCommand(cmd.bikeCommandMsg);
-        }
+        // public void OnBikeCommandCmd(ApianBikeCommandCommand cmd, string srcId, string groupChan)
+        // {
+        //     client.OnBikeCommand(cmd.bikeCommandMsg);
+        // }
 
-        public void OnBikeTurnCmd(ApianBikeTurnCommand cmd, string srcId, string groupChan)
-        {
-            Logger.Debug($"OnBikeTurnReq() - bike: {cmd.bikeTurnMsg.bikeId}");
-            client.OnBikeTurn(cmd.bikeTurnMsg);
-        }
+        // public void OnBikeTurnCmd(ApianBikeTurnCommand cmd, string srcId, string groupChan)
+        // {
+        //     Logger.Debug($"OnBikeTurnReq() - bike: {cmd.bikeTurnMsg.bikeId}");
+        //     client.OnBikeTurn(cmd.bikeTurnMsg);
+        // }
 
-        public void OnBikeCreateCmd(ApianBikeCreateCommand cmd, string srcId, string groupChan)
-        {
-            client.OnCreateBike(cmd.bikeCreateDataMsg);
-        }
+        // public void OnBikeCreateCmd(ApianBikeCreateCommand cmd, string srcId, string groupChan)
+        // {
+        //     client.OnCreateBike(cmd.bikeCreateDataMsg);
+        // }
 
-        public void OnPlaceClaimCmd(ApianPlaceClaimCommand cmd, string srcId, string groupChan)
-        {
-            client.OnPlaceClaim(cmd.placeClaimMsg);
-        }
+        // public void OnPlaceClaimCmd(ApianPlaceClaimCommand cmd, string srcId, string groupChan)
+        // {
+        //     client.OnPlaceClaim(cmd.placeClaimMsg);
+        // }
 
-        public void OnPlaceHitCmd(ApianPlaceHitCommand cmd, string srcId, string groupChan)
-        {
-            Logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");
-            client.OnPlaceHit(cmd.placeHitMsg);
-        }
+        // public void OnPlaceHitCmd(ApianPlaceHitCommand cmd, string srcId, string groupChan)
+        // {
+        //     Logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");
+        //     client.OnPlaceHit(cmd.placeHitMsg);
+        // }
 
         // - - - - -
 
-        protected void SendRequestOrObservation(string destCh, ApianMessage msg)
+        protected virtual void SendRequestOrObservation(string destCh, ApianMessage msg)
         {
             // This func is just to make sure these only get sent out if we are ACTIVE.
             // It wouldn't happen anyway, since the groupmgr would not make it into a command
             // after seeing we aren;t active - but there's a lot of message traffic between the 2
+
+            // Also - it should get overridden in any derived Apianclass which is able to
+            // be even more selctive (in a server-based group, for isntance, if you're not the
+            // server then you should just return)
             if (ApianGroup.LocalMember?.CurStatus != ApianGroupMember.Status.Active)
             {
-                Logger.Warn($"SendRequestOrObservation() - outgoing message IGNORED: We are not ACTIVE.");
+                Logger.Info($"SendRequestOrObservation() - outgoing message not sent: We are not ACTIVE.");
                 return;
             }
             BeamGameNet.SendApianMessage(destCh, msg);

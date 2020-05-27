@@ -114,18 +114,17 @@ namespace BeamBackend
         {
             apian = ap as BeamApian;
         }
-        // public string LocalPeerData()
-        // {
-        //     if (LocalPeer == null)
-        //         logger.Warn("LocalPeerData() - no local peer");
-        //     return  JsonConvert.SerializeObject( LocalPeer);
-        // }
 
 
         public void OnGroupJoined(string groupId)
         {
             logger.Info($"OnGroupJoined({groupId}) - local peer joined");
             GroupJoinedEvt?.Invoke(this, groupId);
+        }
+
+        public void OnApianCommand(ApianCommand cmd)
+        {
+            commandHandlers[cmd.ClientMsg.MsgType](cmd.ClientMsg as BeamMessage);
         }
 
         public void OnNewPlayer(NewPlayerMsg msg)
@@ -135,7 +134,7 @@ namespace BeamBackend
             _AddPlayer(newPlayer);
         }
 
-        public void OnPlayerLeft(string p2pId)
+        public void OnPlayerLeft(string p2pId) // TODO: needs command!!!
         {
             logger.Info($"OnPlayerLeft({p2pId})");
             _RemovePlayer(p2pId);
