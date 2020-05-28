@@ -24,6 +24,7 @@ namespace BeamBackend
 
         public event EventHandler<Ground.Place> PlaceFreedEvt;
         public event EventHandler<Ground.Place> SetupPlaceMarkerEvt;
+        public event EventHandler<Ground.Place> PlaceTimeoutEvt;
         public event EventHandler PlacesClearedEvt;
 
         public class Place : IApianStateData
@@ -61,7 +62,6 @@ namespace BeamBackend
         protected List<Place> activePlaces = null;
         protected Stack<Place> freePlaces = null; // re-use released/expired ones
 
-        //protected IBeamFrontend _feProxy = null;
         public Ground(IBeamFrontend fep)
         {
            // _feProxy = fep;
@@ -82,21 +82,31 @@ namespace BeamBackend
         {
             // Assume that if it's in the active list it's not nulll
             // If secsLeft runs out then remove it.
-            int removed = activePlaces.RemoveAll( p => {
-                    if (p.expirationTimeMs <= nowMs)
-                        RecyclePlace(p);
-                    return p.expirationTimeMs <= nowMs; // remove from active list
-            });
-            //if (removed > 0)
-            //    Debug.Log(string.Format("--- Removed {0} places --- {1} still active --- {2} free -------------------", removed, activePlaces.Count, freePlaces.Count));
+            List<Place> timedOutPlaces = new List<Place>();
+            // Be very, very careful not to do something that might recusively delete a lest member while iterating over the list
+            foreach (Place p in activePlaces)
+                if (p.expirationTimeMs <= nowMs)
+                    timedOutPlaces.Add(p);
+
+            foreach (Place p  in timedOutPlaces )
+                PlaceTimeoutEvt?.Invoke(this,p); // causes GameInst to post a PlaceRemovedMsg
+
         }
 
-        protected void RecyclePlace(Place p){
+        public void RemoveActivePlace(Place p)
+        {
+            activePlaces.Remove(p);
+            RecyclePlaceObject(p);
+        }
 
-            PlaceFreedEvt?.Invoke(this,p);
-            p.bike = null;
-            freePlaces.Push(p); // add to free list
-            placeArray[p.xIdx, p.zIdx] = null;
+        public void RecyclePlaceObject(Place p){
+            if (p != null)
+            {
+                PlaceFreedEvt?.Invoke(this,p);
+                p.bike = null;
+                freePlaces.Push(p); // add to free list
+                placeArray[p.xIdx, p.zIdx] = null;
+            }
         }
 
         protected void InitPlaces()
@@ -114,14 +124,12 @@ namespace BeamBackend
 
         public void RemovePlacesForBike(IBike bike)
         {
-            activePlaces.RemoveAll( p => {
-                    if (p.bike == bike)
-                        RecyclePlace(p);
-                    return p.bike == null; // remove from active list
-            });
+            List<Ground.Place> toGo = PlacesForBike(bike);
+            foreach (Place p in toGo)
+            {
+                RemoveActivePlace(p);
+            }
         }
-
-
         public List<Ground.Place> PlacesForBike(IBike ib)
         {
             return activePlaces.Where(p => p.bike.bikeId == ib.bikeId).ToList();
@@ -138,14 +146,6 @@ namespace BeamBackend
             return IndicesAreOnMap(xIdx,zIdx) ? placeArray[xIdx,zIdx] : null;
         }
 
-        //public Place ClaimPlace(IBike bike,  int xIdx, int zIdx)
-        //{
-        //     // returns place ref if successful. null if already claimed or off map
-        //     Vector2 gridPos = NearestGridPoint(pos);
-        //     int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
-        //     int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize );
-        //     return ClaimPlace(bike, xIdx, zIdx, secsHeld); // This is always claiming a new place
-        // }
         public Place ClaimPlace(IBike bike, int xIdx, int zIdx, long expireTimeMs)
         {
             Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;

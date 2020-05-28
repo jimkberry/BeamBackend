@@ -333,6 +333,14 @@ namespace BeamBackend
             SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
+        public void SendPlaceRemovedObs(int xIdx, int zIdx)
+        {
+            Logger.Debug($"SendPlaceRemovedObs()");
+            PlaceRemovedMsg msg = new PlaceRemovedMsg(ApianClock.CurrentTime, xIdx, zIdx);
+            ApianPlaceRemovedObservation obs = new ApianPlaceRemovedObservation(ApianGroup?.GroupId, msg);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
+        }
+
         public  void SendBikeTurnReq(IBike bike, TurnDir dir, Vector2 nextPt)
         {
             Logger.Debug($"SendBikeTurnReq) Bike: {bike.bikeId}");

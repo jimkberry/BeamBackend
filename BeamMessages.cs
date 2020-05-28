@@ -15,6 +15,7 @@ namespace BeamBackend
         public const string kBikeCommandMsg = "Bcmd";
         public const string kPlaceClaimMsg = "Bplc";
         public const string kPlaceHitMsg = "Bplh";
+        public const string kPlaceRemovedMsg = "Bplr";
 
         // Data classes
         public class BikeState
@@ -293,6 +294,36 @@ namespace BeamBackend
         public ApianPlaceHitCommand() : base() {}
     }
 
+    public class PlaceRemovedMsg : BeamMessage
+    {
+        public int xIdx;
+        public int zIdx;
+        public PlaceRemovedMsg() : base() {}
+        public PlaceRemovedMsg(long ts, int _xIdx, int _zIdx) : base(kPlaceRemovedMsg, ts)
+        {
+            xIdx=_xIdx;
+            zIdx=_zIdx;
+        }
+    }
+
+    public class ApianPlaceRemovedObservation : ApianObservation
+    {
+        public override ApianClientMsg ClientMsg {get => placeRemovedMsg;}
+        public PlaceRemovedMsg placeRemovedMsg;
+        public ApianPlaceRemovedObservation(string gid, PlaceRemovedMsg _placeRemovedMsg) : base(gid, _placeRemovedMsg) {placeRemovedMsg=_placeRemovedMsg;}
+        public ApianPlaceRemovedObservation() : base() {}
+        public override ApianCommand ToCommand(long seqNum) => new ApianPlaceRemovedCommand(seqNum, DestGroupId, placeRemovedMsg);
+    }
+    public class ApianPlaceRemovedCommand : ApianCommand
+    {
+        public override ApianClientMsg ClientMsg {get => placeRemovedMsg;}
+        public PlaceRemovedMsg placeRemovedMsg;
+        public ApianPlaceRemovedCommand(long seqNum, string gid, PlaceRemovedMsg _placeRemovedMsg) : base(seqNum, gid, _placeRemovedMsg) {placeRemovedMsg=_placeRemovedMsg;}
+        public ApianPlaceRemovedCommand() : base() {}
+    }
+
+
+
     static public class BeamApianMessageDeserializer
     {
         // TODO: Come up with a sane way of desrializing messages
@@ -305,6 +336,7 @@ namespace BeamBackend
             {ApianMessage.CliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },
+            {ApianMessage.CliObservation+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedObservation>(s) },
 
             {ApianMessage.CliCommand+BeamMessage.kNewPlayer, (s) => JsonConvert.DeserializeObject<ApianNewPlayerCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnCommand>(s) },
@@ -312,6 +344,8 @@ namespace BeamBackend
             {ApianMessage.CliCommand+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitCommand>(s) },
+            {ApianMessage.CliCommand+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedCommand>(s) },
+
         };
 
         public static ApianMessage FromJSON(string msgType, string json)

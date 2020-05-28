@@ -16,7 +16,7 @@ namespace BeamBackend
 
         public event EventHandler<string> GroupJoinedEvt;
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
-        public event EventHandler<PLyerLeftArgs> PlayerLeftEvt;
+        public event EventHandler<PlayerLeftArgs> PlayerLeftEvt;
 
         public BeamGameData GameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
@@ -55,6 +55,7 @@ namespace BeamBackend
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
             GameData = new BeamGameData(frontend);
+            GameData.Ground.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
@@ -64,6 +65,7 @@ namespace BeamBackend
                 [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommand(msg as BikeCommandMsg),
                 [BeamMessage.kPlaceClaimMsg] = (msg) => this.OnPlaceClaim(msg as PlaceClaimMsg),
                 [BeamMessage.kPlaceHitMsg] = (msg) => this.OnPlaceHit(msg as PlaceHitMsg),
+                [BeamMessage.kPlaceRemovedMsg] = (msg) => this.OnPlaceRemoved(msg as PlaceRemovedMsg),
             };
         }
 
@@ -210,6 +212,12 @@ namespace BeamBackend
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
         }
 
+        public void OnPlaceRemoved(PlaceRemovedMsg msg)
+        {
+            Ground.Place p = GameData.Ground.GetPlace(msg.xIdx, msg.zIdx);
+            logger.Verbose($"OnPlaceRemoved() ({p?.xIdx},{p?.zIdx})");
+            GameData.Ground.RemoveActivePlace(p);
+        }
 
         //
         // IBeamBackend (requests from the frontend)
@@ -315,7 +323,7 @@ namespace BeamBackend
             if  (!GameData.Players.ContainsKey(p2pId))
                 return false;
 
-            PlayerLeftEvt?.Invoke(this, new PLyerLeftArgs(CurrentGameId, p2pId));
+            PlayerLeftEvt?.Invoke(this, new PlayerLeftArgs(CurrentGameId, p2pId));
 
             foreach (IBike ib in GameData.LocalBikes(p2pId))
                 _RemoveBike(ib, true); // Blow em up just for yuks.
@@ -367,6 +375,11 @@ namespace BeamBackend
         }
 
        // Ground-related
+        public void OnPlaceTimeoutEvt(object sender, Ground.Place p)
+        {
+            apian.SendPlaceRemovedObs(p.xIdx, p.zIdx);
+        }
+
         public void ClearPlaces()
         {
             GameData.Ground.ClearPlaces(); // ground notifies FE.
