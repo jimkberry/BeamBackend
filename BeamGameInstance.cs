@@ -60,6 +60,7 @@ namespace BeamBackend
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
                 [BeamMessage.kNewPlayer] = (msg) => OnNewPlayer(msg as NewPlayerMsg),
+                [BeamMessage.kPlayerLeft] = (msg) => OnPlayerLeft(msg as PlayerLeftMsg),
                 [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBike(msg as BikeCreateDataMsg),
                 [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurn(msg as BikeTurnMsg),
                 [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommand(msg as BikeCommandMsg),
@@ -136,10 +137,10 @@ namespace BeamBackend
             _AddPlayer(newPlayer);
         }
 
-        public void OnPlayerLeft(string p2pId) // TODO: needs command!!!
+        public void OnPlayerLeft(PlayerLeftMsg msg)
         {
-            logger.Info($"OnPlayerLeft({p2pId})");
-            _RemovePlayer(p2pId);
+            logger.Info($"OnPlayerLeft({msg.peerId})");
+            _RemovePlayer(msg.peerId);
         }
 
         public void OnCreateBike(BikeCreateDataMsg msg)

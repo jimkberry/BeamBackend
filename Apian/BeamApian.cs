@@ -19,7 +19,7 @@ namespace BeamBackend
         // What Apian expects to call in the app instance
         void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
         void OnNewPlayer(NewPlayerMsg msg);
-        void OnPlayerLeft(string peerId);
+        void OnPlayerLeft(PlayerLeftMsg msg);
         void OnCreateBike(BikeCreateDataMsg msg);
         void OnPlaceHit(PlaceHitMsg msg);
         void OnPlaceClaim(PlaceClaimMsg msg); // delay since the claim was originally made
@@ -173,9 +173,8 @@ namespace BeamBackend
                 }
                 break;
             case ApianGroupMember.Status.Active:
-                // TODO: NOOO!!!! Needs OBS/Cmd
                 if (member.CurStatus == ApianGroupMember.Status.Removed)
-                    (Client as IBeamApianClient).OnPlayerLeft(member.PeerId); // TODO: needs an ApianCommand
+                    SendPlayerLeftObs(member.PeerId);
                 break;
             }
         }
@@ -320,8 +319,16 @@ namespace BeamBackend
         public void SendNewPlayerObs(BeamPlayer newPlayer)
         {
             Logger.Debug($"SendPlaceHitObs()");
-            NewPlayerMsg msg = new NewPlayerMsg( newPlayer);
+            NewPlayerMsg msg = new NewPlayerMsg(ApianClock.CurrentTime, newPlayer);
             ApianNewPlayerObservation obs = new ApianNewPlayerObservation(ApianGroup?.GroupId, msg);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
+        }
+
+        public void SendPlayerLeftObs(string peerId)
+        {
+            Logger.Debug($"SendPlayerLeftObs()");
+            PlayerLeftMsg msg = new PlayerLeftMsg(ApianClock.CurrentTime, peerId);
+            ApianPlayerLeftObservation obs = new ApianPlayerLeftObservation(ApianGroup?.GroupId, msg);
             SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 

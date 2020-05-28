@@ -8,7 +8,8 @@ namespace BeamBackend
 {
     public class BeamMessage : ApianClientMsg
     {
-        public const string kNewPlayer = "Bnpl";
+        public const string kNewPlayer = "Bpln";
+        public const string kPlayerLeft = "Bpll";
         public const string kBikeCreateData = "Bbcd";
         public const string kBikeDataQuery = "Bbdq"; // TODO: check if still exists/used
         public const string kBikeTurnMsg = "Btrn";
@@ -76,14 +77,13 @@ namespace BeamBackend
     public class NewPlayerMsg : BeamMessage
     {
         public BeamPlayer newPlayer;
-        public NewPlayerMsg(BeamPlayer _newPlayer) : base(kNewPlayer, 0) => newPlayer = _newPlayer;
+        public NewPlayerMsg(long ts, BeamPlayer _newPlayer) : base(kNewPlayer, ts) => newPlayer = _newPlayer;
         public NewPlayerMsg() : base() {}
     }
 
     // BeamApian sees a GroupMember change to active and creates an "observation" and send it to the
     // GroupManager (the GroupManager doesn;t know what a BeamPlayer is, or what the criteria for a new one is - but it
     // DOES know whether or not it should send out a submitted observation as a Command)
-
     public class ApianNewPlayerObservation : ApianObservation
     {
         public override ApianClientMsg ClientMsg {get => newPlayerMsg;}
@@ -99,6 +99,31 @@ namespace BeamBackend
         public ApianNewPlayerCommand(long seqNum, string gid, NewPlayerMsg _newPlayerMsg) : base(seqNum, gid, _newPlayerMsg) {newPlayerMsg=_newPlayerMsg;}
         public ApianNewPlayerCommand() : base() {}
     }
+
+    public class PlayerLeftMsg : BeamMessage
+    {
+        public string peerId;
+        public PlayerLeftMsg(long ts, string _peerId) : base(kPlayerLeft, ts) => peerId = _peerId;
+        public PlayerLeftMsg() : base() {}
+    }
+
+    public class ApianPlayerLeftObservation : ApianObservation
+    {
+        public override ApianClientMsg ClientMsg {get => playerLeftMsg;}
+        public PlayerLeftMsg playerLeftMsg;
+        public ApianPlayerLeftObservation(string gid, PlayerLeftMsg _playerLeftMsg) : base(gid, _playerLeftMsg) {playerLeftMsg=_playerLeftMsg;}
+        public ApianPlayerLeftObservation() : base() {}
+        public override ApianCommand ToCommand(long seqNum) => new ApianPlayerLeftCommand(seqNum, DestGroupId, playerLeftMsg);
+    }
+    public class ApianPlayerLeftCommand : ApianCommand
+    {
+        public override ApianClientMsg ClientMsg {get => playerLeftMsg;}
+        public PlayerLeftMsg playerLeftMsg;
+        public ApianPlayerLeftCommand(long seqNum, string gid, PlayerLeftMsg _playerLeftMsg) : base(seqNum, gid, _playerLeftMsg) {playerLeftMsg=_playerLeftMsg;}
+        public ApianPlayerLeftCommand() : base() {}
+    }
+
+
 
     public class BikeCreateDataMsg : BeamMessage
     {
@@ -331,6 +356,7 @@ namespace BeamBackend
         public static Dictionary<string, Func<string, ApianMessage>> beamDeserializers = new  Dictionary<string, Func<string, ApianMessage>>()
         {
             {ApianMessage.CliObservation+BeamMessage.kNewPlayer, (s) => JsonConvert.DeserializeObject<ApianNewPlayerObservation>(s) },
+            {ApianMessage.CliObservation+BeamMessage.kPlayerLeft, (s) => JsonConvert.DeserializeObject<ApianPlayerLeftObservation>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },
@@ -339,6 +365,7 @@ namespace BeamBackend
             {ApianMessage.CliObservation+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedObservation>(s) },
 
             {ApianMessage.CliCommand+BeamMessage.kNewPlayer, (s) => JsonConvert.DeserializeObject<ApianNewPlayerCommand>(s) },
+            {ApianMessage.CliCommand+BeamMessage.kPlayerLeft, (s) => JsonConvert.DeserializeObject<ApianPlayerLeftCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateCommand>(s) },
