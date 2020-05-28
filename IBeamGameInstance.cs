@@ -13,10 +13,10 @@ namespace BeamBackend
         public BeamPlayer player;
         public PlayerJoinedArgs(string g, BeamPlayer p) {gameChannel=g; player=p;}
     }
-    public struct PLyerLeftArgs {
+    public struct PlayerLeftArgs {
         public string gameChannel;
         public string p2pId;
-        public PLyerLeftArgs(string g, string p) {gameChannel=g; p2pId=p;}
+        public PlayerLeftArgs(string g, string p) {gameChannel=g; p2pId=p;}
     }
 
     public struct BikeRemovedData {
