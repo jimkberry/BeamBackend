@@ -79,12 +79,14 @@ namespace BeamBackend
         public int aiBikeCount; // in addition to localPLayerBike, spawn this many AIs (and respawn to keep the number up)
         public bool regenerateAiBikes; // create new ones when old ones get blown up
 
-        public Dictionary<string, string> debugLevels;
+        public string defaultLogLevel;
+
+        public Dictionary<string, string> logLevels;
         public Dictionary<string, string> tempSettings; // dict of cli-set, non-peristent values
 
         public BeamUserSettings()
         {
-            debugLevels = new Dictionary<string, string>();
+            logLevels = new Dictionary<string, string>();
             tempSettings = new Dictionary<string, string>();
         }
 
@@ -100,7 +102,8 @@ namespace BeamBackend
             localPlayerCtrlType = source.localPlayerCtrlType;
             aiBikeCount = source.aiBikeCount;
             regenerateAiBikes = source.regenerateAiBikes;
-            debugLevels = source.debugLevels ?? new Dictionary<string, string>();
+            defaultLogLevel = source.defaultLogLevel;
+            logLevels = source.logLevels ?? new Dictionary<string, string>();
             tempSettings = source.tempSettings ?? new Dictionary<string, string>();
         }
 
@@ -117,7 +120,8 @@ namespace BeamBackend
                 localPlayerCtrlType = BikeFactory.AiCtrl,
                 aiBikeCount = 2,
                 regenerateAiBikes = false,
-                debugLevels = new Dictionary<string, string>() {
+                defaultLogLevel = "Warn",
+                logLevels = new Dictionary<string, string>() {
                     {"UserSettings", UniLogger.LevelNames[UniLogger.Level.Info]},
                     {"P2pNet", UniLogger.LevelNames[UniLogger.Level.Warn]},
                     {"GameNet", UniLogger.LevelNames[UniLogger.Level.Warn]},
