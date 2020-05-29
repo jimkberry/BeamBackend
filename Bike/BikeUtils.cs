@@ -18,10 +18,10 @@ namespace BeamBackend
                 point += GameConstants.UnitOffset2ForHeading(curHead) * Ground.gridSize;
             }
             return point;
-        }        
+        }
 
 
-        public static int ScoreForPoint(Ground g, Vector2 point, Ground.Place place)
+        public static int ScoreForPoint(Ground g, Vector2 point, BeamPlace place)
         {
             return g.PointIsOnMap(point) ? (place == null ? 5 : 1) : 0; // 5 pts for a good place, 1 for a claimed one, zero for off-map
         }
@@ -29,7 +29,7 @@ namespace BeamBackend
         public static List<Vector2> PossiblePointsForPointAndHeading(Vector2 curPtPos, Heading curHead)
         {
             // returns a list of grid positions where you could go next if you are headed for one with the given heading
-            // The entries correspond to turn directions (none, left, right) 
+            // The entries correspond to turn directions (none, left, right)
             // TODO use something like map() ?
             return new List<Vector2> {
                 curPtPos + GameConstants.UnitOffset2ForHeading(GameConstants.NewHeadForTurn(curHead, TurnDir.kStraight))*Ground.gridSize,
@@ -45,8 +45,8 @@ namespace BeamBackend
             //Debug.Log(string.Format("Pos: {0}, Turn Angle: {1}", curPos, turnAngleDeg));
             return turnAngleDeg > 45f ? TurnDir.kLeft : (turnAngleDeg < -45f ? TurnDir.kRight : TurnDir.kStraight);
         }
-        public static MoveNode BuildMoveTree(Ground g, Vector2 curPos, Heading curHead, int depth, List<Vector2> otherBadPos = null)
-        {        
+        public static MoveNode BuildMoveTree(BeamGameData g, Vector2 curPos, Heading curHead, int depth, List<Vector2> otherBadPos = null)
+        {
             Vector2 nextPos = UpcomingGridPoint(curPos, curHead);
             MoveNode root = MoveNode.GenerateTree(g, nextPos, curHead, 1, otherBadPos);
             return root;
@@ -55,26 +55,26 @@ namespace BeamBackend
         public static List<DirAndScore> TurnScores(MoveNode moveTree)
         {
             return moveTree.next.Select(n => new DirAndScore { turnDir = n.dir, score = n.BestScore() }).ToList();
-        }        
+        }
 
         public class MoveNode
         {
             public TurnDir dir; // the turn direction that got to here (index in parent's "next" list)
             public Vector2 pos;
-            public Ground.Place place;
+            public BeamPlace place;
             public int score;
             public List<MoveNode> next; // length 3
 
-            public MoveNode(Ground g, Vector2 p, Heading head, TurnDir d, int depth, List<Vector2> otherClaimedPos)
+            public MoveNode(BeamGameData gData, Vector2 p, Heading head, TurnDir d, int depth, List<Vector2> otherClaimedPos)
             {
                 pos = p;
                 dir = d; // for later lookup
-                place = g.GetPlace(p);
-                score = ScoreForPoint(g, pos, place);
+                place = gData.GetPlace(p);
+                score = ScoreForPoint(gData.Ground, pos, place);
                 if (score == 0 && otherClaimedPos.Any(op => op.Equals(pos))) // TODO: make prettier
                     score = 1; // TODO: use named scoring constants
                 next = depth < 1 ? null : BikeUtils.PossiblePointsForPointAndHeading(pos, head)
-                        .Select((pt, childTurnDir) => new MoveNode(g,
+                        .Select((pt, childTurnDir) => new MoveNode(gData,
                         pos + GameConstants.UnitOffset2ForHeading(GameConstants.NewHeadForTurn(head, (TurnDir)childTurnDir)) * Ground.gridSize,
                         head,
                         (TurnDir)childTurnDir,
@@ -83,9 +83,9 @@ namespace BeamBackend
                         .ToList();
             }
 
-            public static MoveNode GenerateTree(Ground g, Vector2 rootPos, Heading initialHead, int depth, List<Vector2> otherBadPos)
+            public static MoveNode GenerateTree(BeamGameData gd, Vector2 rootPos, Heading initialHead, int depth, List<Vector2> otherBadPos)
             {
-                return new MoveNode(g, rootPos, initialHead, TurnDir.kStraight, depth, otherBadPos);
+                return new MoveNode(gd, rootPos, initialHead, TurnDir.kStraight, depth, otherBadPos);
             }
 
             public int BestScore()

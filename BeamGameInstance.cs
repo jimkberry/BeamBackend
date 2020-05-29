@@ -40,7 +40,7 @@ namespace BeamBackend
         public event EventHandler<IBike> NewBikeEvt;
         public event EventHandler<BikeRemovedData> BikeRemovedEvt;
         public event EventHandler BikesClearedEvt;
-        public event EventHandler<Ground.Place> PlaceClaimedEvt;
+        public event EventHandler<BeamPlace> PlaceClaimedEvt;
         public event EventHandler<PlaceHitArgs> PlaceHitEvt;
         public event EventHandler<string> UnknownBikeEvt;
 
@@ -55,7 +55,7 @@ namespace BeamBackend
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
             GameData = new BeamGameData(frontend);
-            GameData.Ground.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
+            GameData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
@@ -185,7 +185,7 @@ namespace BeamBackend
             if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
                 // Claim it
-                Ground.Place p = GameData.Ground.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+Ground.kPlaceLifeTimeMs);
+                BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
                 if (p != null)
                 {
                     logger.Verbose($"OnPlaceClaim() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
@@ -205,19 +205,19 @@ namespace BeamBackend
         public void OnPlaceHit(PlaceHitMsg msg)
         {
             // Apian has already checked the the place is claimed and the bike exists
-            Vector2 pos = Ground.Place.PlacePos(msg.xIdx, msg.zIdx);
-            Ground.Place p = GameData.Ground.GetPlace(pos);
+            Vector2 pos = BeamPlace.PlacePos(msg.xIdx, msg.zIdx);
+            BeamPlace p = GameData.GetPlace(pos);
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
             logger.Verbose($"OnPlaceHit() Bike: {hittingBike?.bikeId} hit ({p?.xIdx},{p?.zIdx})");
-            OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
+            OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
         }
 
         public void OnPlaceRemoved(PlaceRemovedMsg msg)
         {
-            Ground.Place p = GameData.Ground.GetPlace(msg.xIdx, msg.zIdx);
+            BeamPlace p = GameData.GetPlace(msg.xIdx, msg.zIdx);
             logger.Verbose($"OnPlaceRemoved() ({p?.xIdx},{p?.zIdx})");
-            GameData.Ground.RemoveActivePlace(p);
+            GameData.RemoveActivePlace(p);
         }
 
         //
@@ -260,7 +260,7 @@ namespace BeamBackend
                 apian.SendBikeTurnReq(bike, dir, nextPt);
         }
 
-        protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, Ground.Place place)
+        protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, BeamPlace place)
         {
             // TODO: as with above: This is coming from the backend (BaseBike, mostly) and should
             // be comming from the Net/event/whatever layer
@@ -365,7 +365,7 @@ namespace BeamBackend
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
             logger.Verbose($"_RemoveBike(): {ib.bikeId}");
-            GameData.Ground.RemovePlacesForBike(ib);
+            GameData.RemovePlacesForBike(ib);
             BikeRemovedEvt?.Invoke(this, new BikeRemovedData(ib.bikeId,  shouldBlowUp));
             GameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
         }
@@ -376,14 +376,14 @@ namespace BeamBackend
         }
 
        // Ground-related
-        public void OnPlaceTimeoutEvt(object sender, Ground.Place p)
+        public void OnPlaceTimeoutEvt(object sender, BeamPlace p)
         {
             apian.SendPlaceRemovedObs(p.xIdx, p.zIdx);
         }
 
         public void ClearPlaces()
         {
-            GameData.Ground.ClearPlaces(); // ground notifies FE.
+            GameData.ClearPlaces(); // notifies FE.
         }
 
     }

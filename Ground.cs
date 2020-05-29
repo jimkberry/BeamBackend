@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class Ground : IApianStateData
+    public partial class Ground
     {
         // North is Z, East is X,  Y is up
         public static float gridSize = 10f; // assume a square grid
@@ -20,138 +20,15 @@ namespace BeamBackend
 
         public static Vector2 zeroPos = new Vector2(0f, 0f);
 
-        public static long kPlaceLifeTimeMs = 15000; // TODO: Maybe should be per-bike and increase with time?
 
-        public event EventHandler<Ground.Place> PlaceFreedEvt;
-        public event EventHandler<Ground.Place> SetupPlaceMarkerEvt;
-        public event EventHandler<Ground.Place> PlaceTimeoutEvt;
-        public event EventHandler PlacesClearedEvt;
 
-        public class Place : IApianStateData
+        public Ground()
         {
-            public int xIdx; // x index into array.
-            public int zIdx;
-            public IBike bike;
-            public long expirationTimeMs;
-
-            public string ApianSerialized()
-            {
-                return  JsonConvert.SerializeObject(new object[]{
-                    bike.bikeId,
-                    xIdx,
-                    zIdx,
-                    expirationTimeMs
-                 });
-            }
-
-            public int posHash() => xIdx + zIdx * Ground.pointsPerAxis; // Is this useful?
-
-            public Vector2 GetPos()
-            {
-                return PlacePos(xIdx,zIdx);
-            }
-
-            public static Vector2 PlacePos(int x, int z)
-            {
-                return new Vector2(x*gridSize+minX,z*gridSize+minZ);
-            }
-        }
-
-        // TODO: maybe use hash-indexed Dict instead of array? (See FeGround)
-        public Place[,] placeArray = null;
-        protected List<Place> activePlaces = null;
-        protected Stack<Place> freePlaces = null; // re-use released/expired ones
-
-        public Ground(IBeamFrontend fep)
-        {
-           // _feProxy = fep;
-            InitPlaces();
-        }
-
-        public string ApianSerialized()
-        {
-            return  JsonConvert.SerializeObject(new object[]{
-                // All that is needed here is a list of the active places.
-                // The position arrays can be reconstructed by calling SetupPlace() on the placedata
-                activePlaces.OrderBy<Place,int>(p => p.posHash()).Select(p => p.ApianSerialized()).ToArray()
-            });
-        }
-
-        // Update is called once per frame
-        public void Loop(long nowMs)
-        {
-            // Assume that if it's in the active list it's not nulll
-            // If secsLeft runs out then remove it.
-            List<Place> timedOutPlaces = new List<Place>();
-            // Be very, very careful not to do something that might recusively delete a lest member while iterating over the list
-            foreach (Place p in activePlaces)
-                if (p.expirationTimeMs <= nowMs)
-                    timedOutPlaces.Add(p);
-
-            foreach (Place p  in timedOutPlaces )
-                PlaceTimeoutEvt?.Invoke(this,p); // causes GameInst to post a PlaceRemovedMsg
 
         }
 
-        public void RemoveActivePlace(Place p)
-        {
-            activePlaces.Remove(p);
-            RecyclePlaceObject(p);
-        }
 
-        public void RecyclePlaceObject(Place p){
-            if (p != null)
-            {
-                PlaceFreedEvt?.Invoke(this,p);
-                p.bike = null;
-                freePlaces.Push(p); // add to free list
-                placeArray[p.xIdx, p.zIdx] = null;
-            }
-        }
 
-        protected void InitPlaces()
-        {
-            placeArray = new Place[pointsPerAxis,pointsPerAxis];
-            activePlaces = new List<Place>();
-            freePlaces = new Stack<Place>();
-        }
-
-        public void ClearPlaces()
-        {
-            InitPlaces();
-            PlacesClearedEvt?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void RemovePlacesForBike(IBike bike)
-        {
-            List<Ground.Place> toGo = PlacesForBike(bike);
-            foreach (Place p in toGo)
-            {
-                RemoveActivePlace(p);
-            }
-        }
-        public List<Ground.Place> PlacesForBike(IBike ib)
-        {
-            return activePlaces.Where(p => p.bike.bikeId == ib.bikeId).ToList();
-        }
-
-        public Place GetPlace(int xIdx, int zIdx) => placeArray[xIdx,zIdx];
-
-        public Place GetPlace(Vector2 pos)
-        {
-            Vector2 gridPos = NearestGridPoint(pos);
-            int xIdx = (int)Mathf.Floor((gridPos.x - minX) / gridSize );
-            int zIdx = (int)Mathf.Floor((gridPos.y - minZ) / gridSize );
-            //Debug.Log(string.Format("gridPos: {0}, xIdx: {1}, zIdx: {2}", gridPos, xIdx, zIdx));
-            return IndicesAreOnMap(xIdx,zIdx) ? placeArray[xIdx,zIdx] : null;
-        }
-
-        public Place ClaimPlace(IBike bike, int xIdx, int zIdx, long expireTimeMs)
-        {
-            Place p = IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;
-            // TODO: Should claiming a place already held by team reset the timer?
-            return (p?.bike == bike) ? p : null;
-        }
 
         public static Vector2 NearestGridPoint(Vector2 pos)
         {
@@ -163,21 +40,6 @@ namespace BeamBackend
         {
             Vector2 gridPos  = NearestGridPoint(pos);
             return ((int)Mathf.Floor((gridPos.x - minX) / gridSize) , (int)Mathf.Floor((gridPos.y - minZ) / gridSize ));
-        }
-
-        // Set up a place instance for use or re-use
-        protected Place SetupPlace(IBike bike, int xIdx, int zIdx, long expireTimeMs )
-        {
-            Place p = freePlaces.Count > 0 ? freePlaces.Pop() : new Place();
-            // Maybe populating a new one, maybe re-populating a used one.
-            p.expirationTimeMs = expireTimeMs;
-            p.xIdx = xIdx;
-            p.zIdx = zIdx;
-            p.bike = bike;
-            placeArray[xIdx, zIdx] = p;
-            activePlaces.Add(p);
-            SetupPlaceMarkerEvt?.Invoke(this,p);
-            return p;
         }
 
         public bool PointIsOnMap(Vector2 pt)

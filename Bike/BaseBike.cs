@@ -190,15 +190,15 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
         {
-            Ground g = gameInst.GameData.Ground;
-            Ground.Place p = g.GetPlace(pos);
+            BeamGameData gData = gameInst.GameData;
+            BeamPlace p = gData.GetPlace(pos);
             logger.Debug($"DoAtGridPoint()");
             if (p == null)
             {
                 int xIdx, zIdx;
                 (xIdx, zIdx) = Ground.NearestGridIndices(pos);
                 // is it on the map?
-                if (g.IndicesAreOnMap(xIdx, zIdx))
+                if (gData.Ground.IndicesAreOnMap(xIdx, zIdx))
                 {
                     // Yes. Since it's empty send a claim report
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim

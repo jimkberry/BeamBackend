@@ -27,9 +27,9 @@ namespace BeamBackend
 
     public struct PlaceHitArgs
     {
-        public Ground.Place p;
+        public BeamPlace p;
         public IBike ib;
-        public PlaceHitArgs(Ground.Place _p, IBike _ib) { p=_p; ib=_ib; }
+        public PlaceHitArgs(BeamPlace _p, IBike _ib) { p=_p; ib=_ib; }
     }
 
 
@@ -41,7 +41,7 @@ namespace BeamBackend
         event EventHandler<IBike> NewBikeEvt;
         event EventHandler<BikeRemovedData> BikeRemovedEvt;
         event EventHandler BikesClearedEvt;
-        event EventHandler<Ground.Place> PlaceClaimedEvt;
+        event EventHandler<BeamPlace> PlaceClaimedEvt;
         event EventHandler<PlaceHitArgs> PlaceHitEvt;
         event EventHandler<string> UnknownBikeEvt;
 

@@ -56,7 +56,7 @@ namespace BeamBackend
             public long expireTimeMs;
 
             public PlaceCreateData() {} // need a default ctor to deserialize
-            public PlaceCreateData(Ground.Place p)
+            public PlaceCreateData(BeamPlace p)
             {
                 xIdx = p.xIdx;
                 zIdx = p.zIdx;
