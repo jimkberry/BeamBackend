@@ -28,6 +28,7 @@ namespace BeamBackend
         // Ancillary data (initialize to empty if loading state data)
         protected Stack<BeamPlace> freePlaces = null; // re-use released/expired ones
         protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
+        protected List<BeamPlace> _placesToRemoveAfterLoop; // Places also are not destroyed until the end of the data loop
 
         public BeamGameData(IBeamFrontend fep)
         {
@@ -51,6 +52,7 @@ namespace BeamBackend
             placeArray = new BeamPlace[Ground.pointsPerAxis,Ground.pointsPerAxis];
             activePlaces = new List<BeamPlace>();
             freePlaces = new Stack<BeamPlace>();
+            _placesToRemoveAfterLoop = new List<BeamPlace>();
         }
 
         public void Loop(long nowMs, long frameMs)
@@ -61,6 +63,7 @@ namespace BeamBackend
             LoopPlaces(nowMs);
 
             _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
+            _placesToRemoveAfterLoop.RemoveAll( p => { RemoveActivePlace(p); return true; } );
 
         }
 
@@ -142,20 +145,16 @@ namespace BeamBackend
             SetupPlaceMarkerEvt?.Invoke(this,p);
             return p;
         }
-        public void RemoveActivePlace(BeamPlace p)
-        {
-            activePlaces.Remove(p);
-            RecyclePlaceObject(p);
-        }
 
-        public void RecyclePlaceObject(BeamPlace p){
-            if (p != null)
-            {
-                PlaceFreedEvt?.Invoke(this,p);
-                p.bike = null;
-                freePlaces.Push(p); // add to free list
-                placeArray[p.xIdx, p.zIdx] = null;
-            }
+        public void PostPlaceRemoval(BeamPlace p) => _placesToRemoveAfterLoop.Add(p);
+
+        protected void RemoveActivePlace(BeamPlace p)
+        {
+            PlaceFreedEvt?.Invoke(this,p);
+            p.bike = null;
+            freePlaces.Push(p); // add to free list
+            placeArray[p.xIdx, p.zIdx] = null;
+            activePlaces.Remove(p);
         }
 
         public void ClearPlaces()
@@ -166,11 +165,8 @@ namespace BeamBackend
 
         public void RemovePlacesForBike(IBike bike)
         {
-            List<BeamPlace> toGo = PlacesForBike(bike);
-            foreach (BeamPlace p in toGo)
-            {
-                RemoveActivePlace(p);
-            }
+            foreach (BeamPlace p in PlacesForBike(bike))
+                PostPlaceRemoval(p);
         }
         public List<BeamPlace> PlacesForBike(IBike ib)
         {
@@ -191,7 +187,6 @@ namespace BeamBackend
         public BeamPlace ClaimPlace(IBike bike, int xIdx, int zIdx, long expireTimeMs)
         {
             BeamPlace p = Ground.IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;
-            // TODO: Should claiming a place already held by team reset the timer?
             return (p?.bike == bike) ? p : null;
         }
 

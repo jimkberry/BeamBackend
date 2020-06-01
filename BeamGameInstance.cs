@@ -217,7 +217,7 @@ namespace BeamBackend
         {
             BeamPlace p = GameData.GetPlace(msg.xIdx, msg.zIdx);
             logger.Verbose($"OnPlaceRemoved() ({p?.xIdx},{p?.zIdx})");
-            GameData.RemoveActivePlace(p);
+            GameData.PostPlaceRemoval(p);
         }
 
         //
