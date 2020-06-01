@@ -22,8 +22,7 @@ namespace BeamBackend
 	    public Ground Ground { get; private set; } = null; // TODO: Is there any mutable state here anymore?
         public Dictionary<string, BeamPlayer> Players { get; private set; } = null;
         public Dictionary<string, IBike> Bikes { get; private set; } = null;
-        public List<BeamPlace> activePlaces = null; // TODO: use hash-indexed Dict instead of this and the array! (See FeGround)
-        public BeamPlace[,] placeArray = null;
+        public Dictionary<int, BeamPlace> activePlaces = null; //  BeamPlace.PosHash() -indexed Dict of places.
 
         // Ancillary data (initialize to empty if loading state data)
         protected Stack<BeamPlace> freePlaces = null; // re-use released/expired ones
@@ -49,8 +48,7 @@ namespace BeamBackend
 
         protected void InitPlaces()
         {
-            placeArray = new BeamPlace[Ground.pointsPerAxis,Ground.pointsPerAxis];
-            activePlaces = new List<BeamPlace>();
+            activePlaces = new Dictionary<int, BeamPlace>();
             freePlaces = new Stack<BeamPlace>();
             _placesToRemoveAfterLoop = new List<BeamPlace>();
         }
@@ -71,7 +69,8 @@ namespace BeamBackend
         {
             List<BeamPlace> timedOutPlaces = new List<BeamPlace>();
             // Be very, very careful not to do something that might recusively delete a lest member while iterating over the list
-            foreach (BeamPlace p in activePlaces)
+            // This is probably unneeded givent that PostPlaceRemoval() exists
+            foreach (BeamPlace p in activePlaces.Values)
                 if (p.expirationTimeMs <= nowMs)
                     timedOutPlaces.Add(p);
 
@@ -85,7 +84,7 @@ namespace BeamBackend
             object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId).Select(ib => ib.ApianSerialized()).ToArray();
                 // All that is needed here is a list of the active places.
                 // The position arrays can be reconstructed by calling SetupPlace() on the placedata
-            object[] placesData = activePlaces.OrderBy<BeamPlace,int>(p => p.posHash()).Select(p => p.ApianSerialized()).ToArray();
+            object[] placesData = activePlaces.Values.OrderBy<BeamPlace,int>(p => p.PosHash).Select(p => p.ApianSerialized()).ToArray();
 
             return  JsonConvert.SerializeObject(new object[]{
                 peersData,
@@ -140,8 +139,7 @@ namespace BeamBackend
             p.xIdx = xIdx;
             p.zIdx = zIdx;
             p.bike = bike;
-            placeArray[xIdx, zIdx] = p;
-            activePlaces.Add(p);
+            activePlaces[p.PosHash] = p;
             SetupPlaceMarkerEvt?.Invoke(this,p);
             return p;
         }
@@ -150,11 +148,13 @@ namespace BeamBackend
 
         protected void RemoveActivePlace(BeamPlace p)
         {
-            PlaceFreedEvt?.Invoke(this,p);
-            p.bike = null;
-            freePlaces.Push(p); // add to free list
-            placeArray[p.xIdx, p.zIdx] = null;
-            activePlaces.Remove(p);
+            if (p != null)
+            {
+                PlaceFreedEvt?.Invoke(this,p);
+                p.bike = null;
+                freePlaces.Push(p); // add to free list
+                activePlaces.Remove(p.PosHash);
+            }
         }
 
         public void ClearPlaces()
@@ -170,10 +170,10 @@ namespace BeamBackend
         }
         public List<BeamPlace> PlacesForBike(IBike ib)
         {
-            return activePlaces.Where(p => p.bike.bikeId == ib.bikeId).ToList();
+            return activePlaces.Values.Where(p => p.bike.bikeId == ib.bikeId).ToList();
         }
 
-        public BeamPlace GetPlace(int xIdx, int zIdx) => placeArray[xIdx,zIdx];
+        public BeamPlace GetPlace(int xIdx, int zIdx) => activePlaces.GetValueOrDefault(BeamPlace.MakePosHash(xIdx,zIdx), null);
 
         public BeamPlace GetPlace(Vector2 pos)
         {
@@ -181,12 +181,12 @@ namespace BeamBackend
             int xIdx = (int)Mathf.Floor((gridPos.x - Ground.minX) / Ground.gridSize ); // TODO: this is COPY/PASTA EVERYWHERE!!! FIX!!!
             int zIdx = (int)Mathf.Floor((gridPos.y - Ground.minZ) / Ground.gridSize );
             //Debug.Log(string.Format("gridPos: {0}, xIdx: {1}, zIdx: {2}", gridPos, xIdx, zIdx));
-            return Ground.IndicesAreOnMap(xIdx,zIdx) ? placeArray[xIdx,zIdx] : null;
+            return Ground.IndicesAreOnMap(xIdx,zIdx) ? GetPlace(xIdx,zIdx) : null; // note this returns null for "no place" and for "out of bounds"
         }
 
         public BeamPlace ClaimPlace(IBike bike, int xIdx, int zIdx, long expireTimeMs)
         {
-            BeamPlace p = Ground.IndicesAreOnMap(xIdx,zIdx) ? ( placeArray[xIdx,zIdx] ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;
+            BeamPlace p = Ground.IndicesAreOnMap(xIdx,zIdx) ? ( GetPlace(xIdx,zIdx) ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;
             return (p?.bike == bike) ? p : null;
         }
 

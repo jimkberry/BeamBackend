@@ -23,7 +23,9 @@ namespace BeamBackend
                 });
         }
 
-        public int posHash() => xIdx + zIdx * Ground.pointsPerAxis; // Is this useful?
+        public int PosHash { get => xIdx + zIdx * Ground.pointsPerAxis; }
+
+        public static int MakePosHash(int xIdx, int zIdx) => xIdx + zIdx * Ground.pointsPerAxis;
 
         public Vector2 GetPos()
         {
