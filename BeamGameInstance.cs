@@ -59,14 +59,14 @@ namespace BeamBackend
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
-                [BeamMessage.kNewPlayer] = (msg) => OnNewPlayer(msg as NewPlayerMsg),
-                [BeamMessage.kPlayerLeft] = (msg) => OnPlayerLeft(msg as PlayerLeftMsg),
-                [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBike(msg as BikeCreateDataMsg),
-                [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurn(msg as BikeTurnMsg),
-                [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommand(msg as BikeCommandMsg),
-                [BeamMessage.kPlaceClaimMsg] = (msg) => this.OnPlaceClaim(msg as PlaceClaimMsg),
-                [BeamMessage.kPlaceHitMsg] = (msg) => this.OnPlaceHit(msg as PlaceHitMsg),
-                [BeamMessage.kPlaceRemovedMsg] = (msg) => this.OnPlaceRemoved(msg as PlaceRemovedMsg),
+                [BeamMessage.kNewPlayer] = (msg) => OnNewPlayerCmd(msg as NewPlayerMsg),
+                [BeamMessage.kPlayerLeft] = (msg) => OnPlayerLeftCmd(msg as PlayerLeftMsg),
+                [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBikeCmd(msg as BikeCreateDataMsg),
+                [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurnCmd(msg as BikeTurnMsg),
+                [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommandCmd(msg as BikeCommandMsg),
+                [BeamMessage.kPlaceClaimMsg] = (msg) => this.OnPlaceClaimCmd(msg as PlaceClaimMsg),
+                [BeamMessage.kPlaceHitMsg] = (msg) => this.OnPlaceHitCmd(msg as PlaceHitMsg),
+                [BeamMessage.kPlaceRemovedMsg] = (msg) => this.OnPlaceRemovedCmd(msg as PlaceRemovedMsg),
             };
         }
 
@@ -130,22 +130,22 @@ namespace BeamBackend
             commandHandlers[cmd.ClientMsg.MsgType](cmd.ClientMsg as BeamMessage);
         }
 
-        public void OnNewPlayer(NewPlayerMsg msg)
+        public void OnNewPlayerCmd(NewPlayerMsg msg)
         {
             BeamPlayer newPlayer = msg.newPlayer;
-            logger.Info($"OnNewPlayer() {((newPlayer.PeerId == LocalPeerId)?"Local":"Remote")} name: {newPlayer.Name}");
+            logger.Info($"OnNewPlayerCmd() {((newPlayer.PeerId == LocalPeerId)?"Local":"Remote")} name: {newPlayer.Name}");
             _AddPlayer(newPlayer);
         }
 
-        public void OnPlayerLeft(PlayerLeftMsg msg)
+        public void OnPlayerLeftCmd(PlayerLeftMsg msg)
         {
-            logger.Info($"OnPlayerLeft({msg.peerId})");
+            logger.Info($"OnPlayerLeftCmd({msg.peerId})");
             _RemovePlayer(msg.peerId);
         }
 
-        public void OnCreateBike(BikeCreateDataMsg msg)
+        public void OnCreateBikeCmd(BikeCreateDataMsg msg)
         {
-            logger.Verbose($"OnBikeCreateData(): {msg.bikeId}.");
+            logger.Verbose($"OnCreateBikeCmd(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);
             if (_AddBike(ib))
             {
@@ -156,29 +156,29 @@ namespace BeamBackend
             }
         }
 
-        public void OnBikeCommand(BikeCommandMsg msg)
+        public void OnBikeCommandCmd(BikeCommandMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Caller (Apian) checks the bike and message sourcevalidity
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-            logger.Debug($"OnBikeCommand({msg.cmd}): Bike:{msg.bikeId}");
+            logger.Debug($"OnBikeCommandCmd({msg.cmd}): Bike:{msg.bikeId}");
             float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
-        public void OnBikeTurn(BikeTurnMsg msg)
+        public void OnBikeTurnCmd(BikeTurnMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             // Code (Apian) checks bike and source validity
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-            logger.Debug($"OnBikeTurnMsg({msg.dir}): Bike:{msg.bikeId}");
+            logger.Debug($"OnBikeTurnCmd({msg.dir}): Bike:{msg.bikeId}");
             float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
-        public void OnPlaceClaim(PlaceClaimMsg msg)
+        public void OnPlaceClaimCmd(PlaceClaimMsg msg)
         {
             // Apian has said this message is authoritative
             BaseBike b = GameData.GetBaseBike(msg.bikeId);
@@ -188,12 +188,12 @@ namespace BeamBackend
                 BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
                 if (p != null)
                 {
-                    logger.Verbose($"OnPlaceClaim() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
-                    logger.Debug($"               FrameApianTime: {FrameApianTime} ");
+                    logger.Verbose($"OnPlaceClaimCmd() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
+                    logger.Debug($"                  FrameApianTime: {FrameApianTime} ");
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {
-                    logger.Warn($"OnPlaceClaim()) failed. Place already claimed.");
+                    logger.Warn($"OnPlaceClaimCmd()) failed. Place already claimed.");
                 }
 
             } else {
@@ -202,21 +202,21 @@ namespace BeamBackend
             }
         }
 
-        public void OnPlaceHit(PlaceHitMsg msg)
+        public void OnPlaceHitCmd(PlaceHitMsg msg)
         {
             // Apian has already checked the the place is claimed and the bike exists
             Vector2 pos = BeamPlace.PlacePos(msg.xIdx, msg.zIdx);
             BeamPlace p = GameData.GetPlace(pos);
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
-            logger.Verbose($"OnPlaceHit() Bike: {hittingBike?.bikeId} hit ({p?.xIdx},{p?.zIdx})");
+            logger.Verbose($"OnPlaceHitCmd() Bike: {hittingBike?.bikeId} hit ({p?.xIdx},{p?.zIdx})");
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
             OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
         }
 
-        public void OnPlaceRemoved(PlaceRemovedMsg msg)
+        public void OnPlaceRemovedCmd(PlaceRemovedMsg msg)
         {
             BeamPlace p = GameData.GetPlace(msg.xIdx, msg.zIdx);
-            logger.Verbose($"OnPlaceRemoved() ({p?.xIdx},{p?.zIdx})");
+            logger.Verbose($"OnPlaceRemovedCmd() ({p?.xIdx},{p?.zIdx})");
             GameData.PostPlaceRemoval(p);
         }
 

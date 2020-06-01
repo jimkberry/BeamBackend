@@ -18,13 +18,13 @@ namespace BeamBackend
 
         // What Apian expects to call in the app instance
         void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
-        void OnNewPlayer(NewPlayerMsg msg);
-        void OnPlayerLeft(PlayerLeftMsg msg);
-        void OnCreateBike(BikeCreateDataMsg msg);
-        void OnPlaceHit(PlaceHitMsg msg);
-        void OnPlaceClaim(PlaceClaimMsg msg); // delay since the claim was originally made
-        void OnBikeCommand(BikeCommandMsg msg);
-        void OnBikeTurn(BikeTurnMsg msg);
+        void OnNewPlayerCmd(NewPlayerMsg msg);
+        void OnPlayerLeftCmd(PlayerLeftMsg msg);
+        void OnCreateBikeCmd(BikeCreateDataMsg msg);
+        void OnPlaceHitCmd(PlaceHitMsg msg);
+        void OnPlaceClaimCmd(PlaceClaimMsg msg); // delay since the claim was originally made
+        void OnBikeCommandCmd(BikeCommandMsg msg);
+        void OnBikeTurnCmd(BikeTurnMsg msg);
     }
 
 
