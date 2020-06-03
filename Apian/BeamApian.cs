@@ -14,7 +14,6 @@ namespace BeamBackend
 {
    public interface IBeamApianClient : IApianClientApp
     {
-        void OnApianCommand(ApianCommand cmd);
 
         // What Apian expects to call in the app instance
         void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
@@ -263,6 +262,17 @@ namespace BeamBackend
 
             }
         }
+
+        // State checkpoints
+        public override void ScheduleStateCheckpoint(long whenMs) // called by groupMgr
+        {
+            client.ScheduleStateCheckpoint(whenMs);
+        }
+        public override void SendStateCheckpoint(long timeStamp, string stateHash) // called by client app
+        {
+
+        }
+
 
         // Beam command handlers
         // public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)

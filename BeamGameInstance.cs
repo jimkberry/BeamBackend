@@ -26,7 +26,7 @@ namespace BeamBackend
         public string LocalPeerId => apian?.GameNet.LocalP2pId(); // TODO: make LocalP2pId a property?
         public string CurrentGameId  { get; private set; }
 
-        public long CurGameTime {get => apian.CurrentApianTime(); }
+        public long NextCheckpointMs;
 
         // Not sure where this oughta be. The Loop() methd gets passed a "frameSecs" float that is based on
         // Whatever clck the driver is using. We want everything in the GameInstance to be based on the shared "ApianClock"
@@ -92,21 +92,58 @@ namespace BeamBackend
             // Ignore passed in frameSecs.
             //
             long prevFrameApianTime = FrameApianTime;
-            FrameApianTime = CurGameTime;
-            if (prevFrameApianTime < 0)
+            long curApianTime = apian.CurrentApianTime();
+
+            if (prevFrameApianTime <= 0)
             {
                 // skip first frame
+                FrameApianTime = curApianTime;
                 return true;
             }
 
-            if (isActive)
+            if (isActive) // Don't call loop if not active
             {
-                // Don;t call loop if not active
-                long apianFrameMs = FrameApianTime - prevFrameApianTime;
-                GameData.Loop(FrameApianTime, apianFrameMs);
+                long[] frameLengths = _LoopFrameLengths(curApianTime, prevFrameApianTime, NextCheckpointMs);
+                //logger.Info($"Loop() Current time: {curApianTime},  frameLengths: ({frameLengths[0]}, {frameLengths[1]})");
+                _DoLoop(frameLengths[0], true); // checkpoint if non-zero
+                _DoLoop(frameLengths[1], false);
             }
 
             return true;
+        }
+
+        private long[] _LoopFrameLengths(long curMs, long prevMs, long checkMs)
+        {
+            // First subloop ends in the checkpoint. Second does not
+            if ( NextCheckpointMs > prevMs && checkMs <= curMs )
+            {
+                // Need to do a checkpoint.
+                return new long[] {checkMs - prevMs, curMs-checkMs};
+            }
+
+            // no checkpoint - set 1st loop len to 0
+            return new long[] {0, curMs-prevMs};
+        }
+
+        private void _DoLoop(long frameMs, bool checkpointAtEnd)
+        {
+            //logger.Info($"_DoLoop() frameMs: {frameMs}, do checkpoint at end: {checkpointAtEnd}");
+            if (frameMs == 0)
+                return;
+
+            FrameApianTime += frameMs; // Side effect city!
+            GameData.Loop(FrameApianTime, frameMs);
+
+            if (checkpointAtEnd)
+                _DoStateCheckpoint();
+        }
+
+        private void _DoStateCheckpoint()
+        {
+            logger.Info($"_DoStateCheckpoint() timestamp: {FrameApianTime}");
+            string stateJson = GameData.ApianSerialized();
+            logger.Info($"***888* Checkpoint: {FrameApianTime}: \n{stateJson}\n************\n");
+
         }
 
         //
@@ -118,6 +155,7 @@ namespace BeamBackend
             apian = ap as BeamApian;
         }
 
+        public void ScheduleStateCheckpoint(long whenMs) => NextCheckpointMs = whenMs;
 
         public void OnGroupJoined(string groupId)
         {
@@ -163,7 +201,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeCommandCmd({msg.cmd}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
+            float elapsedSecs = ((float)FrameApianTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
@@ -174,7 +212,7 @@ namespace BeamBackend
             // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
             // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
             logger.Debug($"OnBikeTurnCmd({msg.dir}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)CurGameTime - msg.TimeStamp) *.001f; // float secs
+            float elapsedSecs = ((float)FrameApianTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
