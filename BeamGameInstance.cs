@@ -84,65 +84,93 @@ namespace BeamBackend
             ClearBikes();
             ClearPlaces();
         }
+
         public bool Loop(float frameSecs)
         {
-            bool isActive = apian.Update();  // returns "True" if Active
-
             //
             // Ignore passed in frameSecs.
             //
             long prevFrameApianTime = FrameApianTime;
             long curApianTime = apian.CurrentApianTime();
+            UpdateFrameTime(curApianTime);
 
-            if (prevFrameApianTime <= 0)
-            {
-                // skip first frame
-                FrameApianTime = curApianTime;
-                return true;
-            }
+            // Might call GameData.Loop() if not active before applying a stashed ApianCommand
+            // so FrameApianTime needs to a
+            bool isActive = apian.Update();  // returns "True" if Active
 
             if (isActive) // Don't call loop if not active
             {
-                long[] frameLengths = _LoopFrameLengths(curApianTime, prevFrameApianTime, NextCheckpointMs);
-                //logger.Info($"Loop() Current time: {curApianTime},  frameLengths: ({frameLengths[0]}, {frameLengths[1]})");
-                _DoLoop(frameLengths[0], true); // checkpoint if non-zero
-                _DoLoop(frameLengths[1], false);
+                GameData.Loop(FrameApianTime, FrameApianTime - prevFrameApianTime);
             }
 
             return true;
         }
 
-        private long[] _LoopFrameLengths(long curMs, long prevMs, long checkMs)
+        public void UpdateFrameTime(long curApianTime)
         {
-            // First subloop ends in the checkpoint. Second does not
-            if ( NextCheckpointMs > prevMs && checkMs <= curMs )
-            {
-                // Need to do a checkpoint.
-                return new long[] {checkMs - prevMs, curMs-checkMs};
-            }
-
-            // no checkpoint - set 1st loop len to 0
-            return new long[] {0, curMs-prevMs};
+            FrameApianTime = curApianTime;
         }
 
-        private void _DoLoop(long frameMs, bool checkpointAtEnd)
+
+        // public bool Loop(float frameSecs)
+        // {
+        //     bool isActive = apian.Update();  // returns "True" if Active
+
+        //     //
+        //     // Ignore passed in frameSecs.
+        //     //
+        //     long prevFrameApianTime = FrameApianTime;
+        //     long curApianTime = apian.CurrentApianTime();
+
+        //     if (prevFrameApianTime <= 0)
+        //     {
+        //         // skip first frame
+        //         FrameApianTime = curApianTime;
+        //         return true;
+        //     }
+
+        //     if (isActive) // Don't call loop if not active
+        //     {
+        //         long[] frameLengths = _LoopFrameLengths(curApianTime, prevFrameApianTime, NextCheckpointMs);
+        //         //logger.Info($"Loop() Current time: {curApianTime},  frameLengths: ({frameLengths[0]}, {frameLengths[1]})");
+        //         _DoLoop(frameLengths[0], true); // checkpoint if non-zero
+        //         _DoLoop(frameLengths[1], false);
+        //     }
+
+        //     return true;
+        // }
+
+        // private long[] _LoopFrameLengths(long curMs, long prevMs, long checkMs)
+        // {
+        //     // First subloop ends in the checkpoint. Second does not
+        //     if ( NextCheckpointMs > prevMs && checkMs <= curMs )
+        //     {
+        //         // Need to do a checkpoint.
+        //         return new long[] {checkMs - prevMs, curMs-checkMs};
+        //     }
+
+        //     // no checkpoint - set 1st loop len to 0
+        //     return new long[] {0, curMs-prevMs};
+        // }
+
+        // private void _DoLoop(long frameMs, bool checkpointAtEnd)
+        // {
+        //     //logger.Info($"_DoLoop() frameMs: {frameMs}, do checkpoint at end: {checkpointAtEnd}");
+        //     if (frameMs == 0)
+        //         return;
+
+        //     FrameApianTime += frameMs; // Side effect city!
+        //     GameData.Loop(FrameApianTime, frameMs);
+
+        //     ////if (checkpointAtEnd)
+        //     ////    _DoStateCheckpoint();
+        // }
+
+        public void OnCheckpointCommand(long seqNum, long timeStamp)
         {
-            //logger.Info($"_DoLoop() frameMs: {frameMs}, do checkpoint at end: {checkpointAtEnd}");
-            if (frameMs == 0)
-                return;
-
-            FrameApianTime += frameMs; // Side effect city!
-            GameData.Loop(FrameApianTime, frameMs);
-
-            if (checkpointAtEnd)
-                _DoStateCheckpoint();
-        }
-
-        private void _DoStateCheckpoint()
-        {
-            logger.Info($"_DoStateCheckpoint() timestamp: {FrameApianTime}");
+            logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
             string stateJson = GameData.ApianSerialized();
-            logger.Info($"***888* Checkpoint: {FrameApianTime}: \n{stateJson}\n************\n");
+            logger.Info($"**** Checkpoint: {FrameApianTime}: \n{stateJson}\n************\n");
 
         }
 
@@ -185,34 +213,27 @@ namespace BeamBackend
         {
             logger.Verbose($"OnCreateBikeCmd(): {msg.bikeId}.");
             IBike ib = msg.ToBike(this);
+            logger.Verbose($"** OnCreateBike() created {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
             if (_AddBike(ib))
             {
                 // *** Bikes are created stationary now - so there's no need to correct for creation time delay
-                //float elapsedSecs = (CurGameTime - msg.TimeStamp) * .001f;
-                logger.Verbose($"OnCreateBike() created {ib.bikeId}");
-                //ib.Loop(elapsedSecs); // project to NOW
+                logger.Verbose($"OnCreateBike() created {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
             }
         }
 
         public void OnBikeCommandCmd(BikeCommandMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
-            // Caller (Apian) checks the bike and message sourcevalidity
-            // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
-            // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-            logger.Debug($"OnBikeCommandCmd({msg.cmd}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)FrameApianTime - msg.TimeStamp) *.001f; // float secs
+            logger.Verbose($"OnBikeCommandCmd({msg.cmd}) Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike:{msg.bikeId}");
+            float elapsedSecs = (FrameApianTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyCommand(msg.cmd, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs);
         }
 
         public void OnBikeTurnCmd(BikeTurnMsg msg)
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
-            // Code (Apian) checks bike and source validity
-            // TODO: Even THIS code should check to see if the upcoming place is correct and fix things otherwise
-            // I don;t think the bike's internal code should do anythin glike that in ApplyCommand()
-            logger.Debug($"OnBikeTurnCmd({msg.dir}): Bike:{msg.bikeId}");
-            float elapsedSecs = ((float)FrameApianTime - msg.TimeStamp) *.001f; // float secs
+            logger.Verbose($"OnBikeTurnCmd({msg.dir}) Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike:{msg.bikeId}");
+            float elapsedSecs = (FrameApianTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
@@ -226,8 +247,8 @@ namespace BeamBackend
                 BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
                 if (p != null)
                 {
-                    logger.Verbose($"OnPlaceClaimCmd() Bike: {b.bikeId} claimed ({msg.xIdx},{msg.zIdx}) at {msg.TimeStamp}");
-                    logger.Debug($"                  FrameApianTime: {FrameApianTime} ");
+                    logger.Verbose($"OnPlaceClaimCmd() Bike: {b.bikeId} claimed {BeamPlace.PlacePos( msg.xIdx, msg.zIdx).ToString()} at {msg.TimeStamp}");
+                    logger.Verbose($"                  BikePos: {b.position.ToString()}, FrameApianTime: {FrameApianTime} ");
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {
@@ -246,7 +267,7 @@ namespace BeamBackend
             Vector2 pos = BeamPlace.PlacePos(msg.xIdx, msg.zIdx);
             BeamPlace p = GameData.GetPlace(pos);
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
-            logger.Verbose($"OnPlaceHitCmd() Bike: {hittingBike?.bikeId} hit ({p?.xIdx},{p?.zIdx})");
+            logger.Verbose($"OnPlaceHitCmd({p?.xIdx},{p?.zIdx}) Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
             PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
             OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
         }
@@ -254,7 +275,7 @@ namespace BeamBackend
         public void OnPlaceRemovedCmd(PlaceRemovedMsg msg)
         {
             BeamPlace p = GameData.GetPlace(msg.xIdx, msg.zIdx);
-            logger.Verbose($"OnPlaceRemovedCmd() ({p?.xIdx},{p?.zIdx})");
+            logger.Verbose($"OnPlaceRemovedCmd({msg.xIdx},{msg.zIdx}) {(p==null?"MISSING":"")} Now: {FrameApianTime} Ts: {msg.TimeStamp}");
             GameData.PostPlaceRemoval(p);
         }
 
@@ -279,12 +300,12 @@ namespace BeamBackend
         public void PostBikeCreateData(IBike ib, string destId = null)
         {
             logger.Info($"PostBikeCreateData(): {ib.bikeId}");
-            apian.SendBikeCreateReq(ib, destId);
+            apian.SendBikeCreateReq(FrameApianTime, ib, destId);
         }
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            apian.SendBikeCommandReq(bike, cmd, (bike as BaseBike).UpcomingGridPoint());
+            apian.SendBikeCommandReq(FrameApianTime, bike, cmd, (bike as BaseBike).UpcomingGridPoint());
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
@@ -295,7 +316,7 @@ namespace BeamBackend
             if (dx < BaseBike.length * .5f)
                 logger.Debug($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else
-                apian.SendBikeTurnReq(bike, dir, nextPt);
+                apian.SendBikeTurnReq(FrameApianTime, bike, dir, nextPt);
         }
 
         protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, BeamPlace place)
@@ -389,7 +410,7 @@ namespace BeamBackend
 
         public bool _AddBike(IBike ib)
         {
-            logger.Verbose($"_AddBike(): {ib.bikeId}");
+            logger.Verbose($"_AddBike(): {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
 
             if (GameData.GetBaseBike(ib.bikeId) != null)
                 return false;
@@ -397,6 +418,7 @@ namespace BeamBackend
             GameData.Bikes[ib.bikeId] = ib;
 
             NewBikeEvt?.Invoke(this, ib);
+
             return true;
         }
 
@@ -416,7 +438,7 @@ namespace BeamBackend
        // Ground-related
         public void OnPlaceTimeoutEvt(object sender, BeamPlace p)
         {
-            apian.SendPlaceRemovedObs(p.xIdx, p.zIdx);
+            apian.SendPlaceRemovedObs(FrameApianTime, p.xIdx, p.zIdx);
         }
 
         public void ClearPlaces()
