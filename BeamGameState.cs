@@ -28,6 +28,7 @@ namespace BeamBackend
         protected Stack<BeamPlace> freePlaces = null; // re-use released/expired ones
         protected List<string> _bikeIdsToRemoveAfterLoop; // at end of Loop() any bikes listed here get removed
         protected List<BeamPlace> _placesToRemoveAfterLoop; // Places also are not destroyed until the end of the data loop
+        protected Dictionary<int, BeamPlace> _reportedTimedOutPlaces; // places that have been reported as timed out, but not removed yet
 
         public BeamGameData(IBeamFrontend fep)
         {
@@ -51,6 +52,7 @@ namespace BeamBackend
             activePlaces = new Dictionary<int, BeamPlace>();
             freePlaces = new Stack<BeamPlace>();
             _placesToRemoveAfterLoop = new List<BeamPlace>();
+            _reportedTimedOutPlaces  = new Dictionary<int, BeamPlace>(); // check this before reporting. delete entry when removed.
         }
 
         public void Loop(long nowMs, long frameMs)
@@ -75,11 +77,18 @@ namespace BeamBackend
                     timedOutPlaces.Add(p);
 
             foreach (BeamPlace p  in timedOutPlaces )
-                PlaceTimeoutEvt?.Invoke(this,p); // causes GameInst to post a PlaceRemovedMsg
+            {
+                if ( !_reportedTimedOutPlaces.ContainsKey(p.PosHash))
+                {
+                    _reportedTimedOutPlaces[p.PosHash] = p;
+                    PlaceTimeoutEvt?.Invoke(this,p); // causes GameInst to post a PlaceRemovedMsg
+                }
+            }
         }
 
         public string ApianSerialized()
         {
+            // Not all of the data needs the timestamp
             object[] peersData = Players.Values.OrderBy(p => p.PeerId).Select(p => p.ToBeamJson()).ToArray();
             object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId).Select(ib => ib.ApianSerialized()).ToArray();
                 // All that is needed here is a list of the active places.
@@ -154,6 +163,7 @@ namespace BeamBackend
                 p.bike = null;
                 freePlaces.Push(p); // add to free list
                 activePlaces.Remove(p.PosHash);
+                _reportedTimedOutPlaces.Remove(p.PosHash);
             }
         }
 
