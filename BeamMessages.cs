@@ -372,6 +372,11 @@ namespace BeamBackend
             {ApianMessage.CliCommand+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedCommand>(s) },
 
+            // TODO: &&&& This is AWFUL! I want the checkpoint command to be a proper ApianCommand so it has a sequence # is part of
+            // the command stream and all - but the deserialization "chain" that I've create really only works if the command is deserialized
+            // here. est plan fo rthe mment is probably a special-case "hook" in FromJSON() below to pass Apian-defined mock-client-commands
+            // to Apian to decode.
+            {ApianMessage.CliCommand+ApianMessage.CheckpointMsg, (s) => JsonConvert.DeserializeObject<ApianCheckpointCommand>(s) },
         };
 
         public static ApianMessage FromJSON(string msgType, string json)
