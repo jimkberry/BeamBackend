@@ -20,15 +20,10 @@ namespace BeamBackend
 
         public static Vector2 zeroPos = new Vector2(0f, 0f);
 
-
-
         public Ground()
         {
 
         }
-
-
-
 
         public static Vector2 NearestGridPoint(Vector2 pos)
         {

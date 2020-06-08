@@ -14,19 +14,19 @@ namespace BeamBackend
 
     public enum TurnDir
     {
-        kStraight = 0, 
+        kStraight = 0,
         kLeft = 1,
         kRight = 2,
-        kUnset = 3, 
+        kUnset = 3,
     }
 
     public enum BikeCommand
     {
         kNone = 0,
-        kStop = 1,             
+        kStop = 1,
         kGo =  2,
         kTurbo = 3,
-   
+
     }
 
     public enum ScoreEvent // Is "event" a bad name (because C#)?
@@ -37,7 +37,7 @@ namespace BeamBackend
         kOffMap = 3,
     }
 
-    public static class GameConstants 
+    public static class GameConstants
     {
         public static readonly int[] eventScores = {
             11, // claimPlace
@@ -51,6 +51,8 @@ namespace BeamBackend
             0f, 90f, 180f, 270f
         };
 
+        public static Heading ReciprocalHeading(Heading h) => (Heading)(((int)h+2)%(int)Heading.kCount);
+
         public static float HeadingDegrees(Heading h) => headingDegrees[(int)h%4];
 
         private static readonly Vector3[] unitOffset3ForHeading = {
@@ -58,7 +60,7 @@ namespace BeamBackend
             new Vector3(0, 0, 1),  // N
             new Vector3(1, 0, 0),  // E
             new Vector3(0, 0, -1),  // S
-            new Vector3(-1, 0, 0),  // W         
+            new Vector3(-1, 0, 0),  // W
         };
 
         public static Vector3 UnitOffset3ForHeading(Heading h) => unitOffset3ForHeading[(int)h%4];
@@ -68,7 +70,7 @@ namespace BeamBackend
             new Vector2(0, 1),  // N
             new Vector2(1, 0),  // E
             new Vector2(0, -1),  // S
-            new Vector2(-1, 0),  // W         
+            new Vector2(-1, 0),  // W
         };
 
         public static Vector2 UnitOffset2ForHeading(Heading h) => unitOffset2ForHeading[(int)h%4];
@@ -80,7 +82,7 @@ namespace BeamBackend
             new Heading[] { Heading.kNorth, Heading.kWest, Heading.kEast }, // N
             new Heading[] { Heading.kEast, Heading.kNorth, Heading.kSouth }, // E
             new Heading[] { Heading.kSouth, Heading.kEast, Heading.kWest }, // S
-            new Heading[] { Heading.kWest, Heading.kSouth, Heading.kNorth } // W                 
+            new Heading[] { Heading.kWest, Heading.kSouth, Heading.kNorth } // W
         };
 
         public static Heading NewHeadForTurn(Heading h, TurnDir t) => newHeadForTurn[(int)h%4][(int)t%3];

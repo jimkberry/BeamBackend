@@ -276,7 +276,7 @@ namespace BeamBackend
         {
             // If it's local we need to tell it to Go!
             bool isLocal = newBike.peerId == core.LocalPeer.PeerId;
-            logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId} Sending GO! command");
+            logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId}");
             if (isLocal)
             {
                 game.PostBikeCommand(newBike, BikeCommand.kGo);
