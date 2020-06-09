@@ -153,13 +153,13 @@ namespace BeamBackend
 
                     // Try this: it's an OBSERVATION! So it'll get routed to GroupMgr, which will send a command
                     // when appropriate.
-                    SendNewPlayerObs(ApianClock.CurrentTime, BeamPlayer.FromBeamJson(member.AppDataJson));
+                    SendNewPlayerObs(ApianClock.CurrentTime, BeamPlayer.FromApianJson(member.AppDataJson));
                 }
                 break;
             case ApianGroupMember.Status.Syncing:
                 if (member.CurStatus == ApianGroupMember.Status.Active)
                 {
-                    SendNewPlayerObs(ApianClock.CurrentTime, BeamPlayer.FromBeamJson(member.AppDataJson));
+                    SendNewPlayerObs(ApianClock.CurrentTime, BeamPlayer.FromApianJson(member.AppDataJson));
                 }
                 break;
             case ApianGroupMember.Status.Active:

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class BeamPlayer
+    public class BeamPlayer : IApianStateData
     {
         public string PeerId { get; private set;}
         public string Name { get; private set;}
@@ -19,7 +19,7 @@ namespace BeamBackend
 
         // Custom compact json
         // TODO: set up params to make more compact.
-        public static BeamPlayer FromBeamJson(string jsonData)
+        public static BeamPlayer FromApianJson(string jsonData)
         {
             object[] data = JsonConvert.DeserializeObject<object[]>(jsonData);
             return new BeamPlayer(
@@ -27,7 +27,7 @@ namespace BeamBackend
                 data[1] as string);
         }
 
-        public string ToBeamJson()
+        public string ApianSerialized(object args=null)
         {
             return  JsonConvert.SerializeObject(new object[]{
                 PeerId,

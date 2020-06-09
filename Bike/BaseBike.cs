@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 using UniLog;
 
@@ -42,16 +43,38 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("BaseBike");
         }
 
-        public string ApianSerialized()
+
+        public class SerialArgs
         {
+            public Dictionary<string,int> peerIdxDict;
+            public long cpTimeStamp;
+            public SerialArgs(Dictionary<string,int> pid, long ts) {peerIdxDict=pid; cpTimeStamp=ts;}
+        };
+
+        public string ApianSerialized(object args)
+        {
+            SerialArgs sArgs = args as SerialArgs;
+
+            // args.peerIdxDict is a dictionary to map peerIds to array indices in the Json for the peers
+            // It makes this Json a lot smaller
+
             // We can deal (mostly) with time differences from one machine to another by
             // replacing the bike's position with the position of the last gridpoint crossed
             // and the apianTime when it was there (assuming current speed.) Or it's
             //  actual position and 0 if the bike's not moving.
 
-            Vector2 point = speed == 0 ? position : UpcomingGridPoint(position, GameConstants.ReciprocalHeading(heading));
-            float timeToPoint = speed == 0 ? 0 : Vector2.Distance(position, point) / speed;
-            long timeAtPoint = speed == 0 ? 0 : gameInst.FrameApianTime - (long)(timeToPoint * 1000f);
+            // First, though - propagate the bikes position back to the checkpoint timestamp
+            // just in case it has just barely passed through a point (command might still be pending)
+            float secsSinceCp = (gameInst.FrameApianTime - sArgs.cpTimeStamp) * .001f;
+            Vector2 cpPos = position - GameConstants.UnitOffset2ForHeading(heading) * speed * secsSinceCp;
+
+            Vector2 point = speed == 0 ? cpPos : UpcomingGridPoint(cpPos, GameConstants.ReciprocalHeading(heading));
+            float timeToPoint = speed == 0 ? 0 : Vector2.Distance(cpPos, point) / speed;
+            long timeAtPoint = speed == 0 ? 0 : sArgs.cpTimeStamp - (long)(timeToPoint * 1000f);
+
+            // round to nearest 100 ms...
+            // TODO: I'm not real happy about this stuff. It just kinda smells funny to me.
+            timeAtPoint = ((timeAtPoint+50) / 100) * 100;
 
             // // WHile I'm debugging. These are in grid-index space (tomake it easier to compare withthe places list)
             // float indexX =   (position.x - Ground.minX) / Ground.gridSize;
@@ -59,7 +82,7 @@ namespace BeamBackend
 
             return  JsonConvert.SerializeObject(new object[]{
                     bikeId,
-                    peerId,
+                    sArgs.peerIdxDict[peerId],
                     name,
                     team.TeamID,
                     ctrlType,

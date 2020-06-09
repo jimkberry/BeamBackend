@@ -215,7 +215,7 @@ namespace BeamBackend
         private void _JoinGroup()
         {
             BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
-            game.apian.JoinGroup(apianGroupId, mb.ToBeamJson());
+            game.apian.JoinGroup(apianGroupId, mb.ApianSerialized());
         }
 
         // Event handlers

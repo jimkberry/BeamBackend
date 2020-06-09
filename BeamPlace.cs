@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Apian;
 using UnityEngine;
@@ -13,10 +14,19 @@ namespace BeamBackend
         public IBike bike;
         public long expirationTimeMs;
 
-        public string ApianSerialized()
+        public class SerialArgs
         {
+            public Dictionary<string,int> bikeIdxDict;
+            public SerialArgs(Dictionary<string,int> bid) {bikeIdxDict=bid;}
+        };
+        public string ApianSerialized(object args)
+        {
+            SerialArgs sArgs = args as SerialArgs;
+            // args.bikeIdxDict is a dictionary to map bikeIds to array indices in the Json for the bikes
+            // It makes this Json a lot smaller
+
             return  JsonConvert.SerializeObject(new object[]{
-                bike.bikeId,
+                sArgs.bikeIdxDict[bike.bikeId],
                 xIdx,
                 zIdx,
                 expirationTimeMs

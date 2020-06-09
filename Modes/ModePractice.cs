@@ -136,7 +136,7 @@ namespace BeamBackend
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
-                apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
+                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
 
                 game.frontend?.OnStartMode(BeamModeFactory.kPractice, null);
                 // waiting for OnGroupJoined()

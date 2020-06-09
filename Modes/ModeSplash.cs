@@ -114,7 +114,7 @@ namespace BeamBackend
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
                 game.GroupJoinedEvt += OnGroupJoinedEvt;
-                apian.JoinGroup(ApianGroupId, mb.ToBeamJson());
+                apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
                 _CurrentState = ModeState.JoiningGroup;
                 // waiting for OnPlayerJoined(localplayer)
             }

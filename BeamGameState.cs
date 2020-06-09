@@ -86,14 +86,33 @@ namespace BeamBackend
             }
         }
 
-        public string ApianSerialized()
+        public class SerialArgs
         {
+            public long seqNum;
+            public long timeStamp;
+            public SerialArgs(long sn, long ts) {seqNum=sn; timeStamp=ts;}
+        };
+
+        public string ApianSerialized(object args=null)
+        {
+            // args is [lonf seqNum, long timeStamp]
+            SerialArgs sArgs = args as SerialArgs;
+
+            // create array index lookups for peers, bikes to replace actual IDs (which are long) in serialized data
+            Dictionary<string,int> peerIndicesDict =  Players.Values.OrderBy(p => p.PeerId)
+                .Select((p,idx) => new {p.PeerId, idx}).ToDictionary( x =>x.PeerId, x=>x.idx);
+
+            Dictionary<string,int> bikeIndicesDict =  Bikes.Values.OrderBy(b => b.bikeId)
+                .Select((b,idx) => new {b.bikeId, idx}).ToDictionary( x =>x.bikeId, x=>x.idx);
+
             // Not all of the data needs the timestamp
-            object[] peersData = Players.Values.OrderBy(p => p.PeerId).Select(p => p.ToBeamJson()).ToArray();
-            object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId).Select(ib => ib.ApianSerialized()).ToArray();
-                // All that is needed here is a list of the active places.
-                // The position arrays can be reconstructed by calling SetupPlace() on the placedata
-            object[] placesData = activePlaces.Values.OrderBy<BeamPlace,int>(p => p.PosHash).Select(p => p.ApianSerialized()).ToArray();
+            object[] peersData = Players.Values.OrderBy(p => p.PeerId)
+                .Select(p => p.ApianSerialized()).ToArray();
+            object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId)
+                .Select(ib => ib.ApianSerialized(new BaseBike.SerialArgs(peerIndicesDict,sArgs.timeStamp))).ToArray();
+            object[] placesData = activePlaces.Values
+                .OrderBy(p => p.expirationTimeMs).ThenBy(p => p.PosHash)
+                .Select(p => p.ApianSerialized(new BeamPlace.SerialArgs(bikeIndicesDict))).ToArray();
 
             return  JsonConvert.SerializeObject(new object[]{
                 peersData,
@@ -160,7 +179,7 @@ namespace BeamBackend
             if (p != null)
             {
                 PlaceFreedEvt?.Invoke(this,p);
-                p.bike = null;
+                p.bike = null; // this is the only reference it holds
                 freePlaces.Push(p); // add to free list
                 activePlaces.Remove(p.PosHash);
                 _reportedTimedOutPlaces.Remove(p.PosHash);
