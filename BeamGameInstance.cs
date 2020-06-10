@@ -111,62 +111,7 @@ namespace BeamBackend
             FrameApianTime = curApianTime;
         }
 
-
-        // public bool Loop(float frameSecs)
-        // {
-        //     bool isActive = apian.Update();  // returns "True" if Active
-
-        //     //
-        //     // Ignore passed in frameSecs.
-        //     //
-        //     long prevFrameApianTime = FrameApianTime;
-        //     long curApianTime = apian.CurrentApianTime();
-
-        //     if (prevFrameApianTime <= 0)
-        //     {
-        //         // skip first frame
-        //         FrameApianTime = curApianTime;
-        //         return true;
-        //     }
-
-        //     if (isActive) // Don't call loop if not active
-        //     {
-        //         long[] frameLengths = _LoopFrameLengths(curApianTime, prevFrameApianTime, NextCheckpointMs);
-        //         //logger.Info($"Loop() Current time: {curApianTime},  frameLengths: ({frameLengths[0]}, {frameLengths[1]})");
-        //         _DoLoop(frameLengths[0], true); // checkpoint if non-zero
-        //         _DoLoop(frameLengths[1], false);
-        //     }
-
-        //     return true;
-        // }
-
-        // private long[] _LoopFrameLengths(long curMs, long prevMs, long checkMs)
-        // {
-        //     // First subloop ends in the checkpoint. Second does not
-        //     if ( NextCheckpointMs > prevMs && checkMs <= curMs )
-        //     {
-        //         // Need to do a checkpoint.
-        //         return new long[] {checkMs - prevMs, curMs-checkMs};
-        //     }
-
-        //     // no checkpoint - set 1st loop len to 0
-        //     return new long[] {0, curMs-prevMs};
-        // }
-
-        // private void _DoLoop(long frameMs, bool checkpointAtEnd)
-        // {
-        //     //logger.Info($"_DoLoop() frameMs: {frameMs}, do checkpoint at end: {checkpointAtEnd}");
-        //     if (frameMs == 0)
-        //         return;
-
-        //     FrameApianTime += frameMs; // Side effect city!
-        //     GameData.Loop(FrameApianTime, frameMs);
-
-        //     ////if (checkpointAtEnd)
-        //     ////    _DoStateCheckpoint();
-        // }
-
-        public void OnCheckpointCommand(long seqNum, long timeStamp)
+         public void OnCheckpointCommand(long seqNum, long timeStamp)
         {
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
             string stateJson = GameData.ApianSerialized(new BeamGameData.SerialArgs(seqNum, timeStamp));
