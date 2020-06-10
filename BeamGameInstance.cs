@@ -188,12 +188,15 @@ namespace BeamBackend
             BaseBike b = GameData.GetBaseBike(msg.bikeId);
             if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
+                b.UpdatePosFromCommand(msg.TimeStamp, BeamPlace.PlacePos( msg.xIdx, msg.zIdx));
+
                 // Claim it
                 BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
                 if (p != null)
                 {
                     logger.Verbose($"OnPlaceClaimCmd() Bike: {b.bikeId} claimed {BeamPlace.PlacePos( msg.xIdx, msg.zIdx).ToString()} at {msg.TimeStamp}");
                     logger.Verbose($"                  BikePos: {b.position.ToString()}, FrameApianTime: {FrameApianTime} ");
+                    logger.Verbose($"   at Timestamp:  BikePos: {b.PosAtTime(msg.TimeStamp).ToString()}, Time: {msg.TimeStamp} ");
                     OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {
@@ -212,9 +215,13 @@ namespace BeamBackend
             Vector2 pos = BeamPlace.PlacePos(msg.xIdx, msg.zIdx);
             BeamPlace p = GameData.GetPlace(pos);
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
-            logger.Verbose($"OnPlaceHitCmd({p?.xIdx},{p?.zIdx}) Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
-            PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
-            OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+            if (p != null && hittingBike != null)
+            {
+                hittingBike.UpdatePosFromCommand(msg.TimeStamp, p.GetPos());
+                logger.Verbose($"OnPlaceHitCmd(p?.GetPos().ToString() Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
+                PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
+                OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
+            }
         }
 
         public void OnPlaceRemovedCmd(PlaceRemovedMsg msg)

@@ -298,5 +298,28 @@ namespace BeamBackend
             return UpcomingGridPoint(position, heading);
         }
 
+        public void UpdatePosFromCommand(long timeStamp, Vector2 posFromCmd)
+        {
+            // Given an authoritative position from a command (claim or hit)
+            // Roll back the current pos to the timestamp, average, and then
+            // roll back forwards
+            //logger.Info($"UpdatePosFromCmd(): Cur time: {gameInst.FrameApianTime}  Pos: {position.ToString()} Bike: {bikeId}");
+            //logger.Info($"                    Cmd time: {timeStamp}  Pos: {posFromCmd.ToString()}");
+            float deltaSecs = (gameInst.FrameApianTime - timeStamp) *.001f;
+            Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
+            //logger.Info($"             Rolled-back Pos: {testPos.ToString()}");
+            Vector2 avgTsPos = (posFromCmd + testPos) * .5f;
+            //logger.Info($"                     Avg Pos: {avgTsPos.ToString()}");
+            position = avgTsPos + GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
+            //logger.Info($"                     New Pos: {position.ToString()}");
+        }
+
+        public Vector2 PosAtTime(long testTime)
+        {
+            float deltaSecs = (gameInst.FrameApianTime - testTime) * .001f;
+            Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
+            return position;
+        }
+
     }
 }
