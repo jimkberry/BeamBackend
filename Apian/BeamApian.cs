@@ -1,8 +1,6 @@
-
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using System.Reflection.Emit;
 using System;
+using System.Text;
+using System.Security.Cryptography; // for MD5 hash
 using System.Collections.Generic;
 using GameNet;
 using Apian;
@@ -269,44 +267,36 @@ namespace BeamBackend
 
         // State checkpoints
 
-        public override void SendStateCheckpoint(long timeStamp, string stateHash) // called by client app
+        static string GetMd5Hash(MD5 md5Hash, string input)
         {
+            // Convert the input string to a byte array and compute the hash.
+            byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
 
+            // Create a new Stringbuilder to collect the bytes
+            // and create a string.
+            StringBuilder sBuilder = new StringBuilder();
+
+            // Loop through each byte of the hashed data
+            // and format each one as a hexadecimal string.
+            for (int i = 0; i < data.Length; i++)
+            {
+                sBuilder.Append(data[i].ToString("x2"));
+            }
+
+            // Return the hexadecimal string.
+            return sBuilder.ToString();
         }
 
-
-        // Beam command handlers
-        // public void OnNewPlayerCmd(ApianNewPlayerCommand cmd, string srcId, string groupChan)
-        // {
-        //     client.OnNewPlayer(cmd.newPlayerMsg);
-        // }
-
-        // public void OnBikeCommandCmd(ApianBikeCommandCommand cmd, string srcId, string groupChan)
-        // {
-        //     client.OnBikeCommand(cmd.bikeCommandMsg);
-        // }
-
-        // public void OnBikeTurnCmd(ApianBikeTurnCommand cmd, string srcId, string groupChan)
-        // {
-        //     Logger.Debug($"OnBikeTurnReq() - bike: {cmd.bikeTurnMsg.bikeId}");
-        //     client.OnBikeTurn(cmd.bikeTurnMsg);
-        // }
-
-        // public void OnBikeCreateCmd(ApianBikeCreateCommand cmd, string srcId, string groupChan)
-        // {
-        //     client.OnCreateBike(cmd.bikeCreateDataMsg);
-        // }
-
-        // public void OnPlaceClaimCmd(ApianPlaceClaimCommand cmd, string srcId, string groupChan)
-        // {
-        //     client.OnPlaceClaim(cmd.placeClaimMsg);
-        // }
-
-        // public void OnPlaceHitCmd(ApianPlaceHitCommand cmd, string srcId, string groupChan)
-        // {
-        //     Logger.Verbose($"OnPlaceHitObs() - Calling OnPlaceHit()");
-        //     client.OnPlaceHit(cmd.placeHitMsg);
-        // }
+        public override void SendStateCheckpoint(long timeStamp, long seqNum, string serializedState) // called by client app
+        {
+            using (MD5 md5Hash = MD5.Create())
+            {
+                string hash = GetMd5Hash(md5Hash, serializedState);
+                Logger.Verbose($"SendStateCheckpoint(): SeqNum: {seqNum}, Hash: {hash}");
+                GroupCheckpointReportMsg rpt = new GroupCheckpointReportMsg(ApianGroup.GroupId, seqNum, timeStamp, hash);
+                BeamGameNet.SendApianMessage(ApianGroup.GroupId, rpt);
+            }
+        }
 
         // - - - - -
 

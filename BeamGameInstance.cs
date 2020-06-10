@@ -170,8 +170,8 @@ namespace BeamBackend
         {
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
             string stateJson = GameData.ApianSerialized(new BeamGameData.SerialArgs(seqNum, timeStamp));
-            logger.Info($"**** Checkpoint:\n{stateJson}\n************\n");
-
+            logger.Verbose($"**** Checkpoint:\n{stateJson}\n************\n");
+            apian.SendStateCheckpoint(FrameApianTime, seqNum, stateJson);
         }
 
         //
