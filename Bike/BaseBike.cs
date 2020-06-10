@@ -127,6 +127,9 @@ namespace BeamBackend
             if (!testPt.Equals(nextPt))
             {
                 logger.Warn($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
+                logger.Warn($"Reported State:\n{JsonConvert.SerializeObject(reportedState)}");
+                logger.Warn($"Actual State:\n{JsonConvert.SerializeObject(new BeamMessage.BikeState(this)) }");
+
                 // Fix it up...
                 // Go back 1 grid space
                 Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
