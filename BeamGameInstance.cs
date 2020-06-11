@@ -179,6 +179,8 @@ namespace BeamBackend
         {
             BaseBike bb = GameData.GetBaseBike(msg.bikeId);
             logger.Verbose($"OnBikeTurnCmd({msg.dir}) Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike:{msg.bikeId}");
+            if (bb == null)
+                logger.Warn($"OnBikeTurnCmd() Bike:{msg.bikeId} not found!");
             float elapsedSecs = (FrameApianTime - msg.TimeStamp) *.001f; // float secs
             bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
@@ -189,6 +191,8 @@ namespace BeamBackend
             BaseBike b = GameData.GetBaseBike(msg.bikeId);
             if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
+                if (b == null)
+                    logger.Warn($"OnPlaceClaimCmd() Bike:{msg.bikeId} not found!");
                 b.UpdatePosFromCommand(msg.TimeStamp, BeamPlace.PlacePos( msg.xIdx, msg.zIdx));
 
                 // Claim it
@@ -377,7 +381,7 @@ namespace BeamBackend
 
         protected void _RemoveBike(IBike ib, bool shouldBlowUp=true)
         {
-            logger.Verbose($"_RemoveBike(): {ib.bikeId}");
+            logger.Info($"_RemoveBike(): {ib.bikeId}");
             GameData.RemovePlacesForBike(ib);
             BikeRemovedEvt?.Invoke(this, new BikeRemovedData(ib.bikeId,  shouldBlowUp));
             GameData.PostBikeRemoval(ib.bikeId); // we're almost certainly iterating over the list of bikes so don;t remove it yet.
