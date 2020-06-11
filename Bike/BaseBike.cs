@@ -68,6 +68,7 @@ namespace BeamBackend
             float secsSinceCp = (gameInst.FrameApianTime - sArgs.cpTimeStamp) * .001f;
             Vector2 cpPos = position - GameConstants.UnitOffset2ForHeading(heading) * speed * secsSinceCp;
 
+            // Find what THEN was the last point visited andw when we were there
             Vector2 point = speed == 0 ? cpPos : UpcomingGridPoint(cpPos, GameConstants.ReciprocalHeading(heading));
             float timeToPoint = speed == 0 ? 0 : Vector2.Distance(cpPos, point) / speed;
             long timeAtPoint = speed == 0 ? 0 : sArgs.cpTimeStamp - (long)(timeToPoint * 1000f);
@@ -86,7 +87,7 @@ namespace BeamBackend
                     name,
                     team.TeamID,
                     ctrlType,
-                    (long)(point.x * 1000f),
+                    (long)(point.x * 1000f), // integer mm
                     (long)(point.y * 1000f),
                     timeAtPoint,
                     heading,
@@ -107,43 +108,26 @@ namespace BeamBackend
 
         public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs, BeamMessage.BikeState reportedState)
         {
-            // TODO: &&&& reported state really should not be there. If there's a position issue it should already have been
-            // detected by Apian and fixed. (No, it doesn't do that - yet)
-
+            // TODO: &&&& reported state really should not be there.
             if (commandDelaySecs != 0)
                 logger.Verbose($"ApplyTurn(): rolling back {commandDelaySecs} to turn {bikeId} {dir}");
 
-            float rollbackSecs = _rollbackTime(commandDelaySecs);
-
-            // &&& Get rid of this, too
-            // // Just shove it in
-            // // TODO: make this more gentle
-            // //score = reportedState.score;
-            // speed = reportedState.speed;
-            // heading = reportedState.heading;
-            // position = new Vector2(reportedState.xPos, reportedState.yPos);
+            float rollbackSecs = _rollbackTime(commandDelaySecs); // Move the bike backwards to the reported time
 
             Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
             {
                 logger.Warn($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
+                logger.Warn($"We think it should be {(testPt.ToString())}");
                 logger.Warn($"Reported State:\n{JsonConvert.SerializeObject(reportedState)}");
                 logger.Warn($"Actual State:\n{JsonConvert.SerializeObject(new BeamMessage.BikeState(this)) }");
+                logger.Warn($"Stuffing-in reported state data.");
+                // Just shove the reported data in
+                score = reportedState.score;
+                speed = reportedState.speed;
+                heading = reportedState.heading;
+                position = new Vector2(reportedState.xPos, reportedState.yPos);
 
-                // Fix it up...
-                // Go back 1 grid space
-                Vector2 p2 = position - GameConstants.UnitOffset2ForHeading(heading) * Ground.gridSize;
-                Vector2 testPt2 = UpcomingGridPoint(p2, heading);
-                if (testPt2.Equals(nextPt))
-                {
-                    // We can fix
-                    Heading newHead = GameConstants.NewHeadForTurn(heading, dir);
-                    Vector2 newPos = nextPt +  GameConstants.UnitOffset2ForHeading(newHead) * Vector2.Distance(nextPt, position);
-                    heading = newHead;
-                    logger.Warn($"  Fixed.");
-                } else {
-                    logger.Warn($"  Unable to fix. We think it should be {(testPt.ToString())} or {(testPt2.ToString())}");
-                }
             }
             pendingTurn = dir;
             _updatePosition(rollbackSecs);
@@ -196,7 +180,7 @@ namespace BeamBackend
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
                 pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading);
+                DoAtGridPoint(upcomingPoint, heading, gameInst.FrameApianTime + (long)(timeToPoint*1000));
                 heading = newHead;
             }
 
@@ -234,9 +218,9 @@ namespace BeamBackend
             return secs;
         }
 
-        protected virtual void DoAtGridPoint(Vector2 pos, Heading head)
+        protected virtual void DoAtGridPoint(Vector2 pos, Heading head, long apianTime)
         {
-            BeamGameData gData = gameInst.GameData;
+            BeamGameState gData = gameInst.GameData;
             BeamPlace p = gData.GetPlace(pos);
             logger.Debug($"DoAtGridPoint()");
             if (p == null)
@@ -248,7 +232,7 @@ namespace BeamBackend
                 {
                     // Yes. Since it's empty send a claim report
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.apian.SendPlaceClaimObs(gameInst.FrameApianTime, this, xIdx, zIdx);
+                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -260,11 +244,11 @@ namespace BeamBackend
                     //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);
                     // This is stupid and temporary (rather than just getting rid of the test)
                     // TODO: FIX THIS!!!  &&&&&&&
-                    gameInst.apian.SendPlaceClaimObs(gameInst.FrameApianTime, this, xIdx, zIdx);
+                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx);
                 }
             } else {
                 // Hit a marker. Report it.
-                gameInst.apian.SendPlaceHitObs(gameInst.FrameApianTime, this, p.xIdx, p.zIdx);
+                gameInst.apian.SendPlaceHitObs(apianTime, this, p.xIdx, p.zIdx);
             }
         }
 
@@ -317,7 +301,7 @@ namespace BeamBackend
             //logger.Info($"                     New Pos: {position.ToString()}");
         }
 
-        public Vector2 PosAtTime(long testTime)
+        public Vector2 PosAtTime(long testTime) // assumes NOW is FrameApianTime
         {
             float deltaSecs = (gameInst.FrameApianTime - testTime) * .001f;
             Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
