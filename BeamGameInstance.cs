@@ -403,6 +403,7 @@ namespace BeamBackend
        // Ground-related
         public void OnPlaceTimeoutEvt(object sender, BeamPlace p)
         {
+            logger.Verbose($"OnPlaceTimeoutEvt(): {p.GetPos().ToString()}");
             apian.SendPlaceRemovedObs(FrameApianTime, p.xIdx, p.zIdx);
         }
 
