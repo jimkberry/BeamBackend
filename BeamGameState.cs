@@ -2,9 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using GameModeMgr;
 using UnityEngine;
-using GameNet;
 using Apian;
 using UniLog;
 
@@ -17,6 +15,7 @@ namespace BeamBackend
         public event EventHandler<BeamPlace> PlaceTimeoutEvt;
         public event EventHandler PlacesClearedEvt;
 
+        public UniLogger Logger;
 
         // Here's the actual base state data:
 	    public Ground Ground { get; private set; } = null; // TODO: Is there any mutable state here anymore?
@@ -32,6 +31,7 @@ namespace BeamBackend
 
         public BeamGameState(IBeamFrontend fep)
         {
+            Logger = UniLogger.GetLogger("BeamGameState");
             Players = new Dictionary<string, BeamPlayer>();
             Bikes = new Dictionary<string, IBike>();
             Ground = new Ground();
@@ -179,10 +179,10 @@ namespace BeamBackend
             if (p != null)
             {
                 PlaceFreedEvt?.Invoke(this,p);
-                p.bike = null; // this is the only reference it holds
                 freePlaces.Push(p); // add to free list
                 activePlaces.Remove(p.PosHash);
                 _reportedTimedOutPlaces.Remove(p.PosHash);
+                p.bike = null; // this is the only reference it holds
             }
         }
 
@@ -197,9 +197,25 @@ namespace BeamBackend
             foreach (BeamPlace p in PlacesForBike(bike))
                 PostPlaceRemoval(p);
         }
+
+        // public List<BeamPlace> PlacesForBike(IBike ib)
+        // {
+        //     return activePlaces.Values.Where(p => p.bike.bikeId == ib.bikeId).ToList();
+        // }
+
         public List<BeamPlace> PlacesForBike(IBike ib)
         {
-            return activePlaces.Values.Where(p => p.bike.bikeId == ib.bikeId).ToList();
+            return activePlaces.Values.Where(p =>
+                {
+                    if ( ib == null)
+                        Logger.Warn($"PlacesForBike() null Bike!");
+
+                    if ( p == null)
+                        Logger.Warn($"PlacesForBike() null place!");
+                    if (p.bike == null)
+                        Logger.Warn($"PlacesForBike() Active place {p.GetPos().ToString()} has null bike.");
+                    return p.bike?.bikeId == ib.bikeId;
+                } ).ToList();
         }
 
         public BeamPlace GetPlace(int xIdx, int zIdx) => activePlaces.GetValueOrDefault(BeamPlace.MakePosHash(xIdx,zIdx), null);
