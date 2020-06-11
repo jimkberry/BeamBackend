@@ -11,6 +11,7 @@ namespace BeamBackend
         public const string kNewPlayer = "Bpln";
         public const string kPlayerLeft = "Bpll";
         public const string kBikeCreateData = "Bbcd";
+        public const string kRemoveBikeMsg = "Bbrm";
         public const string kBikeDataQuery = "Bbdq"; // TODO: check if still exists/used
         public const string kBikeTurnMsg = "Btrn";
         public const string kBikeCommandMsg = "Bcmd";
@@ -123,8 +124,6 @@ namespace BeamBackend
         public ApianPlayerLeftCommand() : base() {}
     }
 
-
-
     public class BikeCreateDataMsg : BeamMessage
     {
         public string bikeId;
@@ -177,6 +176,28 @@ namespace BeamBackend
 
     }
 
+    public class RemoveBikeMsg : BeamMessage
+    {
+        public string bikeId;
+        public RemoveBikeMsg() : base() {}
+        public RemoveBikeMsg(long ts, string _bikeId) : base(kRemoveBikeMsg, ts) { bikeId = _bikeId; }
+    }
+
+    public class ApianRemoveBikeObservation : ApianObservation
+    {
+        public override ApianClientMsg ClientMsg {get => removeBikeMsg;}
+        public RemoveBikeMsg removeBikeMsg;
+        public ApianRemoveBikeObservation(string gid, RemoveBikeMsg _removeBikeMsg) : base(gid, _removeBikeMsg) {removeBikeMsg=_removeBikeMsg;}
+        public ApianRemoveBikeObservation() : base() {}
+        public override ApianCommand ToCommand(long seqNum) => new ApianRemoveBikeCommand(seqNum, DestGroupId, removeBikeMsg);
+    }
+    public class ApianRemoveBikeCommand : ApianCommand
+    {
+        public override ApianClientMsg ClientMsg {get => removeBikeMsg;}
+        public RemoveBikeMsg removeBikeMsg;
+        public ApianRemoveBikeCommand(long seqNum, string gid, RemoveBikeMsg _removeBikeMsg) : base(seqNum, gid, _removeBikeMsg) {removeBikeMsg=_removeBikeMsg;}
+        public ApianRemoveBikeCommand() : base() {}
+    }
 
     public class BikeTurnMsg : BeamMessage
     {
@@ -347,7 +368,6 @@ namespace BeamBackend
     }
 
 
-
     static public class BeamApianMessageDeserializer
     {
         // TODO: Come up with a sane way of desrializing messages
@@ -359,6 +379,7 @@ namespace BeamBackend
             {ApianMessage.CliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },
+            {ApianMessage.CliRequest+BeamMessage.kRemoveBikeMsg, (s) => JsonConvert.DeserializeObject<ApianRemoveBikeObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedObservation>(s) },
@@ -368,6 +389,7 @@ namespace BeamBackend
             {ApianMessage.CliCommand+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateCommand>(s) },
+            {ApianMessage.CliCommand+BeamMessage.kRemoveBikeMsg, (s) => JsonConvert.DeserializeObject<ApianRemoveBikeCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitCommand>(s) },
             {ApianMessage.CliCommand+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedCommand>(s) },
