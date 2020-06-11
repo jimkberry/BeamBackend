@@ -62,6 +62,7 @@ namespace BeamBackend
                 [BeamMessage.kNewPlayer] = (msg) => OnNewPlayerCmd(msg as NewPlayerMsg),
                 [BeamMessage.kPlayerLeft] = (msg) => OnPlayerLeftCmd(msg as PlayerLeftMsg),
                 [BeamMessage.kBikeCreateData] = (msg) => this.OnCreateBikeCmd(msg as BikeCreateDataMsg),
+                [BeamMessage.kRemoveBikeMsg] = (msg) => this.OnRemoveBikeCmd(msg as RemoveBikeMsg),
                 [BeamMessage.kBikeTurnMsg] = (msg) => this.OnBikeTurnCmd(msg as BikeTurnMsg),
                 [BeamMessage.kBikeCommandMsg] =(msg) => this.OnBikeCommandCmd(msg as BikeCommandMsg),
                 [BeamMessage.kPlaceClaimMsg] = (msg) => this.OnPlaceClaimCmd(msg as PlaceClaimMsg),
@@ -182,7 +183,7 @@ namespace BeamBackend
             if (bb == null)
                 logger.Warn($"OnBikeTurnCmd() Bike:{msg.bikeId} not found!");
             float elapsedSecs = (FrameApianTime - msg.TimeStamp) *.001f; // float secs
-            bb.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
+            bb?.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ), elapsedSecs, msg.bikeState);
         }
 
         public void OnPlaceClaimCmd(PlaceClaimMsg msg)
@@ -227,6 +228,13 @@ namespace BeamBackend
                 PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
                 OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             }
+        }
+
+        public void OnRemoveBikeCmd(RemoveBikeMsg msg)
+        {
+            logger.Verbose($"OnRemoveBikeCmd({msg.bikeId}) Now: {FrameApianTime} Ts: {msg.TimeStamp}");
+            IBike ib = GameData.GetBaseBike(msg.bikeId);
+            _RemoveBike(ib, true);
         }
 
         public void OnPlaceRemovedCmd(PlaceRemovedMsg msg)
@@ -308,7 +316,7 @@ namespace BeamBackend
             if (evt == ScoreEvent.kOffMap || bike.score <= 0)
             {
                 bike.score = 0;
-                _RemoveBike(bike);
+                apian.SendRemoveBikeObs(FrameApianTime, bike.bikeId);
             }
         }
 

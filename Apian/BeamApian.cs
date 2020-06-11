@@ -372,6 +372,14 @@ namespace BeamBackend
             SendRequestOrObservation(destId ?? ApianGroup.GroupId, req);
         }
 
+        public  void SendRemoveBikeObs(long timeStamp, string bikeId)
+        {
+            Logger.Debug($"SendRemoveBikeObs()");
+            RemoveBikeMsg msg = new RemoveBikeMsg(timeStamp, bikeId);
+            ApianRemoveBikeObservation obs = new ApianRemoveBikeObservation(ApianGroup?.GroupId, msg);
+            SendRequestOrObservation(ApianGroup.GroupId, obs);
+        }
+
         public  void SendPlaceClaimObs(long timeStamp, IBike bike, int xIdx, int zIdx)
         {
             Logger.Debug($"SendPlaceClaimObs()");

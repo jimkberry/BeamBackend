@@ -379,7 +379,7 @@ namespace BeamBackend
             {ApianMessage.CliRequest+BeamMessage.kBikeTurnMsg, (s) => JsonConvert.DeserializeObject<ApianBikeTurnRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCommandMsg, (s) => JsonConvert.DeserializeObject<ApianBikeCommandRequest>(s) },
             {ApianMessage.CliRequest+BeamMessage.kBikeCreateData, (s) => JsonConvert.DeserializeObject<ApianBikeCreateRequest>(s) },
-            {ApianMessage.CliRequest+BeamMessage.kRemoveBikeMsg, (s) => JsonConvert.DeserializeObject<ApianRemoveBikeObservation>(s) },
+            {ApianMessage.CliObservation+BeamMessage.kRemoveBikeMsg, (s) => JsonConvert.DeserializeObject<ApianRemoveBikeObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceClaimMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceClaimObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceHitMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceHitObservation>(s) },
             {ApianMessage.CliObservation+BeamMessage.kPlaceRemovedMsg, (s) => JsonConvert.DeserializeObject<ApianPlaceRemovedObservation>(s) },
