@@ -176,6 +176,7 @@ namespace BeamBackend
 
             if (secs >= timeToPoint)
             {
+                logger.Verbose($"_updatePosition() Bike: {bikeId} MsToPoint: {(long)(timeToPoint*1000)}");
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
@@ -189,40 +190,40 @@ namespace BeamBackend
             position = newPos;
         }
 
-        // private float _rollbackTime(float secs)
-        // {
-        //     // Propagate the bike backwards in time by "secs" or almost the length of time that
-        //     // takes it backwards to the previous point - whichever is shorter
-        //     // This is to try to minimize message delays.
-        //     // If, for instance, a bike command is received that we know happened .08 secs ago,
-        //     // then the code handling the command can roll the bike back, apply the ecommand, and then
-        //     // call bike.update(rolledBackTime) to have effectively back-applied the command.
-        //     // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
-        //     // It returns the amount of time rolled back as a positive float.
-        //     if (speed == 0 || secs <= 0)
-        //         return 0;
-        //     Vector2 upcomingPoint = UpcomingGridPoint();
-        //     float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
-        //     float timeSinceLastPoint = Mathf.Max(0,((Ground.gridSize * .8f) / speed) - timeToNextPoint); // Note QUITE all the way back
-        //     secs = Mathf.Min(secs, timeSinceLastPoint);
-        //     position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
-        //     return secs;
-        // }
-
         private float _rollbackTime(float secs)
         {
-            // Propagate the bike backwards in time by "secs" to apply a command that should have happened in the past
-            // (See above for a version that tries to avoid crossing gridpoints - this one does not anymore - the cure
-            //  was worse than the disease)
+            // Propagate the bike backwards in time by "secs" or almost the length of time that
+            // takes it backwards to the previous point - whichever is shorter
+            // This is to try to minimize message delays.
+            // If, for instance, a bike command is received that we know happened .08 secs ago,
+            // then the code handling the command can roll the bike back, apply the ecommand, and then
+            // call bike.update(rolledBackTime) to have effectively back-applied the command.
+            // it's not really safe to go backwards across a gridpoint, so that's as far as we'll go back.
+            // It returns the amount of time rolled back as a positive float.
+            if (speed == 0 || secs <= 0)
+                return 0;
+            Vector2 upcomingPoint = UpcomingGridPoint();
+            float timeToNextPoint = Vector2.Distance(position, upcomingPoint) / speed;
+            float timeSinceLastPoint = Mathf.Max(0,((Ground.gridSize * .8f) / speed) - timeToNextPoint); // Note QUITE all the way back
+            secs = Mathf.Min(secs, timeSinceLastPoint);
             position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
             return secs;
         }
+
+        // private float _rollbackTime(float secs)
+        // {
+        //     // Propagate the bike backwards in time by "secs" to apply a command that should have happened in the past
+        //     // (See above for a version that tries to avoid crossing gridpoints - this one does not anymore - the cure
+        //     //  was worse than the disease)
+        //     position -= GameConstants.UnitOffset2ForHeading(heading) * secs * speed;
+        //     return secs;
+        // }
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading head, long apianTime)
         {
             BeamGameState gData = gameInst.GameData;
             BeamPlace p = gData.GetPlace(pos);
-            logger.Debug($"DoAtGridPoint()");
+            logger.Debug($"DoAtGridPoint({pos.ToString()}) Bike: {bikeId} Time: {apianTime}");
             if (p == null)
             {
                 int xIdx, zIdx;
