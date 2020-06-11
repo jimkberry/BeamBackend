@@ -44,7 +44,7 @@ namespace BeamBackend
         public Dictionary<string, BeamApianPeer> apianPeers;
         public IBeamGameNet BeamGameNet {get; private set;}
         protected BeamGameInstance client;
-        protected BeamGameData gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed
+        protected BeamGameState gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed
                                         // TODO: ALSO - this is currently only ever referenced when set. ie - it's not used. Maybe make it go away?
 
         protected bool LocalPeerIsActive {get => (ApianGroup != null) && (ApianGroup.LocalMember?.CurStatus == ApianGroupMember.Status.Active); }

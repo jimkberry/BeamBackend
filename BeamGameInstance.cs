@@ -18,7 +18,7 @@ namespace BeamBackend
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
         public event EventHandler<PlayerLeftArgs> PlayerLeftEvt;
 
-        public BeamGameData GameData {get; private set;}
+        public BeamGameState GameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
         public BeamApian apian {get; private set;}
         public UniLogger logger;
@@ -54,7 +54,7 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("GameInstance");
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
-            GameData = new BeamGameData(frontend);
+            GameData = new BeamGameState(frontend);
             GameData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
@@ -114,7 +114,7 @@ namespace BeamBackend
          public void OnCheckpointCommand(long seqNum, long timeStamp)
         {
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
-            string stateJson = GameData.ApianSerialized(new BeamGameData.SerialArgs(seqNum, timeStamp));
+            string stateJson = GameData.ApianSerialized(new BeamGameState.SerialArgs(seqNum, timeStamp));
             logger.Verbose($"**** Checkpoint:\n{stateJson}\n************\n");
             apian.SendStateCheckpoint(FrameApianTime, seqNum, stateJson);
         }
@@ -138,6 +138,7 @@ namespace BeamBackend
 
         public void OnApianCommand(ApianCommand cmd)
         {
+            logger.Debug($"OnApianCommand() Seq#: {cmd.SequenceNum} Cmd: {cmd.CliMsgType}");
             commandHandlers[cmd.ClientMsg.MsgType](cmd.ClientMsg as BeamMessage);
         }
 

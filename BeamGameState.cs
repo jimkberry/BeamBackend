@@ -10,7 +10,7 @@ using UniLog;
 
 namespace BeamBackend
 {
-    public class BeamGameData : IApianStateData
+    public class BeamGameState : IApianStateData
     {
         public event EventHandler<BeamPlace> PlaceFreedEvt;
         public event EventHandler<BeamPlace> SetupPlaceMarkerEvt;
@@ -30,7 +30,7 @@ namespace BeamBackend
         protected List<BeamPlace> _placesToRemoveAfterLoop; // Places also are not destroyed until the end of the data loop
         protected Dictionary<int, BeamPlace> _reportedTimedOutPlaces; // places that have been reported as timed out, but not removed yet
 
-        public BeamGameData(IBeamFrontend fep)
+        public BeamGameState(IBeamFrontend fep)
         {
             Players = new Dictionary<string, BeamPlayer>();
             Bikes = new Dictionary<string, IBike>();
