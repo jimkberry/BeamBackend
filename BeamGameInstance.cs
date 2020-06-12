@@ -193,8 +193,12 @@ namespace BeamBackend
             if (GameData.Ground.IndicesAreOnMap(msg.xIdx, msg.zIdx))
             {
                 if (b == null)
-                    logger.Warn($"OnPlaceClaimCmd() Bike:{msg.bikeId} not found!");
-                b.UpdatePosFromCommand(msg.TimeStamp, BeamPlace.PlacePos( msg.xIdx, msg.zIdx));
+                {
+                    logger.Warn($"OnPlaceClaimCmd() Bike:{msg.bikeId} not found!"); // can happen if RemoveCmd and ClaimObs interleave
+                    return;
+                }
+
+                b.UpdatePosFromCommand(msg.TimeStamp, BeamPlace.PlacePos( msg.xIdx, msg.zIdx), msg.exitHead);
 
                 // Claim it
                 BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
@@ -223,7 +227,7 @@ namespace BeamBackend
             BaseBike hittingBike = GameData.GetBaseBike(msg.bikeId);
             if (p != null && hittingBike != null)
             {
-                hittingBike.UpdatePosFromCommand(msg.TimeStamp, p.GetPos());
+                hittingBike.UpdatePosFromCommand(msg.TimeStamp, p.GetPos(), msg.exitHead);
                 logger.Verbose($"OnPlaceHitCmd(p?.GetPos().ToString() Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
                 PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
                 OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
@@ -316,6 +320,7 @@ namespace BeamBackend
             if (evt == ScoreEvent.kOffMap || bike.score <= 0)
             {
                 bike.score = 0;
+                logger.Info($"OnScoreEvent(). Sending RemoveBikeObs: {bike.bikeId}");
                 apian.SendRemoveBikeObs(FrameApianTime, bike.bikeId);
             }
         }

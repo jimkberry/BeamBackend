@@ -277,16 +277,20 @@ namespace BeamBackend
     public class PlaceClaimMsg : BeamMessage
     {
         public string bikeId;
-        public string ownerPeer;
+        public string ownerPeer; // this is redundant (get it from the bike)
         public int xIdx;
         public int zIdx;
+        public Heading entryHead;
+        public Heading exitHead;
         public PlaceClaimMsg() : base() {}
-        public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx) : base(kPlaceClaimMsg, ts)
+        public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx, Heading entryH, Heading exitH) : base(kPlaceClaimMsg, ts)
         {
             bikeId = _bikeId;
             ownerPeer = _ownerPeer;
             xIdx = _xIdx;
             zIdx = _zIdx;
+            entryHead = entryH;
+            exitHead = exitH;
         }
     }
 
@@ -313,13 +317,17 @@ namespace BeamBackend
         public string ownerPeer;
         public int xIdx;
         public int zIdx;
+        public Heading entryHead;
+        public Heading exitHead;
         public PlaceHitMsg() : base() {}
-        public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx) : base(kPlaceHitMsg, ts)
+        public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx, Heading entryH, Heading exitH) : base(kPlaceHitMsg, ts)
         {
             bikeId = _bikeId;
             ownerPeer = _ownerPeer;
             xIdx=_xIdx;
             zIdx=_zIdx;
+            entryHead = entryH;
+            exitHead = exitH;
         }
     }
 

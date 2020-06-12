@@ -180,8 +180,7 @@ namespace BeamBackend
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
-                pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading, gameInst.FrameApianTime); // + (long)(timeToPoint*1000)
+                DoAtGridPoint(upcomingPoint, heading, newHead, gameInst.FrameApianTime + (long)(timeToPoint*1000));
                 heading = newHead;
             }
 
@@ -219,7 +218,7 @@ namespace BeamBackend
         //     return secs;
         // }
 
-        protected virtual void DoAtGridPoint(Vector2 pos, Heading head, long apianTime)
+        protected virtual void DoAtGridPoint(Vector2 pos, Heading entryHead, Heading exitHead, long apianTime)
         {
             BeamGameState gData = gameInst.GameData;
             BeamPlace p = gData.GetPlace(pos);
@@ -233,7 +232,7 @@ namespace BeamBackend
                 {
                     // Yes. Since it's empty send a claim report
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx);
+                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx, entryHead, exitHead);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -245,11 +244,11 @@ namespace BeamBackend
                     //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);
                     // This is stupid and temporary (rather than just getting rid of the test)
                     // TODO: FIX THIS!!!  &&&&&&&
-                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx);
+                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx, entryHead, exitHead);
                 }
             } else {
                 // Hit a marker. Report it.
-                gameInst.apian.SendPlaceHitObs(apianTime, this, p.xIdx, p.zIdx);
+                gameInst.apian.SendPlaceHitObs(apianTime, this, p.xIdx, p.zIdx, entryHead, exitHead);
             }
         }
 
@@ -286,20 +285,27 @@ namespace BeamBackend
             return UpcomingGridPoint(position, heading);
         }
 
-        public void UpdatePosFromCommand(long timeStamp, Vector2 posFromCmd)
+        public void UpdatePosFromCommand(long timeStamp, Vector2 posFromCmd, Heading cmdHead)
         {
-            return;
             // Given an authoritative position from a command (claim or hit)
+            // Compute where the bike should be now according to the command
+            float deltaSecs = Mathf.Max((gameInst.FrameApianTime - timeStamp) *.001f, .001f);
+
+            Vector2 cmdPos = posFromCmd + GameConstants.UnitOffset2ForHeading(cmdHead) * deltaSecs * speed;
+
+            logger.Debug($"UpdatePosFromCmd(): Cur time: {gameInst.FrameApianTime}, Bike: {bikeId},  Pos: {position.ToString()}, CurCmdPos: {cmdPos.ToString()}");
+            position = cmdPos;
+
             // Roll back the current pos to the timestamp, average, and then
             // roll back forwards
             //logger.Info($"UpdatePosFromCmd(): Cur time: {gameInst.FrameApianTime}  Pos: {position.ToString()} Bike: {bikeId}");
             //logger.Info($"                    Cmd time: {timeStamp}  Pos: {posFromCmd.ToString()}");
-            float deltaSecs = (gameInst.FrameApianTime - timeStamp) *.001f;
-            Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
+
+            //Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
             //logger.Info($"             Rolled-back Pos: {testPos.ToString()}");
-            Vector2 avgTsPos = (posFromCmd + testPos) * .5f;
+            //Vector2 avgTsPos = (posFromCmd + testPos) * .5f;
             //logger.Info($"                     Avg Pos: {avgTsPos.ToString()}");
-            position = avgTsPos + GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
+            //position = avgTsPos + GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
             //logger.Info($"                     New Pos: {position.ToString()}");
         }
 
