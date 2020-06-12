@@ -176,12 +176,12 @@ namespace BeamBackend
 
             if (secs >= timeToPoint)
             {
-                logger.Verbose($"_updatePosition() Bike: {bikeId} MsToPoint: {(long)(timeToPoint*1000)}");
+                logger.Debug($"_updatePosition() Bike: {bikeId} MsToPoint: {(long)(timeToPoint*1000)}");
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
                 pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading, gameInst.FrameApianTime + (long)(timeToPoint*1000));
+                DoAtGridPoint(upcomingPoint, heading, gameInst.FrameApianTime); // + (long)(timeToPoint*1000)
                 heading = newHead;
             }
 
@@ -223,7 +223,7 @@ namespace BeamBackend
         {
             BeamGameState gData = gameInst.GameData;
             BeamPlace p = gData.GetPlace(pos);
-            logger.Debug($"DoAtGridPoint({pos.ToString()}) Bike: {bikeId} Time: {apianTime}");
+            logger.Verbose($"DoAtGridPoint({pos.ToString()}) Bike: {bikeId} Time: {apianTime} Dt: {apianTime - gameInst.FrameApianTime}");
             if (p == null)
             {
                 int xIdx, zIdx;
@@ -288,6 +288,7 @@ namespace BeamBackend
 
         public void UpdatePosFromCommand(long timeStamp, Vector2 posFromCmd)
         {
+            return;
             // Given an authoritative position from a command (claim or hit)
             // Roll back the current pos to the timestamp, average, and then
             // roll back forwards
