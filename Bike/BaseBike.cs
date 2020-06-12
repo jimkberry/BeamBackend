@@ -180,6 +180,7 @@ namespace BeamBackend
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
+                pendingTurn = TurnDir.kUnset;
                 DoAtGridPoint(upcomingPoint, heading, newHead, gameInst.FrameApianTime + (long)(timeToPoint*1000));
                 heading = newHead;
             }
