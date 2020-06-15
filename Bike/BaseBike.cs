@@ -51,6 +51,11 @@ namespace BeamBackend
             public SerialArgs(Dictionary<string,int> pid, long ts) {peerIdxDict=pid; cpTimeStamp=ts;}
         };
 
+        private long _RoundToNearest(long interval, long inVal)
+        {
+            return ((inVal+interval/2) / interval) * interval;
+        }
+
         public string ApianSerialized(object args)
         {
             SerialArgs sArgs = args as SerialArgs;
@@ -75,7 +80,7 @@ namespace BeamBackend
 
             // round to nearest 100 ms...
             // TODO: I'm not real happy about this stuff. It just kinda smells funny to me.
-            timeAtPoint = ((timeAtPoint+50) / 100) * 100;
+            timeAtPoint = _RoundToNearest(100, timeAtPoint);
 
             // // WHile I'm debugging. These are in grid-index space (tomake it easier to compare withthe places list)
             // float indexX =   (position.x - Ground.minX) / Ground.gridSize;
@@ -181,7 +186,7 @@ namespace BeamBackend
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
                 pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading, newHead, gameInst.FrameApianTime + (long)(timeToPoint*1000));
+                DoAtGridPoint(upcomingPoint, heading, newHead, gameInst.FrameApianTime);// + (long)(timeToPoint*1000)); // Using the offset makes odd things happen on the server
                 heading = newHead;
             }
 
@@ -290,11 +295,12 @@ namespace BeamBackend
         {
             // Given an authoritative position from a command (claim or hit)
             // Compute where the bike should be now according to the command
-            float deltaSecs = Mathf.Max((gameInst.FrameApianTime - timeStamp) *.001f, .001f);
+            float deltaSecs = Mathf.Max((gameInst.FrameApianTime - timeStamp) *.001f, .000001f);
 
             Vector2 cmdPos = posFromCmd + GameConstants.UnitOffset2ForHeading(cmdHead) * deltaSecs * speed;
+            logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {gameInst.FrameApianTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
+            logger.Verbose($"CurPos: {position.ToString()}, CurCmdPos: {cmdPos.ToString()}");
 
-            logger.Debug($"UpdatePosFromCmd(): Cur time: {gameInst.FrameApianTime}, Bike: {bikeId},  Pos: {position.ToString()}, CurCmdPos: {cmdPos.ToString()}");
             position = cmdPos;
 
             // Roll back the current pos to the timestamp, average, and then
