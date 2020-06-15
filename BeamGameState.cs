@@ -62,8 +62,8 @@ namespace BeamBackend
 
             LoopPlaces(nowMs);
 
+            _placesToRemoveAfterLoop.RemoveAll( p => { RemoveActivePlace(p); return true; } ); // send removal messages for places before bikes
             _bikeIdsToRemoveAfterLoop.RemoveAll( bid => {Bikes.Remove(bid); return true; });
-            _placesToRemoveAfterLoop.RemoveAll( p => { RemoveActivePlace(p); return true; } );
 
         }
 
