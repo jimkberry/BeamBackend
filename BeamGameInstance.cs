@@ -115,6 +115,7 @@ namespace BeamBackend
          public void OnCheckpointCommand(long seqNum, long timeStamp)
         {
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
+            GameData.UpdateCommandSequenceNumber(seqNum);
             string stateJson = GameData.ApianSerialized(new BeamGameState.SerialArgs(seqNum, timeStamp));
             logger.Verbose($"**** Checkpoint:\n{stateJson}\n************\n");
             apian.SendStateCheckpoint(FrameApianTime, seqNum, stateJson);
@@ -140,6 +141,7 @@ namespace BeamBackend
         public void OnApianCommand(ApianCommand cmd)
         {
             logger.Debug($"OnApianCommand() Seq#: {cmd.SequenceNum} Cmd: {cmd.CliMsgType}");
+            GameData.UpdateCommandSequenceNumber(cmd.SequenceNum);
             commandHandlers[cmd.ClientMsg.MsgType](cmd.ClientMsg as BeamMessage);
         }
 

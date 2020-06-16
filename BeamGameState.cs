@@ -17,8 +17,12 @@ namespace BeamBackend
 
         public UniLogger Logger;
 
+        //
         // Here's the actual base state data:
-	    public Ground Ground { get; private set; } = null; // TODO: Is there any mutable state here anymore?
+        //
+	    public Ground Ground { get; private set; } = null; // TODO: Is there any mutable state here anymore? NO
+
+        public long CommandSequenceNumber { get; private set; } = -1;
         public Dictionary<string, BeamPlayer> Players { get; private set; } = null;
         public Dictionary<string, IBike> Bikes { get; private set; } = null;
         public Dictionary<int, BeamPlace> activePlaces = null; //  BeamPlace.PosHash() -indexed Dict of places.
@@ -86,6 +90,11 @@ namespace BeamBackend
             }
         }
 
+        public void UpdateCommandSequenceNumber(long newNum)
+        {
+            CommandSequenceNumber = newNum;
+        }
+
         public class SerialArgs
         {
             public long seqNum;
@@ -105,7 +114,7 @@ namespace BeamBackend
             Dictionary<string,int> bikeIndicesDict =  Bikes.Values.OrderBy(b => b.bikeId)
                 .Select((b,idx) => new {b.bikeId, idx}).ToDictionary( x =>x.bikeId, x=>x.idx);
 
-            // Not all of the data needs the timestamp
+            // State data
             object[] peersData = Players.Values.OrderBy(p => p.PeerId)
                 .Select(p => p.ApianSerialized()).ToArray();
             object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId)
@@ -115,6 +124,7 @@ namespace BeamBackend
                 .Select(p => p.ApianSerialized(new BeamPlace.SerialArgs(bikeIndicesDict))).ToArray();
 
             return  JsonConvert.SerializeObject(new object[]{
+                CommandSequenceNumber,
                 peersData,
                 bikesData,
                 placesData
