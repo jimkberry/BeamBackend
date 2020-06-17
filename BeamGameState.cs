@@ -1,19 +1,41 @@
+using System.Net;
 using System;
 using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Apian;
 using UniLog;
 
 namespace BeamBackend
 {
+    public struct PlaceReportArgs // reports of claims and hits take these
+    {
+        public IBike bike;
+        public  int xIdx;
+        public int zIdx;
+        public  Heading entryHead;
+        public  Heading exitHead;
+        public PlaceReportArgs(IBike _bike, int _xIdx, int _zIdx, Heading _entryH, Heading _exitH)
+        {
+            bike = _bike;
+            xIdx = _xIdx;
+            zIdx = _zIdx;
+            entryHead = _entryH;
+            exitHead = _exitH;
+         }
+    }
+
+
     public class BeamGameState : IApianStateData
     {
         public event EventHandler<BeamPlace> PlaceFreedEvt;
         public event EventHandler<BeamPlace> SetupPlaceMarkerEvt;
         public event EventHandler<BeamPlace> PlaceTimeoutEvt;
         public event EventHandler PlacesClearedEvt;
+        public event EventHandler<PlaceReportArgs> PlaceClaimObsEvt;
+        public event EventHandler<PlaceReportArgs> PlaceHitObsEvt;
 
         public UniLogger Logger;
 
@@ -62,7 +84,7 @@ namespace BeamBackend
         public void Loop(long nowMs, long frameMs)
         {
              foreach( IBike ib in Bikes.Values)
-                ib.Loop(frameMs * .001f);  // Bike might get "destroyed" here and need to be removed
+                ib.Loop(frameMs * .001f, nowMs);  // Bike might get "destroyed" here and need to be removed
 
             LoopPlaces(nowMs);
 
@@ -98,6 +120,7 @@ namespace BeamBackend
         public class SerialArgs
         {
             public long seqNum;
+            public long apianTime;
             public long timeStamp;
             public SerialArgs(long sn, long ts) {seqNum=sn; timeStamp=ts;}
         };
@@ -115,11 +138,11 @@ namespace BeamBackend
                 .Select((b,idx) => new {b.bikeId, idx}).ToDictionary( x =>x.bikeId, x=>x.idx);
 
             // State data
-            object[] peersData = Players.Values.OrderBy(p => p.PeerId)
+            string[] peersData = Players.Values.OrderBy(p => p.PeerId)
                 .Select(p => p.ApianSerialized()).ToArray();
-            object[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId)
-                .Select(ib => ib.ApianSerialized(new BaseBike.SerialArgs(peerIndicesDict,sArgs.timeStamp))).ToArray();
-            object[] placesData = activePlaces.Values
+            string[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId)
+                .Select(ib => ib.ApianSerialized(new BaseBike.SerialArgs(peerIndicesDict,sArgs.apianTime, sArgs.timeStamp))).ToArray();
+            string[] placesData = activePlaces.Values
                 .OrderBy(p => p.expirationTimeMs).ThenBy(p => p.PosHash)
                 .Select(p => p.ApianSerialized(new BeamPlace.SerialArgs(bikeIndicesDict))).ToArray();
 
@@ -129,7 +152,28 @@ namespace BeamBackend
                 bikesData,
                 placesData
             });
+        }
 
+
+        public static BeamGameState FromApianSerialized(BeamGameState gameData, long seqNum,  long timeStamp,  string stateHash,  string serializedData)
+        {
+            BeamGameState newState = new BeamGameState(null);
+
+            JArray sData = JArray.Parse(serializedData);
+            long newSeq = (long)sData[0];
+
+            Dictionary<string, BeamPlayer> newPlayers = (sData[1] as JArray)
+                .Select( s => BeamPlayer.FromApianJson((string)s))
+                .ToDictionary(p => p.PeerId);
+
+            List<string> peerIds = newPlayers.Values.OrderBy(p => p.PeerId).Select((p) => p.PeerId).ToList();
+
+            Dictionary<string, BaseBike> newBikes = (sData[2] as JArray)
+                .Select( s => BaseBike.FromApianJson((string)s, gameData, peerIds, timeStamp))
+                .ToDictionary(p => p.bikeId);
+
+
+            return newState;
         }
 
         public BeamPlayer GetMember(string peerId)
@@ -245,6 +289,17 @@ namespace BeamBackend
         {
             BeamPlace p = Ground.IndicesAreOnMap(xIdx,zIdx) ? ( GetPlace(xIdx,zIdx) ?? SetupPlace(bike, xIdx, zIdx,expireTimeMs) ) : null;
             return (p?.bike == bike) ? p : null;
+        }
+
+        // Called by bikes to report observed stuff
+        public void ReportPlaceClaimed( IBike bike, int xIdx, int zIdx, Heading entryHead, Heading exitHead)
+        {
+            PlaceClaimObsEvt?.Invoke(this, new PlaceReportArgs(bike, xIdx, zIdx, entryHead, exitHead )); // causes GameInst to post a PlaceClaimed observation
+        }
+
+        public void ReportPlaceHit( IBike bike, int xIdx, int zIdx, Heading entryHead, Heading exitHead)
+        {
+            PlaceHitObsEvt?.Invoke(this, new PlaceReportArgs(bike, xIdx, zIdx, entryHead, exitHead )); // causes GameInst to post a PlaceClaimed observation
         }
 
     }

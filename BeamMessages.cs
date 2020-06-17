@@ -151,10 +151,10 @@ namespace BeamBackend
 
         public BikeCreateDataMsg() : base() {}
 
-        public IBike ToBike(BeamGameInstance gi)
+        public IBike ToBike(BeamGameState gd)
         {
             // Remote bikes always get control type: BikeFactory.RemoteCrtl
-            return new BaseBike(gi, bikeId, peerId , name, team, ctrlType, new Vector2(xPos, yPos), heading);
+            return new BaseBike(gd, bikeId, peerId , name, team, ctrlType, new Vector2(xPos, yPos), heading);
         }
     }
 
