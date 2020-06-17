@@ -296,7 +296,7 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
-            BaseBike bb = new BaseBike(game, bikeId, peerId, name, t, ctrlType, pos, heading);
+            BaseBike bb = new BaseBike(game.GameData, bikeId, peerId, name, t, ctrlType, pos, heading);
             game.PostBikeCreateData(bb);
             return bb.bikeId;
         }
@@ -307,7 +307,7 @@ namespace BeamBackend
             Heading heading = BikeFactory.PickRandomHeading();
             Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
             string bikeId = Guid.NewGuid().ToString();
-            IBike ib =  new BaseBike(game, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
+            IBike ib =  new BaseBike(game.GameData, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
                 BikeFactory.AiCtrl, pos, heading);
             game.PostBikeCreateData(ib);
             logger.Info($"{this.ModeName()}: SpawnAiBike({bikeId})");
