@@ -93,16 +93,13 @@ namespace BeamBackend
             //
             // Ignore passed in frameSecs.
             //
-            long prevFrameApianTime = FrameApianTime;
-            long curApianTime = apian.CurrentApianTime();
-            UpdateFrameTime(curApianTime);
 
-            // Might call GameData.Loop() if not active before applying a stashed ApianCommand
-            // so FrameApianTime needs to a
             bool isActive = apian.Update();  // returns "True" if Active
 
             if (isActive) // Don't call loop if not active
             {
+                long prevFrameApianTime = FrameApianTime;
+                UpdateFrameTime(apian.CurrentApianTime());
                 GameData.Loop(FrameApianTime, FrameApianTime - prevFrameApianTime);
             }
 
