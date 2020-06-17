@@ -8,17 +8,17 @@ namespace BeamBackend
 {
     public interface IBike : IApianStateData
     {
-        string bikeId {get;}  
+        string bikeId {get;}
         string peerId {get;}
         string name {get;}
-        Team team { get;}        
-        string ctrlType {get;}        
-        Vector2 position {get;}   
-        Heading heading { get;} 
+        Team team { get;}
+        string ctrlType {get;}
+        Vector2 position {get;}
+        Heading heading { get;}
         float speed { get; }
-        int score {get;}           
-        TurnDir pendingTurn { get;}    
-        void Loop(float secs);             
+        int score {get;}
+        TurnDir pendingTurn { get;}
+        void Loop(float secs, long frameApianMs);
         void AddScore(int val);
 
     }

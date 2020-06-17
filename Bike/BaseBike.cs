@@ -2,11 +2,12 @@
 using Newtonsoft.Json;
 using UnityEngine;
 using UniLog;
+using Apian;
 
 
 namespace BeamBackend
 {
-    public class BaseBike : IBike
+    public class BaseBike : IBike, IApianStateData
     {
         public const int kStartScore = 2000;
         public static readonly float length = 2.0f;
@@ -22,16 +23,15 @@ namespace BeamBackend
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public Heading heading { get; private set;} = Heading.kNorth;
         public float speed { get; private set;} = 0;
-        public BeamGameInstance gameInst = null;
-        //protected Ground ground { get =>gameInst.gameData.Ground;}
+        public BeamGameState gameData = null;
 
         public UniLogger logger;
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public BaseBike(BeamGameInstance gi, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head)
+        public BaseBike( BeamGameState gData, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head)
         {
-            gameInst = gi;
+            gameData = gData;
             bikeId = _id;
             peerId = _peerId;
             name = _name;
@@ -47,8 +47,9 @@ namespace BeamBackend
         public class SerialArgs
         {
             public Dictionary<string,int> peerIdxDict;
+            public long curApianTime;
             public long cpTimeStamp;
-            public SerialArgs(Dictionary<string,int> pid, long ts) {peerIdxDict=pid; cpTimeStamp=ts;}
+            public SerialArgs(Dictionary<string,int> pid, long at, long ts) {peerIdxDict=pid; curApianTime=at; cpTimeStamp=ts;}
         };
 
         private long _RoundToNearest(long interval, long inVal)
@@ -70,7 +71,7 @@ namespace BeamBackend
 
             // First, though - propagate the bikes position back to the checkpoint timestamp
             // just in case it has just barely passed through a point (command might still be pending)
-            float secsSinceCp = (gameInst.FrameApianTime - sArgs.cpTimeStamp) * .001f;
+            float secsSinceCp = (sArgs.curApianTime - sArgs.cpTimeStamp) * .001f;
             Vector2 cpPos = position - GameConstants.UnitOffset2ForHeading(heading) * speed * secsSinceCp;
 
             // Find what THEN was the last point visited andw when we were there
@@ -101,23 +102,59 @@ namespace BeamBackend
                  });
         }
 
+        public static BaseBike FromApianJson(string jsonData, BeamGameState gData, List<string> peerIdList, long timeStamp)
+        {
+            object[] data = JsonConvert.DeserializeObject<object[]>(jsonData);
+
+            Vector2 lastGridPos = new Vector2((long)data[5]*.001f, (long)data[6]*.001f);
+            long lastGridTime = (long)data[7];
+            Heading head = (Heading)(long)data[8];
+
+            float speed = (float)(double)data[9];
+            int score = (int)(long)data[10];
+
+            float secsSinceGrid = (timeStamp - lastGridTime ) * .001f;
+
+            Vector2 curBikePos = lastGridPos + GameConstants.UnitOffset2ForHeading(head) * (secsSinceGrid * speed);
+
+            gData.Logger.Info($"BaseBike FromApianJson() - Id: {(string)data[0]} curTime: {timeStamp} dT: {secsSinceGrid} lastGridPos: {lastGridPos.ToString()} curPos: {curBikePos.ToString()}");
+
+            BaseBike bb = new BaseBike(
+                gData,
+                (string)data[0], // bikeId
+                peerIdList[(int)(long)data[1]], // peerId
+                (string)data[2], // _name
+                Team.teamData[(int)(long)data[3]], // Team
+                (string)data[4],  // ctrl,
+                curBikePos, // current pos
+                head); //  head)
+
+            bb.speed = speed;
+            bb.score = score;
+
+            return bb;
+        }
+
+
+
         // Commands from outside
 
-        public void Loop(float secs)
+        public void Loop(float secs, long frameTimeMs)
         {
             //logger.Debug($"Loop(). Bike: {bikeId} Speed: {speed})");
-            _updatePosition(secs);
+            _updatePosition(secs, frameTimeMs);
         }
 
         public void AddScore(int val) => score += val;
 
-        public void ApplyTurn(TurnDir dir, Vector2 nextPt, float commandDelaySecs, BeamMessage.BikeState reportedState)
+        public void ApplyTurn(TurnDir dir, Vector2 nextPt,  long cmdTime, long frameTime, BeamMessage.BikeState reportedState)
         {
             // TODO: &&&& reported state really should not be there.
-            if (commandDelaySecs != 0)
-                logger.Verbose($"ApplyTurn(): rolling back {commandDelaySecs} to turn {bikeId} {dir}");
+            float secsSinceCmd = (frameTime - cmdTime) *.001f; // float secs
+            if (secsSinceCmd != 0)
+                logger.Verbose($"ApplyTurn(): rolling back {secsSinceCmd} to turn {bikeId} {dir}");
 
-            float rollbackSecs = _rollbackTime(commandDelaySecs); // Move the bike backwards to the reported time
+            float rollbackSecs = _rollbackTime(secsSinceCmd); // Move the bike backwards to the reported time
 
             Vector2 testPt = UpcomingGridPoint();
             if (!testPt.Equals(nextPt))
@@ -132,21 +169,23 @@ namespace BeamBackend
                 speed = reportedState.speed;
                 heading = reportedState.heading;
                 position = new Vector2(reportedState.xPos, reportedState.yPos);
-
             }
             pendingTurn = dir;
-            _updatePosition(rollbackSecs);
+            _updatePosition(rollbackSecs, frameTime);
         }
 
-        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, float commandDelaySecs)
+        public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long cmdTime, long frameTime)
         {
             // Check to see that the reported upcoming point is what we think it is, too
             // In real life this'll get checked by Apian/consensus code to decide if the command
             // is valid before it even makes it here. Or... we might have to "fix things up"
-            if (commandDelaySecs != 0)
-                logger.Verbose($"ApplyCommand(): rolling back {commandDelaySecs} to apply {cmd} to {bikeId}");
 
-            float rollbackSecs = _rollbackTime(commandDelaySecs);
+            float secsSinceCmd = (frameTime - cmdTime) *.001f; // float secs
+
+            if (secsSinceCmd != 0)
+                logger.Verbose($"ApplyCommand(): rolling back {secsSinceCmd} to apply {cmd} to {bikeId}");
+
+            float rollbackSecs = _rollbackTime(secsSinceCmd);
 
             if (!UpcomingGridPoint().Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
@@ -164,11 +203,11 @@ namespace BeamBackend
                 break;
             }
 
-            _updatePosition(rollbackSecs);
+            _updatePosition(rollbackSecs, frameTime);
         }
 
 
-        private void _updatePosition(float secs)
+        private void _updatePosition(float secs, long frameApianTime)
         {
             if (secs == 0 || speed == 0)
                 return;
@@ -186,7 +225,7 @@ namespace BeamBackend
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
                 pendingTurn = TurnDir.kUnset;
-                DoAtGridPoint(upcomingPoint, heading, newHead, gameInst.FrameApianTime);// + (long)(timeToPoint*1000)); // Using the offset makes odd things happen on the server
+                DoAtGridPoint(upcomingPoint, heading, newHead, frameApianTime);// + (long)(timeToPoint*1000)); // Using the offset makes odd things happen on the server
                 heading = newHead;
             }
 
@@ -226,19 +265,18 @@ namespace BeamBackend
 
         protected virtual void DoAtGridPoint(Vector2 pos, Heading entryHead, Heading exitHead, long apianTime)
         {
-            BeamGameState gData = gameInst.GameData;
-            BeamPlace p = gData.GetPlace(pos);
-            logger.Verbose($"DoAtGridPoint({pos.ToString()}) Bike: {bikeId} Time: {apianTime} Dt: {apianTime - gameInst.FrameApianTime}");
+            BeamPlace p = gameData.GetPlace(pos);
+            logger.Verbose($"DoAtGridPoint({pos.ToString()}) Bike: {bikeId} Time: {apianTime}");
             if (p == null)
             {
                 int xIdx, zIdx;
                 (xIdx, zIdx) = Ground.NearestGridIndices(pos);
                 // is it on the map?
-                if (gData.Ground.IndicesAreOnMap(xIdx, zIdx))
+                if (gameData.Ground.IndicesAreOnMap(xIdx, zIdx))
                 {
                     // Yes. Since it's empty send a claim report
                     // Doesn't matter if the bike is local or not - THIS peer thinks there's a claim
-                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx, entryHead, exitHead);
+                    gameData.ReportPlaceClaimed(this, xIdx, zIdx, entryHead, exitHead);
                 } else {
                     // Nope. Blow it up.
                     // TODO: should going off the map be a consensus event?
@@ -247,14 +285,14 @@ namespace BeamBackend
                     //   GameNet can grant/not grant it depending on the consensus rules, and if inst
                     //   gets the claim it can just blow it up then.
 
-                    //gameInst.OnScoreEvent(this, ScoreEvent.kOffMap, null);
                     // This is stupid and temporary (rather than just getting rid of the test)
                     // TODO: FIX THIS!!!  &&&&&&&
-                    gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx, entryHead, exitHead);
+                    gameData.ReportPlaceClaimed(this, xIdx, zIdx, entryHead, exitHead);
+                    //gameInst.apian.SendPlaceClaimObs(apianTime, this, xIdx, zIdx, entryHead, exitHead);
                 }
             } else {
                 // Hit a marker. Report it.
-                gameInst.apian.SendPlaceHitObs(apianTime, this, p.xIdx, p.zIdx, entryHead, exitHead);
+                gameData.ReportPlaceHit(this, p.xIdx, p.zIdx, entryHead, exitHead);
             }
         }
 
@@ -291,14 +329,14 @@ namespace BeamBackend
             return UpcomingGridPoint(position, heading);
         }
 
-        public void UpdatePosFromCommand(long timeStamp, Vector2 posFromCmd, Heading cmdHead)
+        public void UpdatePosFromCommand(long timeStamp, long curTime, Vector2 posFromCmd, Heading cmdHead)
         {
             // Given an authoritative position from a command (claim or hit)
             // Compute where the bike should be now according to the command
-            float deltaSecs = Mathf.Max((gameInst.FrameApianTime - timeStamp) *.001f, .000001f);
+            float deltaSecs = Mathf.Max((curTime - timeStamp) *.001f, .000001f);
 
             Vector2 cmdPos = posFromCmd + GameConstants.UnitOffset2ForHeading(cmdHead) * deltaSecs * speed;
-            logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {gameInst.FrameApianTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
+            logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {curTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
             logger.Verbose($"CurPos: {position.ToString()}, CurCmdPos: {cmdPos.ToString()}");
 
             position = cmdPos;
@@ -316,9 +354,9 @@ namespace BeamBackend
             //logger.Info($"                     New Pos: {position.ToString()}");
         }
 
-        public Vector2 PosAtTime(long testTime) // assumes NOW is FrameApianTime
+        public Vector2 PosAtTime(long testTime, long curTime)
         {
-            float deltaSecs = (gameInst.FrameApianTime - testTime) * .001f;
+            float deltaSecs = (curTime - testTime) * .001f;
             Vector2 testPos = position - GameConstants.UnitOffset2ForHeading(heading) * deltaSecs * speed;
             return position;
         }

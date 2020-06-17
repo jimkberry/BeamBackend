@@ -33,6 +33,19 @@ namespace BeamBackend
                 });
         }
 
+        public static BeamPlace FromApianJson(string jsonData, List<string> bikeIdList, Dictionary<string, IBike> bikeDict)
+        {
+            object[] data = JsonConvert.DeserializeObject<object[]>(jsonData);
+
+            BeamPlace p = new BeamPlace();
+            p.bike = bikeDict[ bikeIdList[(int)(long)data[0]] ];
+            p.xIdx = (int)(long)data[1];
+            p.zIdx = (int)(long)data[2];
+            p.expirationTimeMs = (long)data[3];
+
+            return p;
+        }
+
         public int PosHash { get => xIdx + zIdx * Ground.pointsPerAxis; }
 
         public static int MakePosHash(int xIdx, int zIdx) => xIdx + zIdx * Ground.pointsPerAxis;

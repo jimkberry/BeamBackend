@@ -122,12 +122,11 @@ namespace BeamBackend
             public long seqNum;
             public long apianTime;
             public long timeStamp;
-            public SerialArgs(long sn, long ts) {seqNum=sn; timeStamp=ts;}
+            public SerialArgs(long sn, long curTime, long ts) {seqNum=sn; apianTime=curTime; timeStamp=ts;}
         };
 
         public string ApianSerialized(object args=null)
         {
-            // args is [lonf seqNum, long timeStamp]
             SerialArgs sArgs = args as SerialArgs;
 
             // create array index lookups for peers, bikes to replace actual IDs (which are long) in serialized data
@@ -141,8 +140,10 @@ namespace BeamBackend
             string[] peersData = Players.Values.OrderBy(p => p.PeerId)
                 .Select(p => p.ApianSerialized()).ToArray();
             string[] bikesData = Bikes.Values.OrderBy(ib => ib.bikeId)
-                .Select(ib => ib.ApianSerialized(new BaseBike.SerialArgs(peerIndicesDict,sArgs.apianTime, sArgs.timeStamp))).ToArray();
+                .Select(ib => ib.ApianSerialized(new BaseBike.SerialArgs(peerIndicesDict, sArgs.apianTime, sArgs.timeStamp))).ToArray();
+
             string[] placesData = activePlaces.Values
+                .Where( p => Bikes.ContainsKey(p.bike.bikeId) ) // just to make sure the bike hasn;t gone away
                 .OrderBy(p => p.expirationTimeMs).ThenBy(p => p.PosHash)
                 .Select(p => p.ApianSerialized(new BeamPlace.SerialArgs(bikeIndicesDict))).ToArray();
 
@@ -155,7 +156,7 @@ namespace BeamBackend
         }
 
 
-        public static BeamGameState FromApianSerialized(BeamGameState gameData, long seqNum,  long timeStamp,  string stateHash,  string serializedData)
+        public static BeamGameState FromApianSerialized( long seqNum,  long timeStamp,  string stateHash,  string serializedData)
         {
             BeamGameState newState = new BeamGameState(null);
 
@@ -166,12 +167,22 @@ namespace BeamBackend
                 .Select( s => BeamPlayer.FromApianJson((string)s))
                 .ToDictionary(p => p.PeerId);
 
-            List<string> peerIds = newPlayers.Values.OrderBy(p => p.PeerId).Select((p) => p.PeerId).ToList();
-
-            Dictionary<string, BaseBike> newBikes = (sData[2] as JArray)
-                .Select( s => BaseBike.FromApianJson((string)s, gameData, peerIds, timeStamp))
+            List<string> peerIds = newPlayers.Values.OrderBy(p => p.PeerId).Select((p) => p.PeerId).ToList(); // to replace array indices in bikes
+            Dictionary<string, IBike> newBikes = (sData[2] as JArray)
+                .Select( s => (IBike)BaseBike.FromApianJson((string)s, newState, peerIds, timeStamp))
                 .ToDictionary(p => p.bikeId);
 
+            List<string> bikeIds = newBikes.Values.OrderBy(p => p.bikeId).Select((p) => p.bikeId).ToList(); // to replace array indices in places
+            List<BeamPlace> newPlaces = (sData[3] as JArray)
+                .Select( s => BeamPlace.FromApianJson((string)s, bikeIds, newBikes))
+                .ToList();
+
+            newState.Players = newPlayers;
+            newState.Bikes = newBikes;
+            foreach (BeamPlace pl in newPlaces)
+                newState.SetupPlace(pl);
+
+            newState.UpdateCommandSequenceNumber(seqNum);
 
             return newState;
         }
@@ -221,6 +232,12 @@ namespace BeamBackend
             p.xIdx = xIdx;
             p.zIdx = zIdx;
             p.bike = bike;
+            return SetupPlace(p);
+        }
+
+        protected BeamPlace SetupPlace(BeamPlace p )
+        {
+            // This is so a list un un-serialized places can be added directly
             activePlaces[p.PosHash] = p;
             SetupPlaceMarkerEvt?.Invoke(this,p);
             return p;
@@ -256,7 +273,7 @@ namespace BeamBackend
 
         public List<BeamPlace> PlacesForBike(IBike ib)
         {
-            return activePlaces.Values.Where(p => p.bike.bikeId == ib.bikeId).ToList();
+            return activePlaces.Values.Where(p => p.bike?.bikeId == ib.bikeId).ToList();
         }
 
         // public List<BeamPlace> PlacesForBike(IBike ib)

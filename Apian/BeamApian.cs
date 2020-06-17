@@ -81,8 +81,11 @@ namespace BeamBackend
 
         }
 
-        private void SetFakeSyncApianTime(long newTime)
+        public override void SetFakeSyncApianTime(long newTime)
         {
+            // TODO: this is now getting called from the GroupManager after sync data has been applied.
+            // Do something more elegant (maybe build the "fake" capability into the real ApianClock?)
+
             // Expected to be called with ApianTime values from BeamMessages wrapped as ApianCoMmands
             // while the local peer is syncing and applying commands to catch up.
             // Only logic here is that it cannot go backwards
@@ -195,6 +198,11 @@ namespace BeamBackend
             }
         }
 
+        public override void  ApplyCheckpointStateData(long seqNum, long timeStamp, string stateHash, string stateData)
+        {
+            client.ApplyCheckpointStateData( seqNum,  timeStamp,  stateHash,  stateData);
+        }
+
         public override void ApplyStashedApianCommand(ApianCommand cmd)
         {
             if (ApianGroup?.LocalMember?.CurStatus != ApianGroupMember.Status.Active
@@ -287,12 +295,14 @@ namespace BeamBackend
             return sBuilder.ToString();
         }
 
-        public override void SendStateCheckpoint(long timeStamp, long seqNum, string serializedState) // called by client app
+        public override void SendCheckpointState(long timeStamp, long seqNum, string serializedState) // called by client app
         {
             using (MD5 md5Hash = MD5.Create())
             {
                 string hash = GetMd5Hash(md5Hash, serializedState);
                 Logger.Verbose($"SendStateCheckpoint(): SeqNum: {seqNum}, Hash: {hash}");
+                ApianGroup.OnLocalStateCheckpoint(seqNum, timeStamp, hash, serializedState);
+
                 GroupCheckpointReportMsg rpt = new GroupCheckpointReportMsg(ApianGroup.GroupId, seqNum, timeStamp, hash);
                 BeamGameNet.SendApianMessage(ApianGroup.GroupId, rpt);
             }
