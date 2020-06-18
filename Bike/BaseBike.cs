@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Runtime.ConstrainedExecution;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 using UniLog;
@@ -98,7 +99,8 @@ namespace BeamBackend
                     timeAtPoint,
                     heading,
                     speed,
-                    score
+                    score,
+                    pendingTurn
                  });
         }
 
@@ -112,6 +114,7 @@ namespace BeamBackend
 
             float speed = (float)(double)data[9];
             int score = (int)(long)data[10];
+            TurnDir pendingTurn = (TurnDir)(long)data[11];
 
             float secsSinceGrid = (timeStamp - lastGridTime ) * .001f;
 
@@ -131,6 +134,7 @@ namespace BeamBackend
 
             bb.speed = speed;
             bb.score = score;
+            bb.pendingTurn = pendingTurn;
 
             return bb;
         }
@@ -165,7 +169,7 @@ namespace BeamBackend
                 logger.Warn($"Actual State:\n{JsonConvert.SerializeObject(new BeamMessage.BikeState(this)) }");
                 logger.Warn($"Stuffing-in reported state data.");
                 // Just shove the reported data in
-                score = reportedState.score;
+                //score = reportedState.score;
                 speed = reportedState.speed;
                 heading = reportedState.heading;
                 position = new Vector2(reportedState.xPos, reportedState.yPos);

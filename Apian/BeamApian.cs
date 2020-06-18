@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using System;
 using System.Text;
 using System.Security.Cryptography; // for MD5 hash
@@ -67,32 +68,7 @@ namespace BeamBackend
 
         }
 
-
-        protected long FakeSyncApianTime { get; set;}
-        public long CurrentApianTime()
-        {
-            // This is for BeamGameInstance, if the peer is active and running it will just return the current ApianClock time
-            // If the peer is not active then it returns a ratchect-forward-only value that gets set as each command
-            // is Applied (it's read from the BeamMessage contained in the command)
-            if (LocalPeerIsActive)
-                return ApianClock.CurrentTime;
-            else
-                return FakeSyncApianTime;
-
-        }
-
-        public override void SetFakeSyncApianTime(long newTime)
-        {
-            // TODO: this is now getting called from the GroupManager after sync data has been applied.
-            // Do something more elegant (maybe build the "fake" capability into the real ApianClock?)
-
-            // Expected to be called with ApianTime values from BeamMessages wrapped as ApianCoMmands
-            // while the local peer is syncing and applying commands to catch up.
-            // Only logic here is that it cannot go backwards
-            // It's entirely possible - ad ok - for the ApianTime fields in BeamMessages not to respect the
-            // ApianCommand SequenceNumber order.
-            FakeSyncApianTime = Math.Max(FakeSyncApianTime, newTime);
-        }
+        public long CurrentRunningApianTime() => ApianClock.CurrentTime;
 
         public override bool Update()
         {
@@ -176,24 +152,22 @@ namespace BeamBackend
             if (ApianGroup?.LocalMember?.CurStatus == ApianGroupMember.Status.Active)
                 return; // If peer is active and using the real clock and advancing its own state, dont do anything.
 
-            if (FakeSyncApianTime > newApianTime)
-                return; // never move the clock backwards
+            long curFrameTime = client.FrameApianTime; // previous frame Time
 
             // TODO: come up with better way to set nominal frame advance time
             long msPerLoop = 40; // 40 ms == 25 fps
-            long loops = (newApianTime - FakeSyncApianTime) / msPerLoop; // there will be some time left
+            long loops = (newApianTime - curFrameTime) / msPerLoop; // there will be some time left
             for (int i=0;i<loops;i++)
             {
-                SetFakeSyncApianTime(FakeSyncApianTime + msPerLoop);
-                client.UpdateFrameTime(FakeSyncApianTime);
-                client.GameData.Loop(FakeSyncApianTime, msPerLoop);
+                curFrameTime += msPerLoop;
+                client.UpdateFrameTime(curFrameTime);
+                client.GameData.Loop( client.FrameApianTime, msPerLoop);
             }
 
-            if (newApianTime > FakeSyncApianTime)
+            if (newApianTime > client.FrameApianTime)
             {
-                long msLeft =  newApianTime-FakeSyncApianTime;
-                SetFakeSyncApianTime(newApianTime);
-                client.UpdateFrameTime(FakeSyncApianTime);
+                long msLeft =  newApianTime-client.FrameApianTime;
+                client.UpdateFrameTime(newApianTime);
                 client.GameData.Loop(newApianTime, msLeft);
             }
         }

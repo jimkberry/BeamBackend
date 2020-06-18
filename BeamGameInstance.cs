@@ -99,7 +99,7 @@ namespace BeamBackend
             if (isActive) // Don't call loop if not active
             {
                 long prevFrameApianTime = FrameApianTime;
-                UpdateFrameTime(apian.CurrentApianTime());
+                UpdateFrameTime(apian.CurrentRunningApianTime());
                 GameData.Loop(FrameApianTime, FrameApianTime - prevFrameApianTime);
             }
 
@@ -141,14 +141,11 @@ namespace BeamBackend
 
         public void ApplyCheckpointStateData( long seqNum,  long timeStamp,  string stateHash,  string serializedData)
         {
-            logger.Debug($"ApplyStateData() Seq#: seqNum ");
-            //logger.Verbose($"**** Input JSON:\n{serializedData}\n************\n");
+            logger.Debug($"ApplyStateData() Seq#: seqNum ApianTime: {timeStamp}");
 
-            GameData = BeamGameState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
             UpdateFrameTime(timeStamp);
+            GameData = BeamGameState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
 
-            //string stateJson = GameData.ApianSerialized(new BeamGameState.SerialArgs(seqNum, FrameApianTime, timeStamp));
-            //logger.Verbose($"**** Post Apply Checkpoint:\n{stateJson}\n************\n");
         }
 
         public void OnApianCommand(ApianCommand cmd)
