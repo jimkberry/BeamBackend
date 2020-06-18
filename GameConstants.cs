@@ -40,9 +40,9 @@ namespace BeamBackend
     public static class GameConstants
     {
         public static readonly int[] eventScores = {
-            11, // claimPlace
-            -511, // hitfriend
-            -1211, // hitEnemy
+            11, // claimPlace:   Bike gets this much
+            -511, // hitfriend   Bike loses this much, rest of team splits it.
+            -1211, // hitEnemy   Bike loses this much, enemy team splits it
             0, // offMap (no score issue - you just die)
         };
 

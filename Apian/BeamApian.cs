@@ -317,18 +317,19 @@ namespace BeamBackend
             SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
-        public  void SendPlaceClaimObs(long timeStamp, IBike bike, int xIdx, int zIdx, Heading entry, Heading exit)
+        public  void SendPlaceClaimObs(long timeStamp, IBike bike, int xIdx, int zIdx,
+            Heading entry, Heading exit, Dictionary<string,int> scoreUpdates)
         {
             Logger.Debug($"SendPlaceClaimObs()");
-            PlaceClaimMsg msg = new PlaceClaimMsg(timeStamp, bike.bikeId, bike.peerId, xIdx, zIdx, entry, exit);
+            PlaceClaimMsg msg = new PlaceClaimMsg(timeStamp, bike.bikeId, bike.peerId, xIdx, zIdx, entry, exit, scoreUpdates);
             ApianPlaceClaimObservation obs = new ApianPlaceClaimObservation(ApianGroup?.GroupId, msg);
             SendRequestOrObservation(ApianGroup.GroupId, obs);
         }
 
-        public void SendPlaceHitObs(long timeStamp, IBike bike, int xIdx, int zIdx, Heading entry, Heading exit)
+        public void SendPlaceHitObs(long timeStamp, IBike bike, int xIdx, int zIdx, Heading entry, Heading exit, Dictionary<string,int> scoreUpdates)
         {
             Logger.Debug($"SendPlaceHitObs()");
-            PlaceHitMsg msg = new PlaceHitMsg(timeStamp, bike.bikeId, bike.peerId, xIdx, zIdx, entry, exit);
+            PlaceHitMsg msg = new PlaceHitMsg(timeStamp, bike.bikeId, bike.peerId, xIdx, zIdx, entry, exit, scoreUpdates);
             ApianPlaceHitObservation obs = new ApianPlaceHitObservation(ApianGroup?.GroupId, msg);
             SendRequestOrObservation(ApianGroup.GroupId, obs);
         }

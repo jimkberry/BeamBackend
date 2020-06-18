@@ -196,6 +196,20 @@ namespace BeamBackend
             bb?.ApplyTurn(msg.dir, new Vector2(msg.nextPtX, msg.nextPtZ),  msg.TimeStamp, FrameApianTime, msg.bikeState);
         }
 
+        protected void ApplyScoreUpdate(Dictionary<string,int> update)
+        {
+            foreach( string id in update.Keys)
+            {
+                IBike bike =  GameData.GetBaseBike(id);
+                bike?.AddScore(update[id]);
+                if (bike.score <= 0)
+                {
+                    logger.Info($"ApplyScoreUpdate(). Bike: {bike.bikeId} has no score anymore!");
+                    apian.SendRemoveBikeObs(FrameApianTime, bike.bikeId);
+                }
+            }
+        }
+
         public void OnPlaceClaimCmd(PlaceClaimMsg msg)
         {
             // Apian has said this message is authoritative
@@ -214,18 +228,15 @@ namespace BeamBackend
                 BeamPlace p = GameData.ClaimPlace(b, msg.xIdx, msg.zIdx, msg.TimeStamp+BeamPlace.kLifeTimeMs);
                 if (p != null)
                 {
+                    ApplyScoreUpdate(msg.scoreUpdates);
                     logger.Verbose($"OnPlaceClaimCmd() Bike: {b.bikeId} claimed {BeamPlace.PlacePos( msg.xIdx, msg.zIdx).ToString()} at {msg.TimeStamp}");
                     //logger.Verbose($"                  BikePos: {b.position.ToString()}, FrameApianTime: {FrameApianTime} ");
                     //logger.Verbose($"   at Timestamp:  BikePos: {b.PosAtTime(msg.TimeStamp, FrameApianTime).ToString()}, Time: {msg.TimeStamp} ");
-                    OnScoreEvent(b, ScoreEvent.kClaimPlace, p);
                     PlaceClaimedEvt?.Invoke(this, p);
                 } else {
                     logger.Warn($"OnPlaceClaimCmd()) failed. Place already claimed.");
                 }
 
-            } else {
-                // Oh oh. It's an "off the map" notification
-                OnScoreEvent(b, ScoreEvent.kOffMap, null);   // _RemoveBike() will raise BikeRemoved event
             }
         }
 
@@ -238,15 +249,15 @@ namespace BeamBackend
             if (p != null && hittingBike != null)
             {
                 hittingBike.UpdatePosFromCommand(msg.TimeStamp, FrameApianTime, p.GetPos(), msg.exitHead);
-                logger.Verbose($"OnPlaceHitCmd(p?.GetPos().ToString() Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
+                logger.Info($"OnPlaceHitCmd{p?.GetPos().ToString()} Now: {FrameApianTime} Ts: {msg.TimeStamp} Bike: {hittingBike?.bikeId} Pos: {p?.GetPos().ToString()}");
+                ApplyScoreUpdate(msg.scoreUpdates);
                 PlaceHitEvt?.Invoke(this, new PlaceHitArgs(p, hittingBike));
-                OnScoreEvent(hittingBike, p.bike.team == hittingBike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace, p);
             }
         }
 
         public void OnRemoveBikeCmd(RemoveBikeMsg msg)
         {
-            logger.Verbose($"OnRemoveBikeCmd({msg.bikeId}) Now: {FrameApianTime} Ts: {msg.TimeStamp}");
+            logger.Info($"OnRemoveBikeCmd({msg.bikeId}) Now: {FrameApianTime} Ts: {msg.TimeStamp}");
             IBike ib = GameData.GetBaseBike(msg.bikeId);
             _RemoveBike(ib, true);
         }
@@ -298,8 +309,47 @@ namespace BeamBackend
                 apian.SendBikeTurnReq(FrameApianTime, bike, dir, nextPt);
         }
 
-        protected void OnScoreEvent(BaseBike bike, ScoreEvent evt, BeamPlace place)
+        protected Dictionary<string,int> ComputeScoreUpdate(IBike bike, ScoreEvent evt, BeamPlace place)
         {
+            // BIG NOTE: total score is NOT conserved.
+            Dictionary<string,int> update = new Dictionary<string,int>();
+
+            int scoreDelta = GameConstants.eventScores[(int)evt];
+            update[bike.bikeId] = scoreDelta;
+
+            logger.Debug($"ComputeScoreUpdate(). Bike: {bike.bikeId} Event: {evt}");
+            if (evt == ScoreEvent.kHitEnemyPlace || evt == ScoreEvent.kHitFriendPlace)
+            {
+                // half of the deduction goes to the owner of the place, the rest is divded
+                // among the owner's team
+                // UNLESS: the bike doing the hitting IS the owner - then the rest of the team just splits it
+                if (bike != place.bike) {
+                    scoreDelta /= 2;
+                    update[place.bike.bikeId] = -scoreDelta; // owner gets half
+                }
+
+                IEnumerable<IBike> rewardedOtherBikes =
+                    GameData.Bikes.Values.Where( b => b != bike && b.team == place.bike.team);  // Bikes other the "bike" on affected team
+                if (rewardedOtherBikes.Count() > 0)
+                {
+                    foreach (BaseBike b  in rewardedOtherBikes)
+                        update[b.bikeId] = -scoreDelta / rewardedOtherBikes.Count(); // all might not get exactly the same amount
+                }
+            }
+
+            if (evt == ScoreEvent.kOffMap)
+            {
+                update[bike.bikeId] = -bike.score*2; // overdo it
+            }
+
+            return update;
+        }
+
+
+        protected void xOnScoreEvent(BaseBike bike, ScoreEvent evt, BeamPlace place)
+        {
+            // Score events:
+            //
             // TODO: as with above: This is coming from the backend (BaseBike, mostly) and should
             // be comming from the Net/event/whatever layer
             // NOTE: I'm not so sure about above comment. It;'s not clear that score changes constitute "events"
@@ -420,13 +470,17 @@ namespace BeamBackend
         public void OnPlaceClaimObsEvt(object sender, PlaceReportArgs args)
         {
             logger.Verbose($"OnPlaceClaimObsEvt(): Bike: {args.bike.bikeId} Place: {BeamPlace.PlacePos(args.xIdx, args.zIdx).ToString()}");
-            apian.SendPlaceClaimObs(FrameApianTime, args.bike, args.xIdx, args.zIdx, args.entryHead, args.exitHead);
+
+            apian.SendPlaceClaimObs(FrameApianTime, args.bike, args.xIdx, args.zIdx, args.entryHead, args.exitHead,
+                ComputeScoreUpdate(args.bike, ScoreEvent.kClaimPlace, null));
           }
 
         public void OnPlaceHitObsEvt(object sender, PlaceReportArgs args)
         {
-            logger.Info($"OnPlaceHitObsEvt(): Bike: {args.bike.bikeId} Place: {BeamPlace.PlacePos(args.xIdx, args.zIdx).ToString()}");
-            apian.SendPlaceHitObs(FrameApianTime, args.bike, args.xIdx, args.zIdx, args.entryHead, args.exitHead);
+            logger.Verbose($"OnPlaceHitObsEvt(): Bike: {args.bike.bikeId} Place: {BeamPlace.PlacePos(args.xIdx, args.zIdx).ToString()}");
+            BeamPlace place = GameData.GetPlace(args.xIdx, args.zIdx);
+            ScoreEvent evType = place.bike.team == args.bike.team ? ScoreEvent.kHitFriendPlace : ScoreEvent.kHitEnemyPlace;
+            apian.SendPlaceHitObs(FrameApianTime, args.bike, args.xIdx, args.zIdx, args.entryHead, args.exitHead, ComputeScoreUpdate(args.bike, evType, place));
 
         }
 

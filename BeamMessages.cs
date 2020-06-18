@@ -49,8 +49,7 @@ namespace BeamBackend
             }
         }
 
-
-        public class PlaceCreateData // Don't need bikeId since this is part of a bike data msg
+          public class PlaceCreateData // Don't need bikeId since this is part of a bike data msg
         {
             public int xIdx;
             public int zIdx;
@@ -282,8 +281,10 @@ namespace BeamBackend
         public int zIdx;
         public Heading entryHead;
         public Heading exitHead;
+        public Dictionary<string,int> scoreUpdates;
         public PlaceClaimMsg() : base() {}
-        public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx, Heading entryH, Heading exitH) : base(kPlaceClaimMsg, ts)
+        public PlaceClaimMsg(long ts, string _bikeId, string _ownerPeer, int  _xIdx, Int32 _zIdx,
+                            Heading entryH, Heading exitH, Dictionary<string,int> dScores) : base(kPlaceClaimMsg, ts)
         {
             bikeId = _bikeId;
             ownerPeer = _ownerPeer;
@@ -291,6 +292,7 @@ namespace BeamBackend
             zIdx = _zIdx;
             entryHead = entryH;
             exitHead = exitH;
+            scoreUpdates = dScores;
         }
     }
 
@@ -319,8 +321,10 @@ namespace BeamBackend
         public int zIdx;
         public Heading entryHead;
         public Heading exitHead;
+        public Dictionary<string,int> scoreUpdates;
         public PlaceHitMsg() : base() {}
-        public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx, Heading entryH, Heading exitH) : base(kPlaceHitMsg, ts)
+        public PlaceHitMsg(long ts, string _bikeId, string _ownerPeer, int _xIdx, int _zIdx,
+            Heading entryH, Heading exitH, Dictionary<string,int> dScores) : base(kPlaceHitMsg, ts)
         {
             bikeId = _bikeId;
             ownerPeer = _ownerPeer;
@@ -328,6 +332,7 @@ namespace BeamBackend
             zIdx=_zIdx;
             entryHead = entryH;
             exitHead = exitH;
+            scoreUpdates = dScores;
         }
     }
 
