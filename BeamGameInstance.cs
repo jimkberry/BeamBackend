@@ -13,7 +13,7 @@ namespace BeamBackend
 
     public class BeamGameInstance : IGameInstance, IBeamGameInstance, IBeamApianClient
     {
-
+        public event EventHandler<BeamGameState> NewGameStateEvt;
         public event EventHandler<string> GroupJoinedEvt;
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
         public event EventHandler<PlayerLeftArgs> PlayerLeftEvt;
@@ -55,6 +55,8 @@ namespace BeamBackend
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
             GameData = new BeamGameState(frontend);
+            NewGameStateEvt?.Invoke(this, GameData);
+
             GameData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
             GameData.PlaceClaimObsEvt += OnPlaceClaimObsEvt;
             GameData.PlaceHitObsEvt += OnPlaceHitObsEvt;
