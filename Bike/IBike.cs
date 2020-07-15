@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public interface IBike : IApianStateData
+    public interface IBike : IApianCoreData
     {
         string bikeId {get;}
         string peerId {get;}

@@ -11,7 +11,7 @@ using UniLog;
 
 namespace BeamBackend
 {
-   public interface IBeamApianClient : IApianClientApp
+   public interface IBeamAppCore : IApianAppCore
     {
 
         // What Apian expects to call in the app instance
@@ -45,12 +45,12 @@ namespace BeamBackend
         public Dictionary<string, BeamApianPeer> apianPeers;
         public IBeamGameNet BeamGameNet {get; private set;}
         protected BeamGameInstance client;
-        protected BeamGameState gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed
+        protected BeamCoreState gameData; // TODO: should be a read-only interface. Apian writing to it is not allowed
                                         // TODO: ALSO - this is currently only ever referenced when set. ie - it's not used. Maybe make it go away?
 
         protected bool LocalPeerIsActive {get => (ApianGroup != null) && (ApianGroup.LocalMember?.CurStatus == ApianGroupMember.Status.Active); }
 
-        public BeamApian(IBeamGameNet _gn, IBeamApianClient _client) : base(_gn, _client)
+        public BeamApian(IBeamGameNet _gn, IBeamAppCore _client) : base(_gn, _client)
         {
             BeamGameNet = _gn;
             client = _client as BeamGameInstance;

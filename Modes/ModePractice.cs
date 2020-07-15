@@ -24,7 +24,7 @@ namespace BeamBackend
             base.Start();
 
             core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            core.AddGameInstance(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
+            core.AddAppCore(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
 
             // Setup/connect fake network
             core.ConnectToNetwork("p2ploopback");
@@ -68,7 +68,7 @@ namespace BeamBackend
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
-            core.AddGameInstance(null);
+            core.AddAppCore(null);
             return null;
         }
 
@@ -132,7 +132,7 @@ namespace BeamBackend
                 game.NewBikeEvt += OnNewBikeEvt;
 
                 BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
-                core.AddGameInstance(game);
+                core.AddAppCore(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
                 BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);

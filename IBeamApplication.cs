@@ -17,7 +17,7 @@ namespace BeamBackend
         public PeerLeftGameArgs(string g, string p) {gameChannel=g; p2pId=p;}
     }
 
-    public interface IBeamCore {
+    public interface IBeamApplication {
 
         // Events
         event EventHandler<string> GameCreatedEvt; // game channel

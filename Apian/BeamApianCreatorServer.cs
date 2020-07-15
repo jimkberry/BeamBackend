@@ -9,7 +9,7 @@ namespace BeamBackend
 {
     public class BeamApianCreatorServer : BeamApian
     {
-        public BeamApianCreatorServer(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
+        public BeamApianCreatorServer(IBeamGameNet _gn,  IBeamAppCore _client) : base(_gn, _client)
         {
             ApianGroup = new CreatorServerGroupManager(this);
         }

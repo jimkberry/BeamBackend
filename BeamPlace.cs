@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class BeamPlace : IApianStateData
+    public class BeamPlace : IApianCoreData
     {
         public static long kLifeTimeMs = 15000; // TODO: Maybe should be per-bike and increase with time?
 

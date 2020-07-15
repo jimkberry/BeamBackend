@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BeamBackend
 {
-    public class BeamPlayer : IApianStateData
+    public class BeamPlayer : IApianCoreData
     {
         public string PeerId { get; private set;}
         public string Name { get; private set;}

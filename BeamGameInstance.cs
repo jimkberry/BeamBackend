@@ -11,14 +11,14 @@ using UniLog;
 namespace BeamBackend
 {
 
-    public class BeamGameInstance : IGameInstance, IBeamGameInstance, IBeamApianClient
+    public class BeamGameInstance : IModalGame, IBeamGameInstance, IBeamAppCore
     {
-        public event EventHandler<BeamGameState> NewGameStateEvt;
+        public event EventHandler<BeamCoreState> NewGameStateEvt;
         public event EventHandler<string> GroupJoinedEvt;
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
         public event EventHandler<PlayerLeftArgs> PlayerLeftEvt;
 
-        public BeamGameState GameData {get; private set;}
+        public BeamCoreState GameData {get; private set;}
         public  IBeamFrontend frontend {get; private set;}
         public BeamApian apian {get; private set;}
         public UniLogger logger;
@@ -54,7 +54,7 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("GameInstance");
             //modeMgr = new ModeManager(new BeamModeFactory(), this);
             frontend = fep;
-            GameData = new BeamGameState(frontend);
+            GameData = new BeamCoreState(frontend);
             NewGameStateEvt?.Invoke(this, GameData);
 
             GameData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
@@ -117,7 +117,7 @@ namespace BeamBackend
         {
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
             GameData.UpdateCommandSequenceNumber(seqNum);
-            string stateJson = GameData.ApianSerialized(new BeamGameState.SerialArgs(seqNum, FrameApianTime, timeStamp));
+            string stateJson = GameData.ApianSerialized(new BeamCoreState.SerialArgs(seqNum, FrameApianTime, timeStamp));
             logger.Verbose($"**** Checkpoint:\n{stateJson}\n************\n");
             apian.SendCheckpointState(FrameApianTime, seqNum, stateJson);
 
@@ -146,7 +146,7 @@ namespace BeamBackend
             logger.Debug($"ApplyStateData() Seq#: seqNum ApianTime: {timeStamp}");
 
             UpdateFrameTime(timeStamp);
-            GameData = BeamGameState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
+            GameData = BeamCoreState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
 
         }
 

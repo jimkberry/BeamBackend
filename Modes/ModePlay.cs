@@ -54,7 +54,7 @@ namespace BeamBackend
 
             core.GameCreatedEvt += OnGameCreatedEvt;
             core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            core.AddGameInstance(null);
+            core.AddAppCore(null);
 
             // Setup/connect fake network
             core.ConnectToNetwork(settings.p2pConnectionString);
@@ -81,7 +81,7 @@ namespace BeamBackend
             game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
             game.End();
             core.gameNet.LeaveGame();
-            core.AddGameInstance(null);
+            core.AddAppCore(null);
             return null;
         }
 
@@ -245,7 +245,7 @@ namespace BeamBackend
                     game.NewBikeEvt += OnNewBikeEvt;
                     BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // TODO: make the groupMgr type run-time spec'ed
                     //BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // *** This should be commented out (or gone)
-                    core.AddGameInstance(game);
+                    core.AddAppCore(game);
                     _SetState(kCheckingForGroups, null);
                 }
                 else

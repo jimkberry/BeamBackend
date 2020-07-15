@@ -45,7 +45,7 @@ namespace BeamBackend
             //Debug.Log(string.Format("Pos: {0}, Turn Angle: {1}", curPos, turnAngleDeg));
             return turnAngleDeg > 45f ? TurnDir.kLeft : (turnAngleDeg < -45f ? TurnDir.kRight : TurnDir.kStraight);
         }
-        public static MoveNode BuildMoveTree(BeamGameState g, Vector2 curPos, Heading curHead, int depth, List<Vector2> otherBadPos = null)
+        public static MoveNode BuildMoveTree(BeamCoreState g, Vector2 curPos, Heading curHead, int depth, List<Vector2> otherBadPos = null)
         {
             Vector2 nextPos = UpcomingGridPoint(curPos, curHead);
             MoveNode root = MoveNode.GenerateTree(g, nextPos, curHead, 1, otherBadPos);
@@ -65,7 +65,7 @@ namespace BeamBackend
             public int score;
             public List<MoveNode> next; // length 3
 
-            public MoveNode(BeamGameState gData, Vector2 p, Heading head, TurnDir d, int depth, List<Vector2> otherClaimedPos)
+            public MoveNode(BeamCoreState gData, Vector2 p, Heading head, TurnDir d, int depth, List<Vector2> otherClaimedPos)
             {
                 pos = p;
                 dir = d; // for later lookup
@@ -83,7 +83,7 @@ namespace BeamBackend
                         .ToList();
             }
 
-            public static MoveNode GenerateTree(BeamGameState gd, Vector2 rootPos, Heading initialHead, int depth, List<Vector2> otherBadPos)
+            public static MoveNode GenerateTree(BeamCoreState gd, Vector2 rootPos, Heading initialHead, int depth, List<Vector2> otherBadPos)
             {
                 return new MoveNode(gd, rootPos, initialHead, TurnDir.kStraight, depth, otherBadPos);
             }

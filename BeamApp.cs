@@ -7,7 +7,7 @@ using Apian;
 
 namespace BeamBackend
 {
-    public class BeamCore : IGameInstance, IApianGameManager, IBeamCore
+    public class BeamApplication : IModalGame, IApianApplication, IBeamApplication
     {
         public event EventHandler<string> GameCreatedEvt; // game channel
         public event EventHandler<PeerJoinedGameArgs> PeerJoinedGameEvt;
@@ -23,7 +23,7 @@ namespace BeamBackend
         public UniLogger Logger;
         public BeamGameInstance mainGameInst {get; private set;}
 
-        public BeamCore(BeamGameNet bgn, IBeamFrontend fe)
+        public BeamApplication(BeamGameNet bgn, IBeamFrontend fe)
         {
             gameNet = bgn;
             gameNet.SetClient(this);
@@ -32,7 +32,7 @@ namespace BeamBackend
             modeMgr = new ModeManager(new BeamModeFactory(), this);
         }
 
-        public void AddGameInstance(IApianClientApp gi)
+        public void AddAppCore(IApianAppCore gi)
         {
             // Beam only supports 1 game instance
             mainGameInst = gi as BeamGameInstance;

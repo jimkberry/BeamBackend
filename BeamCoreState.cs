@@ -28,7 +28,7 @@ namespace BeamBackend
     }
 
 
-    public class BeamGameState : IApianStateData
+    public class BeamCoreState : IApianCoreData
     {
         public event EventHandler<BeamPlace> PlaceFreedEvt;
         public event EventHandler<BeamPlace> SetupPlaceMarkerEvt;
@@ -55,7 +55,7 @@ namespace BeamBackend
         protected List<BeamPlace> _placesToRemoveAfterLoop; // Places also are not destroyed until the end of the data loop
         protected Dictionary<int, BeamPlace> _reportedTimedOutPlaces; // places that have been reported as timed out, but not removed yet
 
-        public BeamGameState(IBeamFrontend fep)
+        public BeamCoreState(IBeamFrontend fep)
         {
             Logger = UniLogger.GetLogger("GameState");
             Players = new Dictionary<string, BeamPlayer>();
@@ -156,9 +156,9 @@ namespace BeamBackend
         }
 
 
-        public static BeamGameState FromApianSerialized( long seqNum,  long timeStamp,  string stateHash,  string serializedData)
+        public static BeamCoreState FromApianSerialized( long seqNum,  long timeStamp,  string stateHash,  string serializedData)
         {
-            BeamGameState newState = new BeamGameState(null);
+            BeamCoreState newState = new BeamCoreState(null);
 
             JArray sData = JArray.Parse(serializedData);
             long newSeq = (long)sData[0];

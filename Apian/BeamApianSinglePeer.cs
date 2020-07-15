@@ -9,7 +9,7 @@ namespace BeamBackend
 {
     public class BeamApianSinglePeer : BeamApian
     {
-        public BeamApianSinglePeer(IBeamGameNet _gn,  IBeamApianClient _client) : base(_gn, _client)
+        public BeamApianSinglePeer(IBeamGameNet _gn,  IBeamAppCore _client) : base(_gn, _client)
         {
             ApianGroup = new SinglePeerGroupManager(this);
         }

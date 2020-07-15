@@ -8,7 +8,7 @@ using Apian;
 
 namespace BeamBackend
 {
-    public class BaseBike : IBike, IApianStateData
+    public class BaseBike : IBike, IApianCoreData
     {
         public const int kStartScore = 2000;
         public static readonly float length = 2.0f;
@@ -24,13 +24,13 @@ namespace BeamBackend
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public Heading heading { get; private set;} = Heading.kNorth;
         public float speed { get; private set;} = 0;
-        public BeamGameState gameData = null;
+        public BeamCoreState gameData = null;
 
         public UniLogger logger;
 
         public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
-        public BaseBike( BeamGameState gData, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head)
+        public BaseBike( BeamCoreState gData, string _id, string _peerId, string _name, Team _team, string ctrl, Vector2 initialPos, Heading head)
         {
             gameData = gData;
             bikeId = _id;
@@ -104,7 +104,7 @@ namespace BeamBackend
                  });
         }
 
-        public static BaseBike FromApianJson(string jsonData, BeamGameState gData, List<string> peerIdList, long timeStamp)
+        public static BaseBike FromApianJson(string jsonData, BeamCoreState gData, List<string> peerIdList, long timeStamp)
         {
             object[] data = JsonConvert.DeserializeObject<object[]>(jsonData);
 
