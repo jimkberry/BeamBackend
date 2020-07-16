@@ -8,8 +8,8 @@ namespace BeamBackend
     public class BeamGameMode : IGameMode
     {
 		public ModeManager manager;
-		public BeamApplication core;
-		//public IGameInstance gameInst;
+		public BeamApplication appl;
+
 		public UniLogger logger;
 		public int ModeId() => manager.CurrentModeId();
 
@@ -19,7 +19,7 @@ namespace BeamBackend
 			// Not virtual
 			// TODO: this should be the engine and not the modeMgr - but what IS an engine...
 			manager = mgr;
-			core = gInst as BeamApplication;
+			appl = gInst as BeamApplication;
 			logger = UniLogger.GetLogger("BeamMode");
         }
 

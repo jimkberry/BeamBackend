@@ -11,7 +11,7 @@ using UniLog;
 namespace BeamBackend
 {
 
-    public class BeamGameInstance : IModalGame, IBeamGameInstance, IBeamAppCore
+    public class BeamAppCore : IModalGame, IBeamAppCore
     {
         public event EventHandler<BeamCoreState> NewGameStateEvt;
         public event EventHandler<string> GroupJoinedEvt;
@@ -49,7 +49,7 @@ namespace BeamBackend
 
         protected Dictionary<string, Action<BeamMessage>> commandHandlers;
 
-        public BeamGameInstance(IBeamFrontend fep)
+        public BeamAppCore(IBeamFrontend fep)
         {
             logger = UniLogger.GetLogger("GameInstance");
             //modeMgr = new ModeManager(new BeamModeFactory(), this);

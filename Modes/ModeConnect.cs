@@ -37,7 +37,7 @@ namespace BeamBackend
         protected const int kCreatingBikes = 3;
         protected const int kReadyToPlay = 4;
 
-        public BeamGameInstance game = null;
+        public BeamAppCore game = null;
         public BeamUserSettings settings = null;
         protected int _curState = kCreatingGame;
 
@@ -50,7 +50,7 @@ namespace BeamBackend
         {
             base.Start();
 
-            game = core.mainGameInst;
+            game = appl.mainGameInst;
 
 ///            game.GameCreatedEvt += OnGameCreatedEvt;
 ///           game.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
@@ -65,7 +65,7 @@ namespace BeamBackend
             game.ClearPlaces();
 
             // need to "connect"first in order to have a p2pId
-            core.ConnectToNetwork(settings.p2pConnectionString);
+            appl.ConnectToNetwork(settings.p2pConnectionString);
 ///            game.AddLocalPeer(core.LocalPeer);
 
             if (!settings.tempSettings.ContainsKey("gameId"))
@@ -101,11 +101,11 @@ namespace BeamBackend
             {
             case kCreatingGame:
                 logger.Info($"{(ModeName())}: SetState: kCreatingGame");
-                core.gameNet.CreateGame(startParam);
+                appl.gameNet.CreateGame(startParam);
                 break;
             case kJoiningGame:
                 logger.Info($"{(ModeName())}: SetState: kJoiningGame");
-                core.JoinNetworkGame((string)startParam);
+                appl.JoinNetworkGame((string)startParam);
                 break;
             case kWaitingForUnknownBikes:
                 logger.Info($"{(ModeName())}: SetState: kWaitingForRemoteBikes");

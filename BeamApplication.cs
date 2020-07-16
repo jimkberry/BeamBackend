@@ -21,7 +21,7 @@ namespace BeamBackend
         public BeamNetworkPeer LocalPeer { get; private set; } = null;
 
         public UniLogger Logger;
-        public BeamGameInstance mainGameInst {get; private set;}
+        public BeamAppCore mainGameInst {get; private set;}
 
         public BeamApplication(BeamGameNet bgn, IBeamFrontend fe)
         {
@@ -35,8 +35,8 @@ namespace BeamBackend
         public void AddAppCore(IApianAppCore gi)
         {
             // Beam only supports 1 game instance
-            mainGameInst = gi as BeamGameInstance;
-            frontend.SetGameInstance(gi as IBeamGameInstance); /// TODO: this is just a hack.
+            mainGameInst = gi as BeamAppCore;
+            frontend.SetAppCore(gi as IBeamAppCore); /// TODO: this is just a hack.
         }
 
         public void ConnectToNetwork(string netConnectionStr)

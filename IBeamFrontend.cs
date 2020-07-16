@@ -16,7 +16,7 @@ namespace BeamBackend
 
     public interface IBeamFrontend
     {
-        void SetGameInstance(IBeamGameInstance back); // setup
+        void SetAppCore(IBeamAppCore core); // TODO: This is not really what we want
 
         BeamUserSettings GetUserSettings();
 

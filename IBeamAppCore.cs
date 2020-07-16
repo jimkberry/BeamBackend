@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using Apian;
 
 namespace BeamBackend
 {
@@ -33,7 +31,9 @@ namespace BeamBackend
     }
 
 
-    public interface IBeamGameInstance {
+    public interface IBeamAppCore : IApianAppCore
+    {
+        // API for application code
 
         // Events
         event EventHandler<string> GroupJoinedEvt;
@@ -62,6 +62,19 @@ namespace BeamBackend
         void PostBikeCommand(IBike bike, BikeCommand cmd);
         void PostBikeTurn(IBike bike, TurnDir dir);
         void PostBikeCreateData(IBike ib, string destId);
+
+        // API for Apian Core
+
+        // What Apian expects to call in the app instance
+        void OnGroupJoined(string groupId); // local peer has joined a group (status: Joining)
+        void OnNewPlayerCmd(NewPlayerMsg msg);
+        void OnPlayerLeftCmd(PlayerLeftMsg msg);
+        void OnCreateBikeCmd(BikeCreateDataMsg msg);
+        void OnPlaceHitCmd(PlaceHitMsg msg);
+        void OnPlaceClaimCmd(PlaceClaimMsg msg); // delay since the claim was originally made
+        void OnBikeCommandCmd(BikeCommandMsg msg);
+        void OnBikeTurnCmd(BikeTurnMsg msg);
+
     }
 
 

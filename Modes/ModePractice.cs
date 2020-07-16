@@ -12,7 +12,7 @@ namespace BeamBackend
         static public readonly string ApianGroupName = "LocalPracticeGroup";
         static public readonly string ApianGroupId = "LocalPracticeId";
         public readonly int kMaxAiBikes = 11;
-        public BeamGameInstance game = null;
+        public BeamAppCore game = null;
         protected BaseBike playerBike = null;
         protected const float kRespawnCheckInterval = 1.3f;
         protected float _secsToNextRespawnCheck = kRespawnCheckInterval;
@@ -23,12 +23,12 @@ namespace BeamBackend
         {
             base.Start();
 
-            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            core.AddAppCore(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
+            appl.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            appl.AddAppCore(null); // TODO: THis is beam only. Need better way. ClearGameInstances()? Init()?
 
             // Setup/connect fake network
-            core.ConnectToNetwork("p2ploopback");
-            core.JoinNetworkGame(GameName);
+            appl.ConnectToNetwork("p2ploopback");
+            appl.JoinNetworkGame(GameName);
 
             // Now wait for OnPeerJoinedGame()
         }
@@ -62,13 +62,13 @@ namespace BeamBackend
         }
 
 		public override object End() {
-            core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            appl.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PlayerJoinedEvt -= OnMemberJoinedGroupEvt;
             game.NewBikeEvt -= OnNewBikeEvt;
-            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(appl.modeMgr.CurrentModeId(), null);
             game.End();
-            core.gameNet.LeaveGame();
-            core.AddAppCore(null);
+            appl.gameNet.LeaveGame();
+            appl.AddAppCore(null);
             return null;
         }
 
@@ -112,7 +112,7 @@ namespace BeamBackend
         public void OnNewBikeEvt(object sender, IBike newBike)
         {
             // If it's local we need to tell it to Go!
-            bool isLocal = newBike.peerId == core.LocalPeer.PeerId;
+            bool isLocal = newBike.peerId == appl.LocalPeer.PeerId;
             logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId} Sending GO! command");
             if (isLocal)
             {
@@ -122,20 +122,20 @@ namespace BeamBackend
 
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {
-            bool isLocal = ga.peer.PeerId == core.LocalPeer.PeerId;
+            bool isLocal = ga.peer.PeerId == appl.LocalPeer.PeerId;
             if (isLocal && game == null)
             {
                 logger.Info("practice game joined");
                 // Create gameInstance and associated Apian
-                game = new BeamGameInstance(core.frontend);
+                game = new BeamAppCore(appl.frontend);
                 game.PlayerJoinedEvt += OnMemberJoinedGroupEvt;
                 game.NewBikeEvt += OnNewBikeEvt;
 
-                BeamApian apian = new BeamApianSinglePeer(core.gameNet, game);
-                core.AddAppCore(game);
+                BeamApian apian = new BeamApianSinglePeer(appl.gameNet, game);
+                appl.AddAppCore(game);
                 // Dont need to check for groups in splash
                 apian.CreateNewGroup(ApianGroupId, ApianGroupName);
-                BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+                BeamPlayer mb = new BeamPlayer(appl.LocalPeer.PeerId, appl.LocalPeer.Name);
                 apian.JoinGroup(ApianGroupId, mb.ApianSerialized());
 
                 game.frontend?.OnStartMode(BeamModeFactory.kPractice, null);

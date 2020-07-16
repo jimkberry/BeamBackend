@@ -28,7 +28,7 @@ namespace BeamBackend
         protected float _curStateSecs;
         protected delegate void LoopFunc(float f);
         protected LoopFunc _loopFunc;
-        public BeamGameInstance game = null;
+        public BeamAppCore game = null;
         protected BaseBike playerBike = null;
 
         // mode substates
@@ -48,23 +48,23 @@ namespace BeamBackend
             base.Start();
             announcedGroups = new Dictionary<string, ApianGroupInfo>();
 
-            settings = core.frontend.GetUserSettings();
+            settings = appl.frontend.GetUserSettings();
 
             _ParseGameAndGroup();
 
-            core.GameCreatedEvt += OnGameCreatedEvt;
-            core.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
-            core.AddAppCore(null);
+            appl.GameCreatedEvt += OnGameCreatedEvt;
+            appl.PeerJoinedGameEvt += OnPeerJoinedGameEvt;
+            appl.AddAppCore(null);
 
             // Setup/connect fake network
-            core.ConnectToNetwork(settings.p2pConnectionString);
+            appl.ConnectToNetwork(settings.p2pConnectionString);
 
             if (gameId == null)
                 _SetState(kCreatingGame, new BeamGameNet.GameCreationData());
             else
                 _SetState(kJoiningGame, gameId);
 
-            core.frontend?.OnStartMode(ModeId(), null );
+            appl.frontend?.OnStartMode(ModeId(), null );
         }
 
 		public override void Loop(float frameSecs)
@@ -74,14 +74,14 @@ namespace BeamBackend
         }
 
 		public override object End() {
-            core.GameCreatedEvt -= OnGameCreatedEvt;
-            core.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
+            appl.GameCreatedEvt -= OnGameCreatedEvt;
+            appl.PeerJoinedGameEvt -= OnPeerJoinedGameEvt;
             game.PlayerJoinedEvt -= OnPlayerJoinedEvt;
             game.NewBikeEvt -= OnNewBikeEvt;
-            game.frontend?.OnEndMode(core.modeMgr.CurrentModeId(), null);
+            game.frontend?.OnEndMode(appl.modeMgr.CurrentModeId(), null);
             game.End();
-            core.gameNet.LeaveGame();
-            core.AddAppCore(null);
+            appl.gameNet.LeaveGame();
+            appl.AddAppCore(null);
             return null;
         }
 
@@ -96,19 +96,19 @@ namespace BeamBackend
             {
             case kCreatingGame:
                 logger.Verbose($"{(ModeName())}: SetState: kCreatingGame");
-                core.CreateNetworkGame((BeamGameNet.GameCreationData)startParam);
+                appl.CreateNetworkGame((BeamGameNet.GameCreationData)startParam);
                 // Wait for OnGameCreatedEvt()
                 break;
             case kJoiningGame:
                 logger.Verbose($"{(ModeName())}: SetState: kJoiningGame");
-                core.JoinNetworkGame((string)startParam);
+                appl.JoinNetworkGame((string)startParam);
                 // Wait for OnGameJoinedEvt()
                 break;
             case kCheckingForGroups:
                 logger.Verbose($"{(ModeName())}: SetState: kCheckingForGroups");
                 announcedGroups.Clear();
-                core.GroupAnnounceEvt += OnGroupAnnounceEvt;
-                core.ListenForGroups();
+                appl.GroupAnnounceEvt += OnGroupAnnounceEvt;
+                appl.ListenForGroups();
                 _loopFunc = _GroupListenLoop;
                 break;
             case kJoiningGroup:
@@ -142,7 +142,7 @@ namespace BeamBackend
             {
                 // TODO: Hoist all this!!!
                 // Stop listening for groups and either create or join (or fail)
-                core.GroupAnnounceEvt -= OnGroupAnnounceEvt; // stop listening
+                appl.GroupAnnounceEvt -= OnGroupAnnounceEvt; // stop listening
                 bool targetGroupExisted = (apianGroupId != null) && announcedGroups.ContainsKey(apianGroupId);
 
                 switch (groupCreateMode)
@@ -214,7 +214,7 @@ namespace BeamBackend
 
         private void _JoinGroup()
         {
-            BeamPlayer mb = new BeamPlayer(core.LocalPeer.PeerId, core.LocalPeer.Name);
+            BeamPlayer mb = new BeamPlayer(appl.LocalPeer.PeerId, appl.LocalPeer.Name);
             game.apian.JoinGroup(apianGroupId, mb.ApianSerialized());
         }
 
@@ -233,19 +233,19 @@ namespace BeamBackend
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)
         {
             BeamNetworkPeer p = ga.peer;
-            bool isLocal = p.PeerId == core.LocalPeer.PeerId;
+            bool isLocal = p.PeerId == appl.LocalPeer.PeerId;
             logger.Info($"{(ModeName())} - OnPeerJoinedGameEvt() - {(isLocal?"Local":"Remote")} Peer Joined: {p.Name}, ID: {p.PeerId}");
             if (isLocal)
             {
                 if (_curState == kJoiningGame)
                 {
                     // Create gameinstance and ApianInstance
-                    game = new BeamGameInstance(core.frontend);
+                    game = new BeamAppCore(appl.frontend);
                     game.PlayerJoinedEvt += OnPlayerJoinedEvt;
                     game.NewBikeEvt += OnNewBikeEvt;
-                    BeamApian apian = new BeamApianCreatorServer(core.gameNet, game); // TODO: make the groupMgr type run-time spec'ed
+                    BeamApian apian = new BeamApianCreatorServer(appl.gameNet, game); // TODO: make the groupMgr type run-time spec'ed
                     //BeamApian apian = new BeamApianSinglePeer(core.gameNet, game); // *** This should be commented out (or gone)
-                    core.AddAppCore(game);
+                    appl.AddAppCore(game);
                     _SetState(kCheckingForGroups, null);
                 }
                 else
@@ -262,9 +262,9 @@ namespace BeamBackend
 
         public void OnPlayerJoinedEvt(object sender, PlayerJoinedArgs ga)
         {
-            bool isLocal = ga.player.PeerId == core.LocalPeer.PeerId;
+            bool isLocal = ga.player.PeerId == appl.LocalPeer.PeerId;
             logger.Info($"{(ModeName())} - OnPlayerJoinedEvt() - {(isLocal?"Local":"Remote")} Member Joined: {ga.player.Name}, ID: {ga.player.PeerId}");
-            if (ga.player.PeerId == core.LocalPeer.PeerId)
+            if (ga.player.PeerId == appl.LocalPeer.PeerId)
             {
                 game.RespawnPlayerEvt += OnRespawnPlayerEvt;
                 //_SetState(kWaitingForMembers);
@@ -275,7 +275,7 @@ namespace BeamBackend
         public void OnNewBikeEvt(object sender, IBike newBike)
         {
             // If it's local we need to tell it to Go!
-            bool isLocal = newBike.peerId == core.LocalPeer.PeerId;
+            bool isLocal = newBike.peerId == appl.LocalPeer.PeerId;
             logger.Info($"{(ModeName())} - OnNewBikeEvt() - {(isLocal?"Local":"Remote")} Bike created, ID: {newBike.bikeId}");
             if (isLocal)
             {
