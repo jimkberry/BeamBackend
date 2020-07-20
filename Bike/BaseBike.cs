@@ -364,6 +364,10 @@ namespace BeamBackend
             if ( !prevPosition.Equals(posFromCmd))
                 logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {prevPosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
 
+            prevPosition = posFromCmd;
+            timeAtPosition = timeStamp;
+            heading = cmdHead;
+
         //     position = cmdPos;
 
         //     // Roll back the current pos to the timestamp, average, and then
