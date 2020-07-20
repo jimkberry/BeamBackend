@@ -57,6 +57,8 @@ namespace BeamBackend
         string LocalPeerId {get;}
         BeamCoreState CoreData {get;}
 
+        long CurrentRunningGameTime {get;}
+
         // Requests from FE
         // TODO: This is getting sparse - is it needed?
         void PostBikeCommand(IBike bike, BikeCommand cmd);

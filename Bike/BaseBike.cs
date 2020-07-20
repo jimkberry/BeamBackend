@@ -20,7 +20,7 @@ namespace BeamBackend
         public Team team {get; private set;}
         public int score {get; set;}
         public string ctrlType {get; private set;}
-        public Vector2 position {get; private set;} = Vector2.zero; // always on the grid
+        public Vector2 prevPosition {get; private set;} = Vector2.zero; // always on the grid
         public long timeAtPosition {get; private set;}
 
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
@@ -40,7 +40,7 @@ namespace BeamBackend
             peerId = _peerId;
             name = _name;
             team = _team;
-            position = initialPos;
+            prevPosition = initialPos;
             timeAtPosition = initialTime;
             heading = head;
             ctrlType = ctrl;
@@ -74,19 +74,6 @@ namespace BeamBackend
             // and the apianTime when it was there (assuming current speed.) Or it's
             //  actual position and 0 if the bike's not moving.
 
-            // First, though - propagate the bikes position back to the checkpoint timestamp
-            // just in case it has just barely passed through a point (command might still be pending)
-            float secsSinceCp = (sArgs.curApianTime - sArgs.cpTimeStamp) * .001f;
-            Vector2 cpPos = position - GameConstants.UnitOffset2ForHeading(heading) * speed * secsSinceCp;
-
-            // Find what THEN was the last point visited andw when we were there
-            Vector2 point = speed == 0 ? cpPos : UpcomingGridPoint(cpPos, GameConstants.ReciprocalHeading(heading));
-            float timeToPoint = speed == 0 ? 0 : Vector2.Distance(cpPos, point) / speed;
-            long timeAtPoint = speed == 0 ? 0 : sArgs.cpTimeStamp - (long)(timeToPoint * 1000f);
-
-            // round to nearest 100 ms...
-            // TODO: I'm not real happy about this stuff. It just kinda smells funny to me.
-            timeAtPoint = _RoundToNearest(100, timeAtPoint);
 
             // // WHile I'm debugging. These are in grid-index space (tomake it easier to compare withthe places list)
             // float indexX =   (position.x - Ground.minX) / Ground.gridSize;
@@ -98,9 +85,9 @@ namespace BeamBackend
                     name,
                     team.TeamID,
                     ctrlType,
-                    (long)(point.x * 1000f), // integer mm
-                    (long)(point.y * 1000f),
-                    timeAtPoint,
+                    (long)(prevPosition.x * 1000f), // integer mm
+                    (long)(prevPosition.y * 1000f),
+                    timeAtPosition, // Do I need to round this? Shouldn't have to, but: _RoundToNearest(100, timeAtPoint);
                     heading,
                     speed,
                     score,
@@ -143,7 +130,6 @@ namespace BeamBackend
         }
 
 
-
         // Commands from outside
 
         // public void Loop(float secs, long frameTimeMs)
@@ -152,11 +138,16 @@ namespace BeamBackend
         //     _updatePosition(secs, frameTimeMs);
         // }
 
+        public Vector2 Position(long curMs)
+        {
+            float deltaSecs = (curMs - timeAtPosition) * .001f;
+            return prevPosition +  GameConstants.UnitOffset2ForHeading(heading) * deltaSecs;
+        }
+
         public void Loop(long apianTime)
         {
             _checkPosition(apianTime);
         }
-
 
         public void AddScore(int val) => score += val;
 
@@ -164,7 +155,7 @@ namespace BeamBackend
         {
             // TODO: &&&& reported state really should not be there.
 
-            Vector2 testPt = UpcomingGridPoint();
+            Vector2 testPt = UpcomingGridPoint(prevPosition); // use the last logged position
             if (!testPt.Equals(nextPt))
             {
                 logger.Warn($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
@@ -178,7 +169,7 @@ namespace BeamBackend
 
         public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long cmdTime)
         {
-            if (!UpcomingGridPoint().Equals(nextPt))
+            if (!UpcomingGridPoint(prevPosition).Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
 
             switch(cmd)
@@ -205,10 +196,10 @@ namespace BeamBackend
             if (secs <= 0 || speed == 0) // nothing can have happened
                 return;
 
-            Vector2 upcomingPoint = UpcomingGridPoint();
-            float timeToPoint = Vector2.Distance(position, upcomingPoint) / speed;
+            Vector2 upcomingPoint = UpcomingGridPoint(prevPosition); // using the last logged position
+            float timeToPoint = Vector2.Distance(prevPosition, upcomingPoint) / speed;
 
-            Vector2 newPos = position;
+            Vector2 newPos = prevPosition;
             Heading newHead = heading;
 
             // Note that this assumes that secs < timeToCrossAGrid
@@ -233,7 +224,7 @@ namespace BeamBackend
         {
             pendingTurn = TurnDir.kUnset;
             heading = head;
-            position = pos;
+            prevPosition = pos;
             timeAtPosition = apianTime;
             logger.Verbose($"_updatePosition() Bike: {bikeId}, Pos: {pos.ToString()} Head: {heading.ToString()}");
         }
@@ -331,16 +322,16 @@ namespace BeamBackend
         //
         // Static tools. Potentially useful publicly
         //
-        public static Vector2 NearestGridPoint(Vector2 pos)
+        public static Vector2 NearestGridPoint(Vector2 curPos)
         {
             // TODO: duplicate of Ground method
             float invGridSize = 1.0f / Ground.gridSize;
-            return new Vector2(Mathf.Round(pos.x * invGridSize) * Ground.gridSize, Mathf.Round(pos.y * invGridSize) * Ground.gridSize);
+            return new Vector2(Mathf.Round(curPos.x * invGridSize) * Ground.gridSize, Mathf.Round(curPos.y * invGridSize) * Ground.gridSize);
         }
 
-        public bool CloseToGridPoint()
+        public bool CloseToGridPoint(Vector2 curPos)
         {
-            float dist = Vector2.Distance(position, NearestGridPoint(position));
+            float dist = Vector2.Distance(curPos, NearestGridPoint(curPos));
             return (dist < length);
         }
 
@@ -356,9 +347,9 @@ namespace BeamBackend
             return point;
         }
 
-        public Vector2 UpcomingGridPoint( )
+        public Vector2 UpcomingGridPoint(Vector2 basePos)
         {
-            return UpcomingGridPoint(position, heading);
+            return UpcomingGridPoint(basePos, heading);
         }
 
         public void UpdatePosFromCommand(long timeStamp, long curTime, Vector2 posFromCmd, Heading cmdHead)
@@ -370,8 +361,8 @@ namespace BeamBackend
 
        //      logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {curTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
 
-            if ( !position.Equals(posFromCmd))
-                logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {position.ToString()}, CmdPos: {posFromCmd.ToString()}");
+            if ( !prevPosition.Equals(posFromCmd))
+                logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {prevPosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
 
         //     position = cmdPos;
 

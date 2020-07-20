@@ -14,13 +14,14 @@ namespace BeamBackend
         Team team { get;}
         string ctrlType {get;}
         long timeAtPosition {get;}
-        Vector2 position {get;}
+        Vector2 prevPosition {get;}
         Heading heading { get;}
         float speed { get; }
         int score {get;}
         TurnDir pendingTurn { get;}
         void Loop(long apianTime);
         void AddScore(int val);
+        Vector2 Position(long curMs);
 
     }
 

@@ -174,11 +174,11 @@ namespace BeamBackend
         {
             logger.Verbose($"OnCreateBikeCmd(): {msg.bikeId}.");
             IBike ib = msg.ToBike(CoreData);
-            logger.Verbose($"** OnCreateBike() created {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
+            logger.Verbose($"** OnCreateBike() created {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
             if (_AddBike(ib))
             {
                 // *** Bikes are created stationary now - so there's no need to correct for creation time delay
-                logger.Verbose($"OnCreateBike() created {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
+                logger.Verbose($"OnCreateBike() created {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
             }
         }
 
@@ -302,16 +302,17 @@ namespace BeamBackend
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            apian.SendBikeCommandReq(FrameApianTime, bike, cmd, (bike as BaseBike).UpcomingGridPoint());
+            apian.SendBikeCommandReq(FrameApianTime, bike, cmd, (bike as BaseBike).UpcomingGridPoint(bike.prevPosition));
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
         {
-            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint();
+            Vector2 curPos = bike.Position(CurrentRunningGameTime); // TODO: Really?
+            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(curPos);
 
-            float dx = Vector2.Distance(bike.position, nextPt);
+            float dx = Vector2.Distance(curPos, nextPt);
             if (dx < BaseBike.length * .5f)
-                logger.Debug($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
+                logger.Warn($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else
                 apian.SendBikeTurnReq(FrameApianTime, bike, dir, nextPt);
         }
@@ -447,7 +448,7 @@ namespace BeamBackend
 
         public bool _AddBike(IBike ib)
         {
-            logger.Verbose($"_AddBike(): {ib.bikeId} at ({ib.position.x}, {ib.position.y})");
+            logger.Verbose($"_AddBike(): {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
 
             if (CoreData.GetBaseBike(ib.bikeId) != null)
                 return false;

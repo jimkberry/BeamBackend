@@ -202,10 +202,10 @@ namespace BeamBackend
         public void PostBikeRemoval(string bikeId) => _bikeIdsToRemoveAfterLoop.Add(bikeId);
 
 
-        public IBike ClosestBike(IBike thisBike)
+        public IBike ClosestBike(long curTime, IBike thisBike)
         {
             return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
-                    .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).First();
+                    .OrderBy(b => Vector2.Distance(b.Position(curTime), thisBike.Position(curTime))).First();
         }
 
         public List<IBike> LocalBikes(string peerId)
@@ -213,12 +213,12 @@ namespace BeamBackend
             return Bikes.Values.Where(ib => ib.peerId == peerId).ToList();
         }
 
-        public List<Vector2> CloseBikePositions(IBike thisBike, int maxCnt)
+        public List<Vector2> CloseBikePositions(long curTime, IBike thisBike, int maxCnt)
         {
             // Todo: this is actually "current enemy pos"
             return Bikes.Values.Where(b => b != thisBike)
-                .OrderBy(b => Vector2.Distance(b.position, thisBike.position)).Take(maxCnt) // IBikes
-                .Select(ob => ob.position).ToList();
+                .OrderBy(b => Vector2.Distance(b.Position(curTime), thisBike.Position(curTime))).Take(maxCnt) // IBikes
+                .Select(ob => ob.Position(curTime)).ToList();
         }
 
         // Places stuff
