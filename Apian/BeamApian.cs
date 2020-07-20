@@ -50,6 +50,8 @@ namespace BeamBackend
 
         protected bool LocalPeerIsActive {get => (ApianGroup != null) && (ApianGroup.LocalMember?.CurStatus == ApianGroupMember.Status.Active); }
 
+        public long SystemTime { get => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;}  // system clock
+
         public BeamApian(IBeamGameNet _gn, IBeamAppCore _client) : base(_gn, _client)
         {
             BeamGameNet = _gn;
@@ -68,7 +70,11 @@ namespace BeamBackend
 
         }
 
-        public long CurrentRunningApianTime() => ApianClock.CurrentTime;
+        public long CurrentRunningApianTime()
+        {
+            return ApianClock == null ? SystemTime : ApianClock.CurrentTime;
+        }
+
 
         public override bool Update()
         {
