@@ -54,7 +54,7 @@ namespace BeamBackend
                 if (_secsToNextRespawnCheck <= 0)
                 {
                     // TODO: respawn with prev names/teams?
-                    if (game.GameData.Bikes.Count < kMaxAiBikes)
+                    if (game.CoreData.Bikes.Count < kMaxAiBikes)
                         SpawnAIBike();
                     _secsToNextRespawnCheck = kRespawnCheckInterval;
                 }
@@ -72,21 +72,16 @@ namespace BeamBackend
             return null;
         }
 
-        protected string CreateBaseBike(string ctrlType, string peerId, string name, Team t)
-        {
-            Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
-            string bikeId = Guid.NewGuid().ToString();
-            BaseBike bb = new BaseBike(game.GameData, bikeId, peerId, name, t, ctrlType, pos, heading);
-            game.PostBikeCreateData(bb);
-            return bb.bikeId;
-        }
 
         protected string SpawnPlayerBike()
         {
             // Create one the first time
             string scrName = game.frontend.GetUserSettings().screenName;
-            return CreateBaseBike(BikeFactory.LocalPlayerCtrl, game.LocalPeerId, game.LocalPlayer.Name, BikeDemoData.RandomTeam());
+
+            BaseBike bb =  game.CreateBaseBike( BikeFactory.LocalPlayerCtrl, game.LocalPeerId, scrName, BikeDemoData.RandomTeam());
+            game.PostBikeCreateData(bb); // will result in OnBikeInfo()
+            logger.Debug($"{this.ModeName()}: SpawnAiBike({ bb.bikeId})");
+            return bb.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.
         }
 
         protected string SpawnAIBike(string name = null, Team team = null)
@@ -97,7 +92,10 @@ namespace BeamBackend
             if (team == null)
                 team = BikeDemoData.RandomTeam();
 
-            return CreateBaseBike(BikeFactory.AiCtrl, game.LocalPeerId, name, team);
+            BaseBike bb =  game.CreateBaseBike( BikeFactory.AiCtrl, game.LocalPeerId, name, team);
+            game.PostBikeCreateData(bb); // will result in OnBikeInfo()
+            logger.Debug($"{this.ModeName()}: SpawnAiBike({ bb.bikeId})");
+            return bb.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.
         }
 
 

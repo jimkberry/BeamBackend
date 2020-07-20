@@ -131,6 +131,7 @@ namespace BeamBackend
         public Team team;
         public int score;
         public string ctrlType;
+        public long timeAtPos;
         public float xPos;
         public float yPos;
         public Heading heading;
@@ -143,6 +144,7 @@ namespace BeamBackend
             team = ib.team;
             score = ib.score;
             ctrlType = ib.ctrlType;
+            timeAtPos = ib.timeAtPosition;
             xPos = ib.position.x;
             yPos = ib.position.y;
             heading = ib.heading;
@@ -153,7 +155,7 @@ namespace BeamBackend
         public IBike ToBike(BeamCoreState gd)
         {
             // Remote bikes always get control type: BikeFactory.RemoteCrtl
-            return new BaseBike(gd, bikeId, peerId , name, team, ctrlType, new Vector2(xPos, yPos), heading);
+            return new BaseBike(gd, bikeId, peerId , name, team, ctrlType, timeAtPos, new Vector2(xPos, yPos), heading);
         }
     }
 
@@ -202,21 +204,23 @@ namespace BeamBackend
     {
         // TODO: use place hashes instad of positions?
         public string bikeId;
-        public string ownerPeer;
-        public BikeState bikeState;
+        public string ownerPeer; // helpful in case bike is gone on arrival
         public TurnDir dir;
+        public Heading entryHead; // From here down is for validation
         public float nextPtX;
         public float nextPtZ;
+        public BikeState bikeState; // TODO: we shouldn't need ALL of this
         public BikeTurnMsg() : base()  {}
 
         public BikeTurnMsg(long ts, IBike ib, TurnDir _dir, Vector2 nextGridPt) : base(kBikeTurnMsg, ts)
         {
             bikeId = ib.bikeId;
             ownerPeer = ib.peerId;
-            bikeState = new BikeState(ib);
             dir = _dir;
+            entryHead = ib.heading;
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
+            bikeState = new BikeState(ib);
         }
     }
 

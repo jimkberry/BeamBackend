@@ -66,7 +66,7 @@ namespace BeamBackend
                 if (_secsToNextRespawnCheck <= 0)
                 {
                     // TODO: respawn with prev names/teams?
-                    if (game.GameData.Bikes.Count() < kSplashBikeCount)
+                    if (game.CoreData.Bikes.Count() < kSplashBikeCount)
                         CreateADemoBike();
                     _secsToNextRespawnCheck = kRespawnCheckInterval;
                 }
@@ -87,14 +87,10 @@ namespace BeamBackend
 
         protected string CreateADemoBike()
         {
-            Heading heading = BikeFactory.PickRandomHeading();
-            Vector2 pos = BikeFactory.PositionForNewBike( game.GameData.Bikes.Values.ToList(), heading, Ground.zeroPos, Ground.gridSize * 10 );
-            string bikeId = Guid.NewGuid().ToString();
-            IBike ib =  new BaseBike(game.GameData, bikeId, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam(),
-                BikeFactory.AiCtrl, pos, heading);
-            game.PostBikeCreateData(ib);
-            logger.Debug($"{this.ModeName()}: CreateADemoBike({bikeId})");
-            return ib.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.
+            BaseBike bb =  game.CreateBaseBike( BikeFactory.AiCtrl, game.LocalPeerId, BikeDemoData.RandomName(), BikeDemoData.RandomTeam());
+            game.PostBikeCreateData(bb); // will result in OnBikeInfo()
+            logger.Debug($"{this.ModeName()}: SpawnAiBike({ bb.bikeId})");
+            return bb.bikeId;  // the bike hasn't been added yet, so this id is not valid yet.
         }
 
         public void OnPeerJoinedGameEvt(object sender, PeerJoinedGameArgs ga)

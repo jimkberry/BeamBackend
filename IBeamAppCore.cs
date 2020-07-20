@@ -55,7 +55,7 @@ namespace BeamBackend
         Ground GetGround();
 
         string LocalPeerId {get;}
-        BeamCoreState GameData {get;}
+        BeamCoreState CoreData {get;}
 
         // Requests from FE
         // TODO: This is getting sparse - is it needed?

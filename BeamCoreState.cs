@@ -84,7 +84,7 @@ namespace BeamBackend
         public void Loop(long nowMs, long frameMs)
         {
              foreach( IBike ib in Bikes.Values)
-                ib.Loop(frameMs * .001f, nowMs);  // Bike might get "destroyed" here and need to be removed
+                ib.Loop(nowMs);  // Bike might get "destroyed" here and need to be removed
 
             LoopPlaces(nowMs);
 
@@ -96,8 +96,8 @@ namespace BeamBackend
         protected void LoopPlaces(long nowMs)
         {
             List<BeamPlace> timedOutPlaces = new List<BeamPlace>();
-            // Be very, very careful not to do something that might recusively delete a lest member while iterating over the list
-            // This is probably unneeded givent that PostPlaceRemoval() exists
+            // Be very, very careful not to do something that might recusively delete a list member while iterating over the list
+            // This is probably unneeded given that PostPlaceRemoval() exists
             foreach (BeamPlace p in activePlaces.Values)
                 if (p.expirationTimeMs <= nowMs)
                     timedOutPlaces.Add(p);
@@ -266,7 +266,7 @@ namespace BeamBackend
 
         public void RemovePlacesForBike(IBike bike)
         {
-            Logger.Verbose($"RemovePlacesForBike({bike.bikeId})");
+            Logger.Info($"RemovePlacesForBike({bike.bikeId})");
             foreach (BeamPlace p in PlacesForBike(bike))
                 PostPlaceRemoval(p);
         }

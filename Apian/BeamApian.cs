@@ -54,7 +54,7 @@ namespace BeamBackend
         {
             BeamGameNet = _gn;
             client = _client as BeamAppCore;
-            gameData = client.GameData;
+            gameData = client.CoreData;
             ApianClock = new DefaultApianClock(this);
             apianPeers = new Dictionary<string, BeamApianPeer>();
 
@@ -161,14 +161,14 @@ namespace BeamBackend
             {
                 curFrameTime += msPerLoop;
                 client.UpdateFrameTime(curFrameTime);
-                client.GameData.Loop( client.FrameApianTime, msPerLoop);
+                client.CoreData.Loop( client.FrameApianTime, msPerLoop);
             }
 
             if (newApianTime > client.FrameApianTime)
             {
                 long msLeft =  newApianTime-client.FrameApianTime;
                 client.UpdateFrameTime(newApianTime);
-                client.GameData.Loop(newApianTime, msLeft);
+                client.CoreData.Loop(newApianTime, msLeft);
             }
         }
 
