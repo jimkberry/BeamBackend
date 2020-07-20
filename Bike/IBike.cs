@@ -14,7 +14,7 @@ namespace BeamBackend
         Team team { get;}
         string ctrlType {get;}
         long timeAtPosition {get;}
-        Vector2 prevPosition {get;}
+        Vector2 basePosition {get;}
         Heading heading { get;}
         float speed { get; }
         int score {get;}

@@ -174,11 +174,11 @@ namespace BeamBackend
         {
             logger.Verbose($"OnCreateBikeCmd(): {msg.bikeId}.");
             IBike ib = msg.ToBike(CoreData);
-            logger.Verbose($"** OnCreateBike() created {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
+            logger.Verbose($"** OnCreateBike() created {ib.bikeId} at ({ib.basePosition.x}, {ib.basePosition.y})");
             if (_AddBike(ib))
             {
                 // *** Bikes are created stationary now - so there's no need to correct for creation time delay
-                logger.Verbose($"OnCreateBike() created {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
+                logger.Verbose($"OnCreateBike() created {ib.bikeId} at ({ib.basePosition.x}, {ib.basePosition.y})");
             }
         }
 
@@ -302,7 +302,7 @@ namespace BeamBackend
 
         public void PostBikeCommand(IBike bike, BikeCommand cmd)
         {
-            apian.SendBikeCommandReq(FrameApianTime, bike, cmd, (bike as BaseBike).UpcomingGridPoint(bike.prevPosition));
+            apian.SendBikeCommandReq(FrameApianTime, bike, cmd, (bike as BaseBike).UpcomingGridPoint(bike.basePosition));
         }
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
@@ -448,7 +448,7 @@ namespace BeamBackend
 
         public bool _AddBike(IBike ib)
         {
-            logger.Verbose($"_AddBike(): {ib.bikeId} at ({ib.prevPosition.x}, {ib.prevPosition.y})");
+            logger.Verbose($"_AddBike(): {ib.bikeId} at ({ib.basePosition.x}, {ib.basePosition.y})");
 
             if (CoreData.GetBaseBike(ib.bikeId) != null)
                 return false;

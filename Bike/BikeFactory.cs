@@ -41,7 +41,7 @@ public static class BikeFactory
 		{
 			// Note that it's using the discrete "prevPosition" property
  			newPos = PickRandomPos( head, basePos,  radius);
-			closestD = otherBikes.Count == 0 ? minDist : otherBikes.Select( (bike) => Vector2.Distance(bike.prevPosition, newPos)).Aggregate( (acc,next) => acc < next ? acc : next);
+			closestD = otherBikes.Count == 0 ? minDist : otherBikes.Select( (bike) => Vector2.Distance(bike.basePosition, newPos)).Aggregate( (acc,next) => acc < next ? acc : next);
 			iter++;
 		}
 		return newPos;

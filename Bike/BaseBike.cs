@@ -20,7 +20,7 @@ namespace BeamBackend
         public Team team {get; private set;}
         public int score {get; set;}
         public string ctrlType {get; private set;}
-        public Vector2 prevPosition {get; private set;} = Vector2.zero; // always on the grid
+        public Vector2 basePosition {get; private set;} = Vector2.zero; // always on the grid
         public long timeAtPosition {get; private set;}
 
         // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
@@ -40,7 +40,7 @@ namespace BeamBackend
             peerId = _peerId;
             name = _name;
             team = _team;
-            prevPosition = initialPos;
+            basePosition = initialPos;
             timeAtPosition = initialTime;
             heading = head;
             ctrlType = ctrl;
@@ -85,8 +85,8 @@ namespace BeamBackend
                     name,
                     team.TeamID,
                     ctrlType,
-                    (long)(prevPosition.x * 1000f), // integer mm
-                    (long)(prevPosition.y * 1000f),
+                    (long)(basePosition.x * 1000f), // integer mm
+                    (long)(basePosition.y * 1000f),
                     timeAtPosition, // Do I need to round this? Shouldn't have to, but: _RoundToNearest(100, timeAtPoint);
                     heading,
                     speed,
@@ -141,7 +141,7 @@ namespace BeamBackend
         public Vector2 Position(long curMs)
         {
             float deltaSecs = (curMs - timeAtPosition) * .001f;
-            return prevPosition +  GameConstants.UnitOffset2ForHeading(heading) * (deltaSecs * speed);
+            return basePosition +  GameConstants.UnitOffset2ForHeading(heading) * (deltaSecs * speed);
         }
 
         public void Loop(long apianTime)
@@ -155,7 +155,7 @@ namespace BeamBackend
         {
             // TODO: &&&& reported state really should not be there.
 
-            Vector2 testPt = UpcomingGridPoint(prevPosition); // use the last logged position
+            Vector2 testPt = UpcomingGridPoint(basePosition); // use the last logged position
             if (!testPt.Equals(nextPt))
             {
                 logger.Warn($"ApplyTurn(): {(nextPt.ToString())} is the wrong upcoming point for bike: {bikeId}");
@@ -169,7 +169,7 @@ namespace BeamBackend
 
         public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long cmdTime)
         {
-            if (!UpcomingGridPoint(prevPosition).Equals(nextPt))
+            if (!UpcomingGridPoint(basePosition).Equals(nextPt))
                 logger.Warn($"ApplyCommand(): wrong upcoming point for bike: {bikeId}");
 
             switch(cmd)
@@ -196,10 +196,10 @@ namespace BeamBackend
             if (secs <= 0 || speed == 0) // nothing can have happened
                 return;
 
-            Vector2 upcomingPoint = UpcomingGridPoint(prevPosition); // using the last logged position
-            float timeToPoint = Vector2.Distance(prevPosition, upcomingPoint) / speed;
+            Vector2 upcomingPoint = UpcomingGridPoint(basePosition); // using the last logged position
+            float timeToPoint = Vector2.Distance(basePosition, upcomingPoint) / speed;
 
-            Vector2 newPos = prevPosition;
+            Vector2 newPos = basePosition;
             Heading newHead = heading;
 
             // Note that this assumes that secs < timeToCrossAGrid
@@ -224,7 +224,7 @@ namespace BeamBackend
         {
             pendingTurn = TurnDir.kUnset;
             heading = head;
-            prevPosition = pos;
+            basePosition = pos;
             timeAtPosition = apianTime;
             logger.Verbose($"_updatePosition() Bike: {bikeId}, Pos: {pos.ToString()} Head: {heading.ToString()}");
         }
@@ -361,10 +361,10 @@ namespace BeamBackend
 
        //      logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {curTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
 
-            if ( !prevPosition.Equals(posFromCmd))
-                logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {prevPosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
+            if ( !basePosition.Equals(posFromCmd))
+                logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {basePosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
 
-            prevPosition = posFromCmd;
+            basePosition = posFromCmd;
             timeAtPosition = timeStamp;
             heading = cmdHead;
 

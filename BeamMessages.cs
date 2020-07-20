@@ -33,8 +33,8 @@ namespace BeamBackend
             public BikeState(IBike ib)
             {
                 score = ib.score;
-                xPos = ib.prevPosition.x;
-                yPos = ib.prevPosition.y;
+                xPos = ib.basePosition.x;
+                yPos = ib.basePosition.y;
                 heading = ib.heading;
                 speed = ib.speed;
             }
@@ -145,8 +145,8 @@ namespace BeamBackend
             score = ib.score;
             ctrlType = ib.ctrlType;
             timeAtPos = ib.timeAtPosition;
-            xPos = ib.prevPosition.x;
-            yPos = ib.prevPosition.y;
+            xPos = ib.basePosition.x;
+            yPos = ib.basePosition.y;
             heading = ib.heading;
         }
 
