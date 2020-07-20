@@ -141,7 +141,7 @@ namespace BeamBackend
         public Vector2 Position(long curMs)
         {
             float deltaSecs = (curMs - timeAtPosition) * .001f;
-            return prevPosition +  GameConstants.UnitOffset2ForHeading(heading) * deltaSecs;
+            return prevPosition +  GameConstants.UnitOffset2ForHeading(heading) * (deltaSecs * speed);
         }
 
         public void Loop(long apianTime)
