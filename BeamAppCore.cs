@@ -148,6 +148,20 @@ namespace BeamBackend
             UpdateFrameTime(timeStamp);
             CoreData = BeamCoreState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
 
+            foreach (BeamPlayer p in CoreData.Players.Values)
+            {
+                if (p.PeerId == LocalPeerId )
+                    LocalPlayer = p;
+                PlayerJoinedEvt.Invoke(this, new PlayerJoinedArgs(CurrentGameId, p));
+            }
+
+            foreach (IBike ib in CoreData.Bikes.Values)
+                NewBikeEvt?.Invoke(this, ib);
+
+
+            foreach (BeamPlace p in CoreData.activePlaces.Values)
+                CoreData.AnnounceNewPlace(p);  //
+
         }
 
         public void OnApianCommand(ApianCommand cmd)

@@ -177,21 +177,26 @@ namespace BeamBackend
                 .ToDictionary(p => p.bikeId);
 
             List<string> bikeIds = newBikes.Values.OrderBy(p => p.bikeId).Select((p) => p.bikeId).ToList(); // to replace array indices in places
-            List<BeamPlace> newPlaces = (sData[3] as JArray)
+            Dictionary<int, BeamPlace> newPlaces = (sData[3] as JArray)
                 .Select( s => BeamPlace.FromApianJson((string)s, bikeIds, newBikes))
-                .ToList();
+                .ToDictionary(p => p.PosHash);
+
 
             newState.Players = newPlayers;
             newState.Bikes = newBikes;
-            foreach (BeamPlace pl in newPlaces)
-                newState.SetupPlace(pl);
+            newState.activePlaces = newPlaces;
 
             newState.UpdateCommandSequenceNumber(seqNum);
 
             return newState;
         }
 
-        public BeamPlayer GetMember(string peerId)
+
+        //
+        // Player stuff
+        //
+
+        public BeamPlayer GetPlayer(string peerId)
         {
             try { return Players[peerId];} catch (KeyNotFoundException){ return null;}
         }
@@ -241,11 +246,19 @@ namespace BeamBackend
             return SetupPlace(p);
         }
 
+        public void AnnounceNewPlace(BeamPlace p )
+        {
+            // TODO: New Players and bikes get announced in appcore, especially since on
+            // deserialization CoreState gets created anew
+            // SHould all of this be in AppCore? Or should the stuff in AppCore be here?
+            SetupPlaceMarkerEvt?.Invoke(this,p);
+        }
+
         protected BeamPlace SetupPlace(BeamPlace p )
         {
             // This is so a list un un-serialized places can be added directly
             activePlaces[p.PosHash] = p;
-            SetupPlaceMarkerEvt?.Invoke(this,p);
+            AnnounceNewPlace(p);
             return p;
         }
 
