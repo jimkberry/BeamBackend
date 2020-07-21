@@ -13,7 +13,7 @@ namespace BeamBackend
 
     public class BeamAppCore : IBeamAppCore
     {
-        public event EventHandler<BeamCoreState> NewGameStateEvt;
+        public event EventHandler<BeamCoreState> NewCoreStateEvt;
         public event EventHandler<string> GroupJoinedEvt;
         public event EventHandler<PlayerJoinedArgs> PlayerJoinedEvt;
         public event EventHandler<PlayerLeftArgs> PlayerLeftEvt;
@@ -55,11 +55,7 @@ namespace BeamBackend
             logger = UniLogger.GetLogger("GameInstance");
             frontend = fep;
             CoreData = new BeamCoreState(frontend);
-            NewGameStateEvt?.Invoke(this, CoreData);
-
-            CoreData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
-            CoreData.PlaceClaimObsEvt += OnPlaceClaimObsEvt;
-            CoreData.PlaceHitObsEvt += OnPlaceHitObsEvt;
+            OnNewCoreState();
 
             commandHandlers = new  Dictionary<string, Action<BeamMessage>>()
             {
@@ -73,6 +69,15 @@ namespace BeamBackend
                 [BeamMessage.kPlaceHitMsg] = (msg) => this.OnPlaceHitCmd(msg as PlaceHitMsg),
                 [BeamMessage.kPlaceRemovedMsg] = (msg) => this.OnPlaceRemovedCmd(msg as PlaceRemovedMsg),
             };
+        }
+
+        protected void OnNewCoreState()
+        {
+            NewCoreStateEvt?.Invoke(this, CoreData);
+
+            CoreData.PlaceTimeoutEvt += OnPlaceTimeoutEvt;
+            CoreData.PlaceClaimObsEvt += OnPlaceClaimObsEvt;
+            CoreData.PlaceHitObsEvt += OnPlaceHitObsEvt;
         }
 
         //
@@ -147,6 +152,7 @@ namespace BeamBackend
 
             UpdateFrameTime(timeStamp);
             CoreData = BeamCoreState.FromApianSerialized(seqNum,  timeStamp,  stateHash,  serializedData);
+            OnNewCoreState(); // send NewCoreStateEvt
 
             foreach (BeamPlayer p in CoreData.Players.Values)
             {

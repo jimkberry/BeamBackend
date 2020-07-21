@@ -37,6 +37,7 @@ namespace BeamBackend
 
         // Events
         event EventHandler<string> GroupJoinedEvt;
+        event EventHandler<BeamCoreState> NewCoreStateEvt;
         event EventHandler PlayersClearedEvt;
         event EventHandler<IBike> NewBikeEvt;
         event EventHandler<BikeRemovedData> BikeRemovedEvt;
