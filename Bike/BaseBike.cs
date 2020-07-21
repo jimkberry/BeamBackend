@@ -10,27 +10,44 @@ namespace BeamBackend
 {
     public class BaseBike : IBike, IApianCoreData
     {
+        // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
         public const int kStartScore = 2000;
         public static readonly float length = 2.0f;
         public static readonly float defaultSpeed =  15.0f;
 
+        // Constant for bike lifetime
         public string bikeId {get; private set;}
         public string peerId {get; private set;}
         public string name {get; private set;}
         public Team team {get; private set;}
-        public int score {get; set;}
         public string ctrlType {get; private set;}
-        public Vector2 basePosition {get; private set;} = Vector2.zero; // always on the grid
-        public long timeAtPosition {get; private set;}
 
-        // NOTE: 2D position: x => east, y => north (in 3-space z is north and y is up)
-        public Heading heading { get; private set;} = Heading.kNorth;
+        // State vars
+        public int score {get; set;}
         public float speed { get; private set;} = 0;
+
+        // position and heading have both "base" entries and sometimes "optimistic" entries
+        // the idea is that if we locally see the time when a remote bike would pass by a grid point
+        // and we have a "pendingTurn" entry for it - we should go ahead and make use of that information
+        // rather than waiting for the place[Hit|Claimed]Command.
+        // On the other hand, if at about that time an ApianCheckpontRequest arrives we really want to
+        // be sending the base data, not the optimistic stuff, since otherwise the state hash won't be
+        // correct for that epoch
+
+
+        public long baseTime {get; private set;}
+        public Vector2 basePosition {get; private set;} = Vector2.zero; // always on the grid
+        public Heading baseHeading { get; private set;} = Heading.kNorth;
+        public TurnDir basePendingTurn { get; private set;} = TurnDir.kUnset; // set this and turn will start at next grid point
+
+        // TODO: If this works well, move these properties into a class
+        public long optTime {get; private set;}
+        public Vector2 optPosition {get; private set;} = Vector2.zero; // always on the grid
+        public Heading optHeading { get; private set;} = Heading.kNorth;
+        public TurnDir optPendingTurn { get; private set;} = TurnDir.kUnset; // set this and turn will start at next grid point
+
         public BeamCoreState gameData = null;
-
         public UniLogger logger;
-
-        public TurnDir pendingTurn { get; private set;} = TurnDir.kUnset; // set and turn will start at next grid point
 
 
         public BaseBike( BeamCoreState gData, string _id, string _peerId, string _name, Team _team, string ctrl, long initialTime, Vector2 initialPos, Heading head)
@@ -41,8 +58,8 @@ namespace BeamBackend
             name = _name;
             team = _team;
             basePosition = initialPos;
-            timeAtPosition = initialTime;
-            heading = head;
+            baseTime = initialTime;
+            baseHeading = head;
             ctrlType = ctrl;
             score = kStartScore;
             logger = UniLogger.GetLogger("BaseBike");
@@ -87,11 +104,11 @@ namespace BeamBackend
                     ctrlType,
                     (long)(basePosition.x * 1000f), // integer mm
                     (long)(basePosition.y * 1000f),
-                    timeAtPosition, // Do I need to round this? Shouldn't have to, but: _RoundToNearest(100, timeAtPoint);
-                    heading,
+                    baseTime, // Do I need to round this? Shouldn't have to, but: _RoundToNearest(100, timeAtPoint);
+                    baseHeading,
                     speed,
                     score,
-                    pendingTurn
+                    basePendingTurn
                  });
         }
 
@@ -124,7 +141,7 @@ namespace BeamBackend
 
             bb.speed = speed;
             bb.score = score;
-            bb.pendingTurn = pendingTurn;
+            bb.basePendingTurn = pendingTurn;
 
             return bb;
         }
@@ -140,8 +157,14 @@ namespace BeamBackend
 
         public Vector2 Position(long curMs)
         {
-            float deltaSecs = (curMs - timeAtPosition) * .001f;
-            return basePosition +  GameConstants.UnitOffset2ForHeading(heading) * (deltaSecs * speed);
+            if (optTime == 0)
+            {
+                // use base
+                float deltaSecs = (curMs - baseTime) * .001f;
+                return basePosition +  GameConstants.UnitOffset2ForHeading(baseHeading) * (deltaSecs * speed);
+            }
+            float deltaSecs2 = (curMs - optTime) * .001f;
+            return optPosition +  GameConstants.UnitOffset2ForHeading(optHeading) * (deltaSecs2 * speed);
         }
 
         public void Loop(long apianTime)
@@ -164,7 +187,7 @@ namespace BeamBackend
                 logger.Warn($"Actual State:\n{JsonConvert.SerializeObject(new BeamMessage.BikeState(this)) }");
 
             }
-            pendingTurn = dir;
+            basePendingTurn = dir;
         }
 
         public void ApplyCommand(BikeCommand cmd, Vector2 nextPt, long cmdTime)
@@ -188,10 +211,10 @@ namespace BeamBackend
 
         private void _checkPosition(long apianTime)
         {
-            if (timeAtPosition == 0) // TODO: get rid of this one the changeover is complete
+            if (baseTime == 0) // TODO: get rid of this one the changeover is complete
                 logger.Error($"_checkPosition() Bike: {bikeId} TimeAtPosition UNITITIALIZED!");
 
-            float secs = (apianTime - timeAtPosition) * .001f;
+            float secs = (apianTime - baseTime) * .001f;
 
             if (secs <= 0 || speed == 0) // nothing can have happened
                 return;
@@ -200,7 +223,7 @@ namespace BeamBackend
             float timeToPoint = Vector2.Distance(basePosition, upcomingPoint) / speed;
 
             Vector2 newPos = basePosition;
-            Heading newHead = heading;
+            Heading newHead = baseHeading;
 
             // Note that this assumes that secs < timeToCrossAGrid
             // TODO: should it handle longer times?
@@ -209,8 +232,8 @@ namespace BeamBackend
                 //logger.Verbose($"_checkPosition() Bike: {bikeId} MsToPoint: {(long)(timeToPoint*1000)}");
                 secs -= timeToPoint;
                 newPos =  upcomingPoint;
-                newHead = GameConstants.NewHeadForTurn(heading, pendingTurn);
-                DoAtGridPoint(upcomingPoint, heading, newHead, apianTime);
+                newHead = GameConstants.NewHeadForTurn(baseHeading, basePendingTurn);
+                DoAtGridPoint(upcomingPoint, baseHeading, newHead, apianTime);
 
                 // pre-entively update the next grid position
                 // There will be an observation reported arriving withte same data
@@ -222,11 +245,11 @@ namespace BeamBackend
 
         private void _updatePosition(Vector2 pos, Heading head,  long apianTime)
         {
-            pendingTurn = TurnDir.kUnset;
-            heading = head;
-            basePosition = pos;
-            timeAtPosition = apianTime;
-            logger.Verbose($"_updatePosition() Bike: {bikeId}, Pos: {pos.ToString()} Head: {heading.ToString()}");
+            optTime = apianTime;
+            optPendingTurn = TurnDir.kUnset;
+            optHeading = head;
+            optPosition = pos;
+            logger.Verbose($"_updatePosition() Bike: {bikeId}, Pos: {pos.ToString()} Head: {baseHeading.ToString()}");
         }
 
         // &&&&&&&&&&&&& remove
@@ -349,7 +372,7 @@ namespace BeamBackend
 
         public Vector2 UpcomingGridPoint(Vector2 basePos)
         {
-            return UpcomingGridPoint(basePos, heading);
+            return UpcomingGridPoint(basePos, baseHeading);
         }
 
         public void UpdatePosFromCommand(long timeStamp, long curTime, Vector2 posFromCmd, Heading cmdHead)
@@ -361,12 +384,14 @@ namespace BeamBackend
 
        //      logger.Verbose($"UpdatePosFromCmd():  Bike: {bikeId}, CurTime: {curTime}, CmdTime: {timeStamp} DeltaSecs: {deltaSecs}");
 
-            if ( !basePosition.Equals(posFromCmd))
-                logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {basePosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
+            //if ( !basePosition.Equals(posFromCmd))
+            //    logger.Info($"UpdatePosFromCmd(): *Conflict* Bike: {bikeId}, CurPos: {basePosition.ToString()}, CmdPos: {posFromCmd.ToString()}");
 
             basePosition = posFromCmd;
-            timeAtPosition = timeStamp;
-            heading = cmdHead;
+            baseTime = timeStamp;
+            baseHeading = cmdHead;
+            basePendingTurn = TurnDir.kUnset;
+            optTime = 0; // "unsets" the opt vars
 
         //     position = cmdPos;
 

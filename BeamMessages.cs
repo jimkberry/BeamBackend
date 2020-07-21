@@ -35,7 +35,7 @@ namespace BeamBackend
                 score = ib.score;
                 xPos = ib.basePosition.x;
                 yPos = ib.basePosition.y;
-                heading = ib.heading;
+                heading = ib.baseHeading;
                 speed = ib.speed;
             }
 
@@ -144,10 +144,10 @@ namespace BeamBackend
             team = ib.team;
             score = ib.score;
             ctrlType = ib.ctrlType;
-            timeAtPos = ib.timeAtPosition;
+            timeAtPos = ib.baseTime;
             xPos = ib.basePosition.x;
             yPos = ib.basePosition.y;
-            heading = ib.heading;
+            heading = ib.baseHeading;
         }
 
         public BikeCreateDataMsg() : base() {}
@@ -217,7 +217,7 @@ namespace BeamBackend
             bikeId = ib.bikeId;
             ownerPeer = ib.peerId;
             dir = _dir;
-            entryHead = ib.heading;
+            entryHead = ib.baseHeading;
             nextPtX = nextGridPt.x;
             nextPtZ = nextGridPt.y;
             bikeState = new BikeState(ib);
