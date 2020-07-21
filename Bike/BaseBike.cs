@@ -155,16 +155,27 @@ namespace BeamBackend
         //     _updatePosition(secs, frameTimeMs);
         // }
 
-        public Vector2 Position(long curMs)
+        // public Vector2 Position(long curMs)
+        // {
+        //     if (optTime == 0)
+        //     {
+        //         // use base
+        //         float deltaSecs = (curMs - baseTime) * .001f;
+        //         return basePosition +  GameConstants.UnitOffset2ForHeading(baseHeading) * (deltaSecs * speed);
+        //     }
+        //     float deltaSecs2 = (curMs - optTime) * .001f;
+        //     return optPosition +  GameConstants.UnitOffset2ForHeading(optHeading) * (deltaSecs2 * speed);
+        // }
+
+        public BikeDynState DynamicState(long curTimeMs)
         {
-            if (optTime == 0)
-            {
-                // use base
-                float deltaSecs = (curMs - baseTime) * .001f;
-                return basePosition +  GameConstants.UnitOffset2ForHeading(baseHeading) * (deltaSecs * speed);
-            }
-            float deltaSecs2 = (curMs - optTime) * .001f;
-            return optPosition +  GameConstants.UnitOffset2ForHeading(optHeading) * (deltaSecs2 * speed);
+            long gridTime = optTime == 0 ? baseTime : optTime;
+            Vector2 gridPos = optTime == 0 ? basePosition : optPosition;
+            Heading curHead = optTime == 0 ? baseHeading : optHeading;
+            float deltaSecs= (curTimeMs - gridTime) * .001f;
+            Vector2 bikePos =  gridPos +  GameConstants.UnitOffset2ForHeading(curHead) * (deltaSecs * speed);
+            TurnDir curPendingTurn = optTime == 0 ? basePendingTurn : optPendingTurn;
+            return new BikeDynState(bikePos, curHead, speed, score, curPendingTurn);
         }
 
         public void Loop(long apianTime)

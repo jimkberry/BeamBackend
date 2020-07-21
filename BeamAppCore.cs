@@ -307,10 +307,11 @@ namespace BeamBackend
 
        public void PostBikeTurn(IBike bike, TurnDir dir)
         {
-            Vector2 curPos = bike.Position(CurrentRunningGameTime); // TODO: Really?
-            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(curPos);
+            // This only comes from local AI and player - and "too close" is probably already caught by the bike controller
+            BikeDynState bs =  bike.DynamicState(CurrentRunningGameTime); // TODO: Really?
+            Vector2 nextPt = (bike as BaseBike).UpcomingGridPoint(bs.position);
 
-            float dx = Vector2.Distance(curPos, nextPt);
+            float dx = Vector2.Distance(bs.position, nextPt);
             if (dx < BaseBike.length * .5f)
                 logger.Warn($"PostBikeTurn(): Bike too close to turn: {dx} < {BaseBike.length * .5f}");
             else

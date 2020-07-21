@@ -208,8 +208,9 @@ namespace BeamBackend
 
         public IBike ClosestBike(long curTime, IBike thisBike)
         {
+            BikeDynState thisBikeState = thisBike.DynamicState(curTime);
             return Bikes.Count <= 1 ? null : Bikes.Values.Where(b => b != thisBike)
-                    .OrderBy(b => Vector2.Distance(b.Position(curTime), thisBike.Position(curTime))).First();
+                    .OrderBy(b => Vector2.Distance(b.DynamicState(curTime).position, thisBikeState.position)).First();
         }
 
         public List<IBike> LocalBikes(string peerId)
@@ -220,9 +221,10 @@ namespace BeamBackend
         public List<Vector2> CloseBikePositions(long curTime, IBike thisBike, int maxCnt)
         {
             // Todo: this is actually "current enemy pos"
+            BikeDynState thisBikeState = thisBike.DynamicState(curTime);
             return Bikes.Values.Where(b => b != thisBike)
-                .OrderBy(b => Vector2.Distance(b.Position(curTime), thisBike.Position(curTime))).Take(maxCnt) // IBikes
-                .Select(ob => ob.Position(curTime)).ToList();
+                .OrderBy(b => Vector2.Distance(b.DynamicState(curTime).position, thisBikeState.position)).Take(maxCnt) // IBikes
+                .Select(ob => ob.DynamicState(curTime).position).ToList(); // TODO: extract dynamic states rather than recalc? Maybe not?
         }
 
         // Places stuff
