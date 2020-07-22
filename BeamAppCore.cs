@@ -123,7 +123,7 @@ namespace BeamBackend
             logger.Info($"OnCheckpointCommand() seqNum: {seqNum}, timestamp: {timeStamp}, Now: {FrameApianTime}");
             CoreData.UpdateCommandSequenceNumber(seqNum);
             string stateJson = CoreData.ApianSerialized(new BeamCoreState.SerialArgs(seqNum, FrameApianTime, timeStamp));
-            logger.Info($"**** Checkpoint:\n{stateJson}\n************\n");
+            logger.Debug($"**** Checkpoint:\n{stateJson}\n************\n");
             apian.SendCheckpointState(FrameApianTime, seqNum, stateJson);
 
             // BeamGameState newState =  BeamGameState.FromApianSerialized(GameData, seqNum,  timeStamp,  "blahblah", stateJson);

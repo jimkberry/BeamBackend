@@ -241,16 +241,16 @@ namespace BeamBackend
             if (secs >= timeToPoint)
             {
                 //logger.Verbose($"_checkPosition() Bike: {bikeId} MsToPoint: {(long)(timeToPoint*1000)}");
-                secs -= timeToPoint;
+                long timeAtPoint = baseTime + (long)(timeToPoint*1000);
                 newPos =  upcomingPoint;
                 newHead = GameConstants.NewHeadForTurn(baseHeading, basePendingTurn);
-                DoAtGridPoint(upcomingPoint, baseHeading, newHead, apianTime);
+                DoAtGridPoint(upcomingPoint, baseHeading, newHead, timeAtPoint);
 
                 // pre-entively update the next grid position
                 // There will be an observation reported arriving withte same data
                 // but we're better off assuming it'll match and fixing it later than
                 // waiting for it
-                _updatePosition(newPos, newHead, apianTime);
+                _updatePosition(newPos, newHead, timeAtPoint);
             }
         }
 
